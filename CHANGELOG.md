@@ -1,0 +1,165 @@
+# Changelog
+
+All notable changes to the 2DAI SDK will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.4.0] - 2025-12-22
+
+### Added
+- **AI Image Upscale** - New methods for AI-powered image upscaling
+  - `upscaleImage(imageId, options)` - REST API upscaling with factor 2-4x
+  - `wsUpscaleImage(data)` - WebSocket upscaling for real-time operations
+  - New types: `UpscaleOptions`, `UpscaleResult`, `WsUpscaleRequest`, `WsUpscaleResponse`
+  - New constants: `UPSCALE_FACTOR` (MIN: 2, MAX: 4, DEFAULT: 2)
+
+- **Image Description (Vision)** - Analyze images with LLM
+  - Added `imageId` parameter to `TextGenerationOptions` for image analysis
+  - Added `imageId` parameter to `WsLlmRequest` for WebSocket image analysis
+  - Supports structured JSON output for image data extraction
+
+### Changed
+- Updated `WsRequestData` union type to include `WsUpscaleRequest`
+- Updated `WsResponseData` union type to include `WsUpscaleResponse`
+- Added `wsSend()` overload for `'generate_upscale'` type
+- Added `WS_TYPES.UPSCALE` constant for WebSocket message type
+
+## [1.3.0] - 2025-12-18
+
+### Added
+- **Full WebSocket Client** - Complete WebSocket implementation with all features
+  - `wsConnect()` - Connect to WebSocket server with authentication
+  - `wsGenerateImage()` - Generate images (text2img or img2img) via WebSocket
+  - `wsGenerateVideo()` - Generate videos from images via WebSocket
+  - `wsGenerateLlm()` - Generate text via LLM over WebSocket
+  - `wsIsConnected()` - Check WebSocket connection status
+  - `wsSend()` - Low-level WebSocket request method with request tracking
+
+- **WebSocket Auto-Reconnect** - Automatic reconnection with exponential backoff
+  - Configurable via `wsAutoReconnect`, `wsReconnectIntervalMs`, `wsMaxReconnectDelayMs` options
+  - Automatic retry of pending requests after reconnection
+
+- **WebSocket Keepalive** - Ping/pong mechanism to prevent connection timeouts
+  - Configurable via `wsPingIntervalMs` option (default: 30000ms)
+  - Prevents ALB/proxy idle timeout disconnections
+
+- **WebSocket Request Tracking** - Request/response correlation via `requestId`
+  - Each request gets unique ID for tracking
+  - Timeout handling for pending requests
+
+- **Image Resize for img2img** - New `width` and `height` parameters for image editing
+  - `editImage()` now accepts `width` (320-1344) and `height` (320-1344)
+  - `WsImg2ImgRequest` updated with `width`, `height`, and `negativePrompt`
+  - Response includes actual dimensions when custom size is used
+
+- **JSON Output in TextGenerationResult** - Added `json` field for parsed JSON
+  - When `jsonFormat: true`, response now includes both `response` (string) and `json` (parsed object)
+
+- **WebSocket Type Definitions** - New exported types
+  - `WsImageRequest`, `WsImg2ImgRequest`, `WsVideoRequest`, `WsLlmRequest`
+  - `WsImageResponse`, `WsVideoResponse`, `WsLlmResponse`
+  - `WsRequestData`, `WsResponseData` union types
+
+- **WebSocket Constants** - New constants for WebSocket configuration
+  - `WS_DEFAULTS` - Default values for WebSocket options
+  - `WS_TYPES` - WebSocket message type constants
+
+### Changed
+- `editImage()` signature changed from `Omit<..., 'format' | 'width' | 'height'>` to `Omit<..., 'format' | 'style'>` to allow width/height
+- `VALID_STYLE_IDS` and `VALID_FORMAT_IDS` now derived from STYLES/FORMATS objects
+- Removed `client.gen` property (use imported `STYLES` and `FORMATS` directly)
+
+### Testing
+- Added img2img resize tests (REST and WebSocket)
+- Added new test script: `npm run test:ws:client` for WebSocket client tests
+- Added `websocket.client.test.ts` for client-specific WebSocket tests
+
+## [1.2.0] - 2025-12-17
+
+### Added
+- **Video Frame Extraction** - Extract frames from videos at specific timestamps
+  - Use `?seek=<ms>` query parameter on CDN URLs to extract frames
+  - Supports JPG and PNG output formats
+  - Can be combined with resize (`?w=256&h=256`) and watermark options
+  - Example: `/cdn/{videoId}.jpg?seek=1500` extracts frame at 1.5 seconds
+- **WatermarkPosition Constants** - Type-safe watermark positioning
+  - Sharp gravity constants: `center`, `northwest`, `north`, `northeast`, `west`, `east`, `southwest`, `south`, `southeast`
+  - Human-readable alternatives: `top-left`, `top-center`, `top-right`, `middle-left`, `middle-center`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`
+- **Video Metadata** - Enhanced video generation response
+  - `duration` - Video duration in seconds (matches requested)
+  - `fps` - Video frame rate (matches requested)
+
+### Testing
+- Added Video Frame Extraction test suite (5 tests)
+- Added Watermark Position Constants test suite
+- Added Video Metadata verification tests
+- New test helper: `saveFrameFromCDN()` for saving extracted frames
+- New test config options: `TEST_VIDEO_ID`, `TEST_WATERMARK_ID`
+
+## [1.1.0] - 2024-12-14
+
+### Changed
+- **Style Update**: Replaced `legacy` style with new `text` style
+  - New style: `STYLES.text` - "Text & Clarity" optimized for text rendering
+  - Removed style: `STYLES.legacy` - Legacy 2DAI generation (deprecated)
+- Updated style presets to match Gen6 bot improvements
+
+### Fixed
+- Fixed typo in style name: `fashon` → `fashion`
+
+### Migration
+- Replace `STYLES.legacy` with `STYLES.text` or another style of your choice
+- The `text` style is optimized for images containing text with improved clarity
+
+## [1.0.3] - 2025-12-12
+
+### Added
+- **Markdown Formatting Support** - New `useMarkdown` option for LLM text generation
+  - When enabled, responses include markdown formatting (headers, bullet points, code blocks)
+  - Works with both REST API and WebSocket connections
+  - Default: `false` (plain text responses)
+
+### Testing
+- Added markdown formatting tests to REST LLM test suite
+- Added markdown formatting tests to WebSocket LLM test suite
+
+## [1.0.2] - 2025-12-11
+
+### Fixed
+- Fixed JSON format responses returning empty string when `jsonFormat: true` is used
+- LLM responses now correctly return stringified JSON when the `json` field is present in the API response
+
+## [1.0.1] - 2024-12-09
+
+### Added
+- GIF file format support (`.gif`) for CDN operations
+- Enhanced watermark debug logging for troubleshooting
+
+### Documentation
+- Added supported file formats list to README (`.jpg`, `.jpeg`, `.png`, `.gif`, `.mp4`)
+
+## [1.0.0] - 2024-01-15
+
+### Added
+- Initial public release of 2dai-sdk
+- Text-to-image generation with 12 style presets
+- Image-to-image editing with strength control
+- Image-to-video generation
+- LLM text generation with memory and JSON format support
+- 7 format presets for different aspect ratios
+- WebSocket and REST API support
+- Built-in rate limiting
+- Watermarking support
+- TypeScript type definitions
+- Comprehensive test suite
+
+### Changed
+- Responses now only include `imageId` and `videoId`
+- Users must construct CDN URLs manually: `https://api.2dai.io:800/api/v1/cdn/${id}.jpg`
+- This change improves security and flexibility
+
+### Security
+- API keys are now validated server-side
+- Removed internal CDN structure from client responses
+- Added proper error handling for authentication failures
