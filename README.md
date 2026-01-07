@@ -60,7 +60,12 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 
 ## What's New
 
-### v1.4.0 (Latest)
+### v1.4.2 (Latest)
+
+- **npm Publishing** - Set up GitHub Actions for automated npm publishing with provenance
+- **Documentation** - Updated package links and badges
+
+### v1.4.0
 
 - **AI Image Upscale** - New upscale methods for AI-powered image upscaling
   - `upscaleImage()` - REST API upscaling with factor 2-4x
