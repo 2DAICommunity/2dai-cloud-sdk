@@ -980,22 +980,6 @@ type WatermarkPosition =
 
 ---
 
-## Rate Limits
-
-Default rate limits per API key:
-
-| Operation | 15-Min Window | Daily Limit |
-|-----------|--------------|-------------|
-| Image Generation | 150 requests | 1,000 requests |
-| Video Generation | 30 requests | 200 requests |
-| LLM | 300 requests | 1,000 requests |
-| LLM Tokens | 1,500,000 tokens | 5,000,000 tokens |
-| CDN | 1,500 requests | 10,000 requests |
-
-Custom rate limits can be configured per API key.
-
----
-
 ## Best Practices
 
 ### 1. Check Rate Limits Before Batch Operations
