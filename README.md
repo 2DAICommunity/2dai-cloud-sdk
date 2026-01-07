@@ -1,10 +1,10 @@
 # 2dai-sdk
 
-Official TypeScript/JavaScript SDK for 2DAI AI Generation API
+Official TypeScript/JavaScript SDK for 2DAI.io Cloud AI Generation API
 
 Generate images, videos, and text using state-of-the-art AI models through a simple and intuitive API.
 
-[![Version](https://img.shields.io/badge/version-1.4.0-blue)](.)
+[![Version](https://img.shields.io/badge/version-1.4.1-blue)](.)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](.)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green)](.)
 
@@ -15,6 +15,7 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 - [Features](#features)
 - [What's New](#whats-new)
 - [Installation](#installation)
+- [Getting an API Key](#getting-an-api-key)
 - [Quick Start](#quick-start)
 - [Documentation](#documentation)
   - [Initialization](#initialization)
@@ -133,6 +134,21 @@ or
 ```bash
 yarn add 2dai-sdk
 ```
+
+---
+
+## Getting an API Key
+
+To use this SDK, you need an API key.
+
+**Request Access:**
+1. Fill out the [API Access Request Form](https://forms.gle/TdQ8Wu3zpegvAwVg9)
+2. We'll review your request within 24-48 hours
+3. Once approved, you'll receive your API key via email
+
+**Contact:**
+- Twitter/X: [@2DAICommunity](https://x.com/2DAICommunity)
+- Telegram: [Token2dAI](https://t.me/Token2dAI)
 
 ---
 

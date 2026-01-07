@@ -1,6 +1,6 @@
 {
   "name": "2dai-sdk",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Official 2DAI SDK - Multimodal AI for autonomous image/video generation, vision analysis and agentic LLM workflows",
   "keywords": [
     "2dai",
@@ -15,6 +15,14 @@
   ],
   "author": "2DAI",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2DAICommunity/2dai-cloud-sdk.git"
+  },
+  "homepage": "https://github.com/2DAICommunity/2dai-cloud-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/2DAICommunity/2dai-cloud-sdk/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [

@@ -22,6 +22,9 @@ Thumbs.db
 test.env
 tests/test.env
 
+# NPM credentials
+.npmrc
+
 # IDE
 .idea/
 .vscode/
