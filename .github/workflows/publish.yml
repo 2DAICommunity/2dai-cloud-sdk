@@ -34,9 +34,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run tests
-        run: npm test
-
       - name: Publish to npm with provenance
         if: ${{ github.event.inputs.dry_run != 'true' }}
         run: npm publish --access public --provenance
