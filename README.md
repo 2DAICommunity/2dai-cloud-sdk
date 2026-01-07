@@ -1,11 +1,11 @@
-# 2dai-sdk
+# 2dai-cloud-sdk
 
 Official TypeScript/JavaScript SDK for 2DAI.io Cloud AI Generation API
 
 Generate images, videos, and text using state-of-the-art AI models through a simple and intuitive API.
 
-[![npm version](https://img.shields.io/npm/v/2dai-sdk.svg)](https://www.npmjs.com/package/2dai-sdk)
-[![npm downloads](https://img.shields.io/npm/dm/2dai-sdk.svg)](https://www.npmjs.com/package/2dai-sdk)
+[![npm version](https://img.shields.io/npm/v/2dai-cloud-sdk.svg)](https://www.npmjs.com/package/2dai-cloud-sdk)
+[![npm downloads](https://img.shields.io/npm/dm/2dai-cloud-sdk.svg)](https://www.npmjs.com/package/2dai-cloud-sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -128,13 +128,13 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 ## Installation
 
 ```bash
-npm install 2dai-sdk
+npm install 2dai-cloud-sdk
 ```
 
 or
 
 ```bash
-yarn add 2dai-sdk
+yarn add 2dai-cloud-sdk
 ```
 
 ---
@@ -157,7 +157,7 @@ To use this SDK, you need an API key.
 ## Quick Start
 
 ```typescript
-import { createClient, STYLES, FORMATS } from '2dai-sdk';
+import { createClient, STYLES, FORMATS } from '2dai-cloud-sdk';
 
 // Initialize the client
 const client = createClient('2dai_pk_your_api_key_here');
@@ -191,7 +191,7 @@ await client.close();
 ### Initialization
 
 ```typescript
-import { createClient } from '2dai-sdk';
+import { createClient } from '2dai-cloud-sdk';
 
 const client = createClient('2dai_pk_your_api_key_here', {
   baseUrl: 'https://apiv2.2dai.io:800',  // Optional, defaults to production
@@ -205,7 +205,7 @@ const client = createClient('2dai_pk_your_api_key_here', {
 #### Generate from Text Prompt
 
 ```typescript
-import { STYLES, FORMATS } from '2dai-sdk';
+import { STYLES, FORMATS } from '2dai-cloud-sdk';
 
 const result = await client.generateImage({
   prompt: 'a cyberpunk cityscape at night with neon lights',
@@ -232,7 +232,7 @@ console.log(`Access image at: ${imageUrl}`);
 #### Available Styles
 
 ```typescript
-import { STYLES } from '2dai-sdk';
+import { STYLES } from '2dai-cloud-sdk';
 
 STYLES.raw         // Raw Gen6 defaults
 STYLES.realistic   // Realistic 2DAI generation
@@ -251,7 +251,7 @@ STYLES.paint       // Gen6 Paint
 #### Available Formats
 
 ```typescript
-import { FORMATS } from '2dai-sdk';
+import { FORMATS } from '2dai-cloud-sdk';
 
 FORMATS.portrait    // 9:16 vertical (768x1344)
 FORMATS.landscape   // 16:9 horizontal (1344x768)
@@ -319,7 +319,7 @@ When resizing images to different dimensions, the `resizePad` option controls ho
 AI-powered image upscaling. No user prompt needed.
 
 ```typescript
-import { UPSCALE_FACTOR } from '2dai-sdk';
+import { UPSCALE_FACTOR } from '2dai-cloud-sdk';
 
 // Upscale an image (REST API)
 const upscaled = await client.upscaleImage('550e8400-e29b-41d4-a716-446655440000', {
@@ -348,7 +348,7 @@ await client.close();
 #### Upscale Factor Limits
 
 ```typescript
-import { UPSCALE_FACTOR } from '2dai-sdk';
+import { UPSCALE_FACTOR } from '2dai-cloud-sdk';
 
 UPSCALE_FACTOR.MIN     // 2
 UPSCALE_FACTOR.MAX     // 4
@@ -684,7 +684,7 @@ const client = createClient('2dai_pk_your_api_key_here', {
 ### Example 1: Generate Image with Watermark and Download
 
 ```typescript
-import { createClient, STYLES, FORMATS } from '2dai-sdk';
+import { createClient, STYLES, FORMATS } from '2dai-cloud-sdk';
 import axios from 'axios';
 import fs from 'fs';
 
@@ -724,7 +724,7 @@ generateAndDownload();
 ### Example 2: Generate Video and Extract GIF Frame
 
 ```typescript
-import { createClient, STYLES, FORMATS } from '2dai-sdk';
+import { createClient, STYLES, FORMATS } from '2dai-cloud-sdk';
 import axios from 'axios';
 import fs from 'fs';
 
@@ -777,7 +777,7 @@ generateVideoAndExtractFrame();
 ### Example 3: LLM with Memory and JSON Output
 
 ```typescript
-import { createClient } from '2dai-sdk';
+import { createClient } from '2dai-cloud-sdk';
 
 const client = createClient('2dai_pk_your_api_key_here');
 
@@ -823,7 +823,7 @@ chatWithMemory();
 ### Example 4: Batch Image Generation with Rate Limit Checking
 
 ```typescript
-import { createClient, STYLES } from '2dai-sdk';
+import { createClient, STYLES } from '2dai-cloud-sdk';
 
 const client = createClient('2dai_pk_your_api_key_here');
 
@@ -1012,7 +1012,7 @@ if (remaining && remaining < batchSize) {
 ### 2. Use Appropriate Styles for Your Use Case
 
 ```typescript
-import { STYLES } from '2dai-sdk';
+import { STYLES } from '2dai-cloud-sdk';
 
 // For realistic photos
 STYLES.realistic.id

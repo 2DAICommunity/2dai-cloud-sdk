@@ -142,7 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-01-15
 
 ### Added
-- Initial public release of 2dai-sdk
+- Initial public release of 2dai-cloud-sdk
 - Text-to-image generation with 12 style presets
 - Image-to-image editing with strength control
 - Image-to-video generation
