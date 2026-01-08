@@ -24,6 +24,8 @@ export {
   WatermarkOptions,
   WatermarkPosition,
   CDNFileMetadata,
+  CDNDownloadOptions,
+  CDNDownloadResult,
   APIError,
   RateLimitInfo,
   APIKeySettings,

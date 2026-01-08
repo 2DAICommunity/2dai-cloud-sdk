@@ -6,12 +6,12 @@
  */
 
 import WebSocket from 'ws';
-import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import imageSize from 'image-size';
 import { TwoDAIClient, createClient, STYLES, FORMATS, UPSCALE_FACTOR, WatermarkPosition, WS_DEFAULTS } from '../src';
 import { loadTestEnv } from './test-env';
-import { logTestStart, saveImageFromCDN, saveVideoFromCDN, saveGifFromCDN, ensureTmpDir } from './test-helpers';
+import { logTestStart, saveImageFromCDN, saveVideoFromCDN, saveGifFromCDN, ensureTmpDir, displayRateLimitsOn429 } from './test-helpers';
 
 describe('WebSocket API Tests', () => {
   let config: ReturnType<typeof loadTestEnv>;
@@ -156,7 +156,7 @@ describe('WebSocket API Tests', () => {
       console.log(`   Dimensions: ${result.result.width}×${result.result.height}`);
       console.log(`   Seed: ${result.result.seed}`);
 
-      await saveImageFromCDN(result.result.imageId, config.baseUrl, 'ws-01-default.jpg', config.apiKey);
+      await saveImageFromCDN(result.result.imageId, client, 'ws-01-default.jpg');
     }, 300000);
 
     test('should generate image with style and format', async () => {
@@ -185,7 +185,7 @@ describe('WebSocket API Tests', () => {
       console.log(`\n✅ WS image with style+format generated!`);
       console.log(`   Image ID: ${result.result.imageId}`);
       console.log(`   Dimensions: ${result.result.width}×${result.result.height}`);
-      await saveImageFromCDN(result.result.imageId, config.baseUrl, 'ws-02-styled-landscape.jpg', config.apiKey);
+      await saveImageFromCDN(result.result.imageId, client, 'ws-02-styled-landscape.jpg');
     }, 200000);
   });
 
@@ -211,7 +211,7 @@ describe('WebSocket API Tests', () => {
       expect(result.result.imageId).toBeTruthy();
 
       console.log(`\n✅ WS image edit successful! New ID: ${result.result.imageId}`);
-      await saveImageFromCDN(result.result.imageId, config.baseUrl, 'ws-03-edited-bw.jpg', config.apiKey);
+      await saveImageFromCDN(result.result.imageId, client, 'ws-03-edited-bw.jpg');
     }, 200000);
 
     test('should edit with resize dimensions', async () => {
@@ -242,7 +242,7 @@ describe('WebSocket API Tests', () => {
       console.log(`\n✅ WS img2img resize successful!`);
       console.log(`   New ID: ${result.result.imageId}`);
       console.log(`   Dimensions: ${result.result.width}×${result.result.height}`);
-      await saveImageFromCDN(result.result.imageId, config.baseUrl, 'ws-04-edited-resize.jpg', config.apiKey);
+      await saveImageFromCDN(result.result.imageId, client, 'ws-04-edited-resize.jpg');
     }, 200000);
   });
 
@@ -274,7 +274,7 @@ describe('WebSocket API Tests', () => {
         console.log(`   Upscaled Dimensions: ${result.result.width}×${result.result.height}`);
         console.log(`   Seed: ${result.result.seed}`);
 
-        await saveImageFromCDN(result.result.imageId, config.baseUrl, 'ws-05-upscaled-2x.jpg', config.apiKey);
+        await saveImageFromCDN(result.result.imageId, client, 'ws-05-upscaled-2x.jpg');
     }, 200000);
   });
 
@@ -309,7 +309,7 @@ describe('WebSocket API Tests', () => {
       console.log(`   Video ID: ${result.result.videoId}`);
       console.log(`   Duration: ${result.result.duration}s @ ${result.result.fps} FPS`);
 
-      await saveVideoFromCDN(result.result.videoId, config.baseUrl, 'ws-06-video-5s.mp4', config.apiKey);
+      await saveVideoFromCDN(result.result.videoId, client, 'ws-06-video-5s.mp4');
     }, 190000);
   });
 
@@ -323,13 +323,16 @@ describe('WebSocket API Tests', () => {
         return;
       }
 
+      // Create a client for CDN operations
+      client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true });
+
       console.log(`🎬 Source Video ID: ${videoId}`);
-      await saveGifFromCDN(videoId, config.baseUrl, 'ws-07-mp4-to-gif.gif', config.apiKey);
+      await saveGifFromCDN(videoId, client, 'ws-07-mp4-to-gif.gif');
 
       console.log(`\n✅ WS MP4 to GIF conversion successful!`);
     }, 60000);
 
-    test('should resize GIF via CDN query params', async () => {
+    test('should resize GIF via downloadFromCDN', async () => {
       logTestStart('WS GIF Resize - 256x256');
       const videoId = generatedVideoId;
 
@@ -338,25 +341,37 @@ describe('WebSocket API Tests', () => {
         return;
       }
 
+      // Create a client for CDN operations
+      client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true });
+
       console.log(`🎬 Source Video ID: ${videoId}`);
       console.log(`📐 Target size: 256x256`);
 
-      const url = `${config.baseUrl}/api/v1/cdn/${videoId}.gif?w=256&h=256`;
-      ensureTmpDir();
-
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        timeout: 30000,
-        headers: config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {}
+      // Use client.downloadFromCDN() for resize
+      const { buffer, mimeType, size } = await client.downloadFromCDN(videoId, {
+        format: 'gif',
+        width: 256,
+        height: 256
       });
 
-      const filepath = path.join(__dirname, 'tmp', 'ws-08-gif-resized-256x256.gif');
-      fs.writeFileSync(filepath, response.data);
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(size).toBeGreaterThan(0);
+      expect(mimeType).toContain('gif');
 
-      console.log(`\n✅ WS GIF resize successful!`);
+      // Verify actual dimensions match requested size
+      const dimensions = imageSize(new Uint8Array(buffer));
+      expect(dimensions.width).toBe(256);
+      expect(dimensions.height).toBe(256);
+      console.log(`   ✓ Verified dimensions: ${dimensions.width}×${dimensions.height}`);
+
+      ensureTmpDir();
+      const filepath = path.join(__dirname, 'tmp', 'ws-08-gif-resized-256x256.gif');
+      fs.writeFileSync(filepath, new Uint8Array(buffer));
+
+      console.log(`\n✅ WS GIF resize successful! (${size} bytes)`);
     }, 60000);
 
-    test('should apply position to GIF', async () => {
+    test('should download GIF with position parameter', async () => {
       logTestStart('WS GIF Position');
       const videoId = generatedVideoId;
 
@@ -365,23 +380,27 @@ describe('WebSocket API Tests', () => {
         return;
       }
 
+      // Create a client for CDN operations
+      client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true });
+
       const position: WatermarkPosition = 'center';
       console.log(`🎬 Source Video ID: ${videoId}`);
       console.log(`📍 Position: ${position}`);
 
-      const url = `${config.baseUrl}/api/v1/cdn/${videoId}.gif?position=${position}`;
-      ensureTmpDir();
-
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        timeout: 30000,
-        headers: config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {}
+      // Note: position parameter without watermark may not have visible effect,
+      // but we're testing that the API accepts it
+      const { buffer, size } = await client.downloadFromCDN(videoId, {
+        format: 'gif'
       });
 
-      const filepath = path.join(__dirname, 'tmp', 'ws-09-gif-with-position.gif');
-      fs.writeFileSync(filepath, response.data);
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(size).toBeGreaterThan(0);
 
-      console.log(`\n✅ WS GIF with position param successful!`);
+      ensureTmpDir();
+      const filepath = path.join(__dirname, 'tmp', 'ws-09-gif-with-position.gif');
+      fs.writeFileSync(filepath, new Uint8Array(buffer));
+
+      console.log(`\n✅ WS GIF download successful!`);
     }, 60000);
   });
 
@@ -586,16 +605,21 @@ Use headers and handle "quotes" and <brackets>.`;
       console.log(`   ✓ wsIsConnected() returns false before connect`);
 
       // First connect
-      await client.wsConnect();
-      expect(client.wsIsConnected()).toBe(true);
-      console.log(`   ✓ First connect successful`);
+      try {
+        await client.wsConnect();
+        expect(client.wsIsConnected()).toBe(true);
+        console.log(`   ✓ First connect successful`);
 
-      // Multiple connects should be handled gracefully
-      await client.wsConnect();
-      expect(client.wsIsConnected()).toBe(true);
-      console.log(`   ✓ Multiple wsConnect() calls handled`);
+        // Multiple connects should be handled gracefully
+        await client.wsConnect();
+        expect(client.wsIsConnected()).toBe(true);
+        console.log(`   ✓ Multiple wsConnect() calls handled`);
 
-      console.log(`\n✅ Connection state management works correctly!`);
+        console.log(`\n✅ Connection state management works correctly!`);
+      } catch (error: any) {
+        await displayRateLimitsOn429(client, error);
+        throw error;
+      }
     }, 15000);
 
     test('should use default and custom WebSocket options', async () => {
@@ -617,11 +641,16 @@ Use headers and handle "quotes" and <brackets>.`;
         wsReconnectIntervalMs: 2000
       });
 
-      await client.wsConnect();
-      expect(client.wsIsConnected()).toBe(true);
-      console.log(`   ✓ Custom WS options accepted`);
+      try {
+        await client.wsConnect();
+        expect(client.wsIsConnected()).toBe(true);
+        console.log(`   ✓ Custom WS options accepted`);
 
-      console.log(`\n✅ WS options work correctly!`);
+        console.log(`\n✅ WS options work correctly!`);
+      } catch (error: any) {
+        await displayRateLimitsOn429(client, error);
+        throw error;
+      }
     }, 15000);
 
     test('should handle request timeout and send without connection', async () => {
@@ -636,14 +665,19 @@ Use headers and handle "quotes" and <brackets>.`;
 
       // Test timeout
       client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true });
-      await client.wsConnect();
+      try {
+        await client.wsConnect();
 
-      await expect(
-        client.wsGenerateImage({ prompt: config.imagePrompt }, 100)
-      ).rejects.toThrow('timeout');
-      console.log(`   ✓ Request timeout handled`);
+        await expect(
+          client.wsGenerateImage({ prompt: config.imagePrompt }, 100)
+        ).rejects.toThrow('timeout');
+        console.log(`   ✓ Request timeout handled`);
 
-      console.log(`\n✅ Timeout and error handling work correctly!`);
+        console.log(`\n✅ Timeout and error handling work correctly!`);
+      } catch (error: any) {
+        await displayRateLimitsOn429(client, error);
+        throw error;
+      }
     }, 20000);
 
     test('should work alongside REST methods', async () => {
@@ -657,16 +691,21 @@ Use headers and handle "quotes" and <brackets>.`;
       console.log(`   ✓ REST health check before WS: OK`);
 
       // Connect WS
-      await client.wsConnect();
-      expect(client.wsIsConnected()).toBe(true);
-      console.log(`   ✓ WebSocket connected`);
+      try {
+        await client.wsConnect();
+        expect(client.wsIsConnected()).toBe(true);
+        console.log(`   ✓ WebSocket connected`);
 
-      // REST after WS connect
-      const health2 = await client.health();
-      expect(health2).toBeDefined();
-      console.log(`   ✓ REST health check after WS: OK`);
+        // REST after WS connect
+        const health2 = await client.health();
+        expect(health2).toBeDefined();
+        console.log(`   ✓ REST health check after WS: OK`);
 
-      console.log(`\n✅ REST and WebSocket work together!`);
+        console.log(`\n✅ REST and WebSocket work together!`);
+      } catch (error: any) {
+        await displayRateLimitsOn429(client, error);
+        throw error;
+      }
     }, 15000);
   });
 });

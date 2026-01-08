@@ -15,6 +15,8 @@ import {
   TextGenerationResult,
   UpscaleOptions,
   UpscaleResult,
+  CDNDownloadOptions,
+  CDNDownloadResult,
   APIKeySettings,
   RateLimitInfo,
   APIError,
@@ -366,6 +368,84 @@ export class TwoDAIClient {
     } catch (error: any) {
       throw new Error(`Failed to check health: ${error.message}`);
     }
+  }
+
+  /**
+   * Download content from CDN
+   * Works with both images and videos
+   *
+   * @param id - CDN file ID (imageId or videoId)
+   * @param options - Optional download options (format, resize, watermark, seek)
+   * @returns CDNDownloadResult with buffer, mimeType, and size
+   *
+   * @example
+   * ```typescript
+   * // Download image as buffer
+   * const { buffer } = await client.downloadFromCDN(imageId);
+   * fs.writeFileSync('image.jpg', buffer);
+   *
+   * // Download with format conversion
+   * const { buffer } = await client.downloadFromCDN(imageId, { format: 'png' });
+   *
+   * // Download with resize
+   * const { buffer } = await client.downloadFromCDN(imageId, { width: 256, height: 256 });
+   *
+   * // Download video
+   * const { buffer } = await client.downloadFromCDN(videoId, { format: 'mp4' });
+   *
+   * // Extract frame from video at 5 seconds
+   * const { buffer } = await client.downloadFromCDN(videoId, { format: 'jpg', seek: 5000 });
+   * ```
+   */
+  async downloadFromCDN(id: string, options?: CDNDownloadOptions): Promise<CDNDownloadResult> {
+    const format = options?.format || 'jpg';
+    this.log('Downloading from CDN', { id, format, options });
+
+    // Build URL with query parameters
+    let url = `/api/v1/cdn/${id}.${format}`;
+    const params: string[] = [];
+
+    if (options?.width) params.push(`w=${options.width}`);
+    if (options?.height) params.push(`h=${options.height}`);
+    if (options?.watermark) params.push(`watermark=${options.watermark}`);
+    if (options?.watermarkPosition) params.push(`position=${options.watermarkPosition}`);
+    if (options?.seek !== undefined) params.push(`seek=${options.seek}`);
+
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
+
+    try {
+      const response = await this.axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: format === 'mp4' ? 120000 : 60000  // Longer timeout for videos
+      });
+
+      const buffer = Buffer.from(response.data);
+      const mimeType = response.headers['content-type'] || this.getMimeType(format);
+      const size = buffer.length;
+
+      this.log('CDN download complete', { size, mimeType });
+
+      return { buffer, mimeType, size };
+    } catch (error: any) {
+      this.log('CDN download error', error.message);
+      throw new Error(`Failed to download from CDN: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get MIME type from format extension
+   */
+  private getMimeType(format: string): string {
+    const mimeTypes: Record<string, string> = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'mp4': 'video/mp4'
+    };
+    return mimeTypes[format] || 'application/octet-stream';
   }
 
   // ============================================================================

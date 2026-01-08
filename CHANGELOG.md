@@ -5,6 +5,23 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-01-07
+
+### Added
+- **CDN Download Method** - New `downloadFromCDN()` method for downloading images and videos
+  - Downloads content with automatic Bearer token authentication
+  - Supports format conversion (jpg, png, gif, mp4)
+  - Supports resize with `width` and `height` options
+  - Supports watermarking with `watermark` and `watermarkPosition` options
+  - Supports video frame extraction with `seek` option (milliseconds)
+  - Returns `{ buffer, mimeType, size }`
+- New types: `CDNDownloadOptions`, `CDNDownloadResult`
+
+### Changed
+- Updated CDN documentation to clarify that CDN URLs require Bearer token authentication
+- Added "Downloading Content" section with `downloadFromCDN()` examples
+- Renamed "Downloading Files" to "Manual Download with Axios" for manual axios usage
+
 ## [1.4.2] - 2026-01-06
 
 ### Changed

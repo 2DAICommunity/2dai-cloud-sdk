@@ -34,7 +34,6 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 - [API Reference](#api-reference)
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
-- [Migration Guide](#migration-guide)
 
 ---
 
@@ -60,7 +59,12 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 
 ## What's New
 
-### v1.4.2 (Latest)
+### v1.5.0 (Latest)
+
+- **CDN Download Method** - New `downloadFromCDN()` method for downloading images and videos with automatic authentication
+- **CDN Auth Documentation** - Updated documentation to clarify that CDN URLs require Bearer token authentication
+
+### v1.4.2
 
 - **npm Publishing** - Set up GitHub Actions for automated npm publishing with provenance
 - **Documentation** - Updated package links and badges
@@ -174,9 +178,7 @@ const image = await client.generateImage({
   format: FORMATS.landscape.id
 });
 
-// Construct CDN URL from image ID
-const imageUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${image.imageId}.jpg`;
-console.log(`Image URL: ${imageUrl}`);
+console.log(`Generated image ID: ${image.imageId}`);
 
 // Or use WebSocket for real-time generation
 await client.wsConnect();
@@ -199,9 +201,8 @@ await client.close();
 import { createClient } from '2dai-cloud-sdk';
 
 const client = createClient('2dai_pk_your_api_key_here', {
-  baseUrl: 'https://apiv2.2dai.io:800',  // Optional, defaults to production
-  timeout: 300000,                        // Optional, 5 minutes default
-  debug: false                            // Optional, enable debug logging
+  timeout: 300000,  // Optional, 5 minutes default
+  debug: false      // Optional, enable debug logging
 });
 ```
 
@@ -228,10 +229,6 @@ console.log(result);
 //   height: 768,
 //   seed: 12345
 // }
-
-// Construct CDN URL from imageId
-const imageUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${result.imageId}.jpg`;
-console.log(`Access image at: ${imageUrl}`);
 ```
 
 #### Available Styles
@@ -383,10 +380,6 @@ console.log(video);
 //   duration: 5,
 //   fps: 16
 // }
-
-// Construct CDN URL from videoId
-const videoUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${video.videoId}.mp4`;
-console.log(`Access video at: ${videoUrl}`);
 ```
 
 ### Text Generation (LLM)
@@ -474,27 +467,16 @@ The CDN supports multiple file formats and operations including format conversio
 | GIF | `.gif` | Static or animated image format |
 | MP4 | `.mp4` | Video format |
 
-#### CDN URL Construction
+#### CDN URL Pattern
 
-```typescript
-// Basic image URL
-const imageUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${imageId}.jpg`;
-
-// Image with resize
-const resizedUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${imageId}.jpg?w=512&h=512`;
-
-// Image with watermark
-const watermarkedUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${imageId}.jpg?watermark=${watermarkId}&position=southeast`;
-
-// Video URL
-const videoUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${videoId}.mp4`;
-
-// Extract first frame from video as GIF
-const gifFromVideo = `https://apiv2.2dai.io:800/api/v1/cdn/${videoId}.gif`;
-
-// GIF with resize
-const resizedGif = `https://apiv2.2dai.io:800/api/v1/cdn/${videoId}.gif?w=256&h=256`;
+For advanced use cases, the CDN URL pattern is:
 ```
+GET /api/v1/cdn/{id}.{format}?{queryParams}
+```
+
+> **Authentication Required**: CDN URLs require Bearer token authentication.
+> You cannot use these URLs directly in browsers or `<img>` tags.
+> Use `client.downloadFromCDN()` (recommended) or include the `Authorization: Bearer {apiKey}` header.
 
 #### Format Conversion Matrix
 
@@ -524,15 +506,64 @@ const resizedGif = `https://apiv2.2dai.io:800/api/v1/cdn/${videoId}.gif?w=256&h=
 - Sharp gravity: `northwest`, `north`, `northeast`, `west`, `center`, `east`, `southwest`, `south`, `southeast`
 - Human-readable: `top-left`, `top-center`, `top-right`, `middle-left`, `middle-center`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`
 
-#### Downloading Files
+#### Downloading Content
+
+Use `downloadFromCDN()` to download images or videos with automatic authentication:
+
+```typescript
+import fs from 'fs';
+
+// Download image as buffer
+const { buffer, mimeType, size } = await client.downloadFromCDN(imageId);
+fs.writeFileSync('image.jpg', buffer);
+console.log(`Downloaded ${size} bytes (${mimeType})`);
+
+// Download with format conversion (PNG)
+const { buffer: pngBuffer } = await client.downloadFromCDN(imageId, { format: 'png' });
+fs.writeFileSync('image.png', pngBuffer);
+
+// Download with resize
+const { buffer: thumbBuffer } = await client.downloadFromCDN(imageId, {
+  format: 'jpg',
+  width: 256,
+  height: 256
+});
+fs.writeFileSync('thumbnail.jpg', thumbBuffer);
+
+// Download video
+const { buffer: videoBuffer } = await client.downloadFromCDN(videoId, { format: 'mp4' });
+fs.writeFileSync('video.mp4', videoBuffer);
+
+// Extract frame from video at 5 seconds
+const { buffer: frameBuffer } = await client.downloadFromCDN(videoId, {
+  format: 'jpg',
+  seek: 5000  // milliseconds
+});
+fs.writeFileSync('frame-5s.jpg', frameBuffer);
+
+// Download with watermark
+const { buffer: wmBuffer } = await client.downloadFromCDN(imageId, {
+  format: 'jpg',
+  watermark: 'watermark-cdn-id',
+  watermarkPosition: 'southeast'
+});
+fs.writeFileSync('watermarked.jpg', wmBuffer);
+```
+
+#### Manual Download with Axios
+
+For advanced use cases, you can download directly using axios with the Authorization header:
 
 ```typescript
 import axios from 'axios';
 import fs from 'fs';
 
+// Build CDN URL: baseUrl + /api/v1/cdn/{id}.{format}
+const baseUrl = 'your-api-base-url';  // Use client's baseUrl or default
+
 // Download image
 const imageResponse = await axios.get(
-  `https://apiv2.2dai.io:800/api/v1/cdn/${imageId}.jpg`,
+  `${baseUrl}/api/v1/cdn/${imageId}.jpg`,
   {
     responseType: 'arraybuffer',
     headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -542,33 +573,13 @@ fs.writeFileSync('output.jpg', imageResponse.data);
 
 // Download video
 const videoResponse = await axios.get(
-  `https://apiv2.2dai.io:800/api/v1/cdn/${videoId}.mp4`,
+  `${baseUrl}/api/v1/cdn/${videoId}.mp4`,
   {
     responseType: 'arraybuffer',
     headers: { 'Authorization': `Bearer ${apiKey}` }
   }
 );
 fs.writeFileSync('output.mp4', videoResponse.data);
-
-// Extract video frame as GIF
-const gifResponse = await axios.get(
-  `https://apiv2.2dai.io:800/api/v1/cdn/${videoId}.gif`,
-  {
-    responseType: 'arraybuffer',
-    headers: { 'Authorization': `Bearer ${apiKey}` }
-  }
-);
-fs.writeFileSync('frame.gif', gifResponse.data);
-
-// Download with resize
-const resizedResponse = await axios.get(
-  `https://apiv2.2dai.io:800/api/v1/cdn/${imageId}.png?w=256&h=256`,
-  {
-    responseType: 'arraybuffer',
-    headers: { 'Authorization': `Bearer ${apiKey}` }
-  }
-);
-fs.writeFileSync('thumbnail.png', resizedResponse.data);
 ```
 
 ### Watermarking
@@ -593,8 +604,11 @@ const image = await client.generateImage({
   watermarkAsTiles: true
 });
 
-// Apply watermark via CDN URL
-const watermarkedUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${imageId}.jpg?watermark=${watermarkId}&position=center`;
+// Apply watermark via CDN download
+const { buffer } = await client.downloadFromCDN(imageId, {
+  watermark: watermarkId,
+  watermarkPosition: 'center'
+});
 ```
 
 ### Settings & Usage Tracking
@@ -690,7 +704,6 @@ const client = createClient('2dai_pk_your_api_key_here', {
 
 ```typescript
 import { createClient, STYLES, FORMATS } from '2dai-cloud-sdk';
-import axios from 'axios';
 import fs from 'fs';
 
 const client = createClient('2dai_pk_your_api_key_here');
@@ -709,13 +722,8 @@ async function generateAndDownload() {
     console.log('Image generated:', result.imageId);
 
     // Download the image
-    const imageUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${result.imageId}.jpg`;
-    const response = await axios.get(imageUrl, {
-      responseType: 'arraybuffer',
-      headers: { 'Authorization': `Bearer 2dai_pk_your_api_key_here` }
-    });
-
-    fs.writeFileSync('generated-image.jpg', response.data);
+    const { buffer } = await client.downloadFromCDN(result.imageId);
+    fs.writeFileSync('generated-image.jpg', buffer);
     console.log('Image saved to generated-image.jpg');
 
   } catch (error) {
@@ -730,7 +738,6 @@ generateAndDownload();
 
 ```typescript
 import { createClient, STYLES, FORMATS } from '2dai-cloud-sdk';
-import axios from 'axios';
 import fs from 'fs';
 
 const client = createClient('2dai_pk_your_api_key_here');
@@ -754,21 +761,13 @@ async function generateVideoAndExtractFrame() {
     console.log('Video generated:', video.videoId);
 
     // Download video as MP4
-    const mp4Url = `https://apiv2.2dai.io:800/api/v1/cdn/${video.videoId}.mp4`;
-    const mp4Response = await axios.get(mp4Url, {
-      responseType: 'arraybuffer',
-      headers: { 'Authorization': `Bearer 2dai_pk_your_api_key_here` }
-    });
-    fs.writeFileSync('video.mp4', mp4Response.data);
+    const { buffer: mp4Buffer } = await client.downloadFromCDN(video.videoId, { format: 'mp4' });
+    fs.writeFileSync('video.mp4', mp4Buffer);
     console.log('Video saved to video.mp4');
 
     // Extract first frame as GIF
-    const gifUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${video.videoId}.gif`;
-    const gifResponse = await axios.get(gifUrl, {
-      responseType: 'arraybuffer',
-      headers: { 'Authorization': `Bearer 2dai_pk_your_api_key_here` }
-    });
-    fs.writeFileSync('thumbnail.gif', gifResponse.data);
+    const { buffer: gifBuffer } = await client.downloadFromCDN(video.videoId, { format: 'gif' });
+    fs.writeFileSync('thumbnail.gif', gifBuffer);
     console.log('GIF thumbnail saved to thumbnail.gif');
 
   } catch (error) {
@@ -1161,38 +1160,6 @@ const client = createClient('2dai_pk_...', {
 
 ---
 
-## Migration Guide
-
-### Breaking Changes in v1.0.0
-
-**`imageUrl` and `videoUrl` have been removed from generation responses.**
-
-Previously, the API returned full CDN URLs directly in the response. For security and architectural reasons, these have been removed. You now receive only file IDs and must construct CDN URLs yourself.
-
-#### Before (Old Version)
-```typescript
-const result = await client.generateImage({ prompt: "..." });
-console.log(result.imageUrl);  // Full URL was provided
-// "https://cdn.2dai.com/file/xyz.jpg?watermark=..."
-```
-
-#### After (Current Version)
-```typescript
-const result = await client.generateImage({ prompt: "..." });
-// Result now contains only imageId (no imageUrl property)
-
-// Construct the CDN URL from the imageId
-const imageUrl = `https://apiv2.2dai.io:800/api/v1/cdn/${result.imageId}.jpg`;
-console.log(imageUrl);
-```
-
-**Why this change?**
-- **Security**: Prevents exposure of internal CDN structure and watermark IDs
-- **Flexibility**: Allows you to customize CDN parameters (size, watermark position, etc.)
-- **Future-proof**: CDN infrastructure can be updated without breaking client code
-
----
-
 ## Testing
 
 This SDK includes comprehensive test suites covering all API functionality:
@@ -1220,11 +1187,12 @@ npm run test:coverage
 | Full Suite (`test`) | 46 | ~12-13 min | Both suites combined |
 
 **Time breakdown by operation type:**
-- Image Generation: ~25-65s per test (AI processing)
-- Video Generation: ~90s per test (longest operation)
-- Image Upscale: ~70-80s per test
-- LLM Text Generation: ~1-10s per test (fast)
-- CDN Operations: <1s per test (instant)
+- Image Generation: ~28-37s per test (AI processing)
+- Image Editing: ~45-50s per test (includes resize)
+- Video Generation: ~100s per test (longest operation)
+- Image Upscale: ~80-85s per test
+- LLM Text Generation: ~2-11s per test (fast)
+- CDN/GIF Operations: <1s per test (instant)
 - Error Handling: <1s per test (validation only)
 
 ### Test Coverage

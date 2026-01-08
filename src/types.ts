@@ -164,6 +164,36 @@ export interface CDNFileMetadata {
 }
 
 /**
+ * Options for downloading content from CDN
+ */
+export interface CDNDownloadOptions {
+  /** Output format: 'jpg' | 'png' | 'gif' | 'mp4' (default: 'jpg' for images) */
+  format?: 'jpg' | 'png' | 'gif' | 'mp4';
+  /** Width for resize (optional) */
+  width?: number;
+  /** Height for resize (optional) */
+  height?: number;
+  /** Watermark CDN ID (optional) */
+  watermark?: string;
+  /** Watermark position (optional) */
+  watermarkPosition?: WatermarkPosition;
+  /** Seek timestamp in ms for video frame extraction (optional) */
+  seek?: number;
+}
+
+/**
+ * Result from CDN download
+ */
+export interface CDNDownloadResult {
+  /** File content as Buffer */
+  buffer: Buffer;
+  /** MIME type of the content */
+  mimeType: string;
+  /** Content length in bytes */
+  size: number;
+}
+
+/**
  * API error response
  */
 export interface APIError {

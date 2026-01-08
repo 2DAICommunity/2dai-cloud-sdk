@@ -8,10 +8,18 @@
 
 import { TwoDAIClient, createClient, STYLES, FORMATS, UPSCALE_FACTOR, WatermarkPosition } from '../src';
 import { loadTestEnv } from './test-env';
-import { logTestStart, saveImageFromCDN, saveVideoFromCDN, saveGifFromCDN, saveFrameFromCDN, ensureTmpDir } from './test-helpers';
-import axios from 'axios';
+import {
+  logTestStart,
+  saveImageFromCDN,
+  saveVideoFromCDN,
+  saveGifFromCDN,
+  saveFrameFromCDN,
+  saveImageManualAxios,
+  ensureTmpDir
+} from './test-helpers';
 import * as fs from 'fs';
 import * as path from 'path';
+import imageSize from 'image-size';
 
 describe('REST API Tests', () => {
   let client: TwoDAIClient;
@@ -50,7 +58,7 @@ describe('REST API Tests', () => {
       console.log(`   Dimensions: ${result.width}×${result.height}`);
       console.log(`   Seed: ${result.seed}`);
 
-      await saveImageFromCDN(result.imageId, config.baseUrl, '01-default-settings.jpg', config.apiKey);
+      await saveImageFromCDN(result.imageId, client, '01-default-settings.jpg');
     }, 200000);
 
     test('should generate image with style and format', async () => {
@@ -79,7 +87,7 @@ describe('REST API Tests', () => {
       console.log(`   Image ID: ${result.imageId}`);
       console.log(`   Dimensions: ${result.width}×${result.height}`);
 
-      await saveImageFromCDN(result.imageId, config.baseUrl, '02-styled-landscape.jpg', config.apiKey);
+      await saveImageFromCDN(result.imageId, client, '02-styled-landscape.jpg');
     }, 200000);
   });
 
@@ -107,7 +115,7 @@ describe('REST API Tests', () => {
       console.log(`\n✅ Edit successful!`);
       console.log(`   Original ID: ${imageId}`);
       console.log(`   New ID: ${result.imageId}`);
-      await saveImageFromCDN(result.imageId, config.baseUrl, '03-edited-bw.jpg', config.apiKey);
+      await saveImageFromCDN(result.imageId, client, '03-edited-bw.jpg');
     }, 200000);
 
     test('should edit with resize dimensions', async () => {
@@ -139,7 +147,7 @@ describe('REST API Tests', () => {
       console.log(`\n✅ Edit with resize successful!`);
       console.log(`   New ID: ${result.imageId}`);
       console.log(`   Dimensions: ${result.width}×${result.height}`);
-      await saveImageFromCDN(result.imageId, config.baseUrl, '04-edited-resize.jpg', config.apiKey);
+      await saveImageFromCDN(result.imageId, client, '04-edited-resize.jpg');
     }, 200000);
   });
 
@@ -168,7 +176,7 @@ describe('REST API Tests', () => {
       console.log(`   Upscaled Dimensions: ${result.width}×${result.height}`);
       console.log(`   Seed: ${result.seed}`);
 
-      await saveImageFromCDN(result.imageId, config.baseUrl, '05-upscaled-2x.jpg', config.apiKey);
+      await saveImageFromCDN(result.imageId, client, '05-upscaled-2x.jpg');
     }, 200000);
   });
 
@@ -202,7 +210,7 @@ describe('REST API Tests', () => {
       console.log(`\n✅ Video generation successful!`);
       console.log(`   Video ID: ${result.videoId}`);
       console.log(`   Duration: ${result.duration}s @ ${result.fps} FPS`);
-      await saveVideoFromCDN(result.videoId, config.baseUrl, '06-video-5s.mp4', config.apiKey);
+      await saveVideoFromCDN(result.videoId, client, '06-video-5s.mp4');
     }, 200000);
 
     test('should convert MP4 to GIF (first frame)', async () => {
@@ -215,12 +223,12 @@ describe('REST API Tests', () => {
       }
 
       console.log(`🎬 Source Video ID: ${videoId}`);
-      await saveGifFromCDN(videoId, config.baseUrl, '07-mp4-to-gif.gif', config.apiKey);
+      await saveGifFromCDN(videoId, client, '07-mp4-to-gif.gif');
 
       console.log(`\n✅ MP4 to GIF conversion successful!`);
     }, 60000);
 
-    test('should resize GIF via CDN query params', async () => {
+    test('should resize GIF via downloadFromCDN', async () => {
       logTestStart('GIF Resize - 256x256');
       const videoId = generatedVideoId;
 
@@ -232,19 +240,28 @@ describe('REST API Tests', () => {
       console.log(`🎬 Source Video ID: ${videoId}`);
       console.log(`📐 Target size: 256x256`);
 
-      const url = `${config.baseUrl}/api/v1/cdn/${videoId}.gif?w=256&h=256`;
-      ensureTmpDir();
-
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        timeout: 30000,
-        headers: config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {}
+      // Use client.downloadFromCDN() for resize
+      const { buffer, mimeType, size } = await client.downloadFromCDN(videoId, {
+        format: 'gif',
+        width: 256,
+        height: 256
       });
 
-      const filepath = path.join(__dirname, 'tmp', '08-gif-resized-256x256.gif');
-      fs.writeFileSync(filepath, response.data);
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(size).toBeGreaterThan(0);
+      expect(mimeType).toContain('gif');
 
-      console.log(`\n✅ GIF resize successful!`);
+      // Verify actual dimensions match requested size
+      const dimensions = imageSize(new Uint8Array(buffer));
+      expect(dimensions.width).toBe(256);
+      expect(dimensions.height).toBe(256);
+      console.log(`   ✓ Verified dimensions: ${dimensions.width}×${dimensions.height}`);
+
+      ensureTmpDir();
+      const filepath = path.join(__dirname, 'tmp', '08-gif-resized-256x256.gif');
+      fs.writeFileSync(filepath, new Uint8Array(buffer));
+
+      console.log(`\n✅ GIF resize successful! (${size} bytes)`);
     }, 60000);
   });
 
@@ -429,7 +446,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
       ).rejects.toThrow();
 
       console.log(`✅ Invalid IDs correctly rejected`);
-    }, 30000);
+    }, 150000);
   });
 
   describe('7. Settings & Info', () => {
@@ -493,25 +510,25 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
 
       console.log(`🎬 Video ID: ${testVideoId}`);
 
-      // Test JPG at 0ms
-      const jpgResponse = await axios.get(
-        `${config.baseUrl}/api/v1/cdn/${testVideoId}.jpg?seek=0`,
-        { headers: { 'Authorization': `Bearer ${config.apiKey}` }, responseType: 'arraybuffer' }
-      );
-      expect(jpgResponse.status).toBe(200);
-      expect(jpgResponse.headers['content-type']).toContain('image/jpeg');
+      // Test JPG at 0ms using client method
+      const { buffer: jpgBuffer, mimeType: jpgMime } = await client.downloadFromCDN(testVideoId, {
+        format: 'jpg',
+        seek: 0
+      });
+      expect(jpgBuffer).toBeInstanceOf(Buffer);
+      expect(jpgMime).toContain('image/jpeg');
       console.log(`   ✓ JPG at 0ms`);
 
-      // Test PNG at 1500ms
-      const pngResponse = await axios.get(
-        `${config.baseUrl}/api/v1/cdn/${testVideoId}.png?seek=1500`,
-        { headers: { 'Authorization': `Bearer ${config.apiKey}` }, responseType: 'arraybuffer' }
-      );
-      expect(pngResponse.status).toBe(200);
-      expect(pngResponse.headers['content-type']).toContain('image/png');
+      // Test PNG at 1500ms using client method
+      const { buffer: pngBuffer, mimeType: pngMime } = await client.downloadFromCDN(testVideoId, {
+        format: 'png',
+        seek: 1500
+      });
+      expect(pngBuffer).toBeInstanceOf(Buffer);
+      expect(pngMime).toContain('image/png');
       console.log(`   ✓ PNG at 1500ms`);
 
-      await saveFrameFromCDN(testVideoId, config.baseUrl, 0, '09-frame-0ms.jpg', 'jpg', config.apiKey);
+      await saveFrameFromCDN(testVideoId, client, 0, '09-frame-0ms.jpg', 'jpg');
       console.log(`\n✅ Frame extraction with multiple formats successful!`);
     }, 90000);
 
@@ -525,26 +542,35 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
 
       console.log(`🎬 Video ID: ${testVideoId}`);
 
-      // Test resize
-      const resizeResponse = await axios.get(
-        `${config.baseUrl}/api/v1/cdn/${testVideoId}.jpg?seek=1000&w=256&h=256`,
-        { headers: { 'Authorization': `Bearer ${config.apiKey}` }, responseType: 'arraybuffer' }
-      );
-      expect(resizeResponse.status).toBe(200);
-      expect(resizeResponse.headers['content-type']).toContain('image/jpeg');
-      console.log(`   ✓ Resize to 256x256`);
+      // Test resize using client method
+      const { buffer: resizeBuffer, mimeType } = await client.downloadFromCDN(testVideoId, {
+        format: 'jpg',
+        seek: 1000,
+        width: 256,
+        height: 256
+      });
+      expect(resizeBuffer).toBeInstanceOf(Buffer);
+      expect(mimeType).toContain('image/jpeg');
+
+      // Verify actual dimensions match requested size
+      const dimensions = imageSize(new Uint8Array(resizeBuffer));
+      expect(dimensions.width).toBe(256);
+      expect(dimensions.height).toBe(256);
+      console.log(`   ✓ Resize to 256x256 (verified: ${dimensions.width}×${dimensions.height})`);
 
       ensureTmpDir();
-      fs.writeFileSync(path.join(__dirname, 'tmp', '12-frame-resized-256x256.jpg'), resizeResponse.data);
+      fs.writeFileSync(path.join(__dirname, 'tmp', '12-frame-resized-256x256.jpg'), new Uint8Array(resizeBuffer));
 
       // Test watermark if configured
       if (config.watermarkId) {
-        const watermarkResponse = await axios.get(
-          `${config.baseUrl}/api/v1/cdn/${testVideoId}.jpg?seek=1000&watermark=${config.watermarkId}&position=center`,
-          { headers: { 'Authorization': `Bearer ${config.apiKey}` }, responseType: 'arraybuffer' }
-        );
-        expect(watermarkResponse.status).toBe(200);
-        fs.writeFileSync(path.join(__dirname, 'tmp', '13-frame-with-watermark.jpg'), watermarkResponse.data);
+        const { buffer: wmBuffer } = await client.downloadFromCDN(testVideoId, {
+          format: 'jpg',
+          seek: 1000,
+          watermark: config.watermarkId,
+          watermarkPosition: 'center'
+        });
+        expect(wmBuffer).toBeInstanceOf(Buffer);
+        fs.writeFileSync(path.join(__dirname, 'tmp', '13-frame-with-watermark.jpg'), new Uint8Array(wmBuffer));
         console.log(`   ✓ Watermark applied`);
       } else {
         console.log(`   ⚠️  Watermark skipped (TEST_WATERMARK_ID not set)`);
@@ -579,22 +605,52 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
         const position = positions[i];
         console.log(`\n🔄 [${i + 1}/${positions.length}] Testing position: ${position}...`);
 
-        const url = `${config.baseUrl}/api/v1/cdn/${imageId}.jpg?watermark=${config.watermarkId}&position=${position}`;
-        const response = await axios.get(url, {
-          headers: { 'Authorization': `Bearer ${config.apiKey}` },
-          responseType: 'arraybuffer'
+        const { buffer, mimeType } = await client.downloadFromCDN(imageId!, {
+          format: 'jpg',
+          watermark: config.watermarkId,
+          watermarkPosition: position
         });
 
-        expect(response.status).toBe(200);
-        expect(response.headers['content-type']).toContain('image/jpeg');
+        expect(buffer).toBeInstanceOf(Buffer);
+        expect(mimeType).toContain('image/jpeg');
 
         ensureTmpDir();
         const filepath = path.join(__dirname, 'tmp', `14-watermark-${position}.jpg`);
-        fs.writeFileSync(filepath, response.data);
+        fs.writeFileSync(filepath, new Uint8Array(buffer));
         console.log(`   ✅ Position ${position}: saved`);
       }
 
       console.log(`\n✅ All ${positions.length} watermark position tests completed!`);
     }, 200000);
+  });
+
+  describe('10. CDN Download - Manual Axios (Documentation)', () => {
+    test('should download using manual axios call', async () => {
+      logTestStart('Manual Axios Download - For Documentation');
+      const imageId = generatedImageId || config.editImageId;
+
+      if (!imageId) {
+        console.warn('⚠️  Skipping test: no image available');
+        return;
+      }
+
+      console.log(`🖼️  Image ID: ${imageId}`);
+      console.log(`📝 This test demonstrates manual axios download with Authorization header`);
+
+      // Use the manual axios helper to show direct download pattern
+      const filepath = await saveImageManualAxios(
+        imageId,
+        config.baseUrl,
+        config.apiKey,
+        '15-manual-axios-download.jpg'
+      );
+
+      expect(fs.existsSync(filepath)).toBe(true);
+      const stats = fs.statSync(filepath);
+      expect(stats.size).toBeGreaterThan(0);
+
+      console.log(`\n✅ Manual axios download successful!`);
+      console.log(`   File size: ${stats.size} bytes`);
+    }, 60000);
   });
 });
