@@ -204,22 +204,32 @@ export interface APIError {
 
 /**
  * Rate limit information
+ *
+ * **Note on Limits:**
+ * - **Image/Video/LLM**: `requestsPer15Min` = max simultaneous operations allowed
+ * - **CDN**: `requestsPer15Min` = requests per 15-minute window
+ *
+ * For image, video, and LLM operations, limits are based on how many
+ * operations can run at the same time. The count decreases as operations complete.
  */
 export interface RateLimitInfo {
   operation: 'image' | 'video' | 'llm' | 'cdn';
   current: {
+    /** For image/video/llm: currently running operations. For cdn: requests in current window */
     requestsPer15Min: number;
     requestsPerDay: number;
     tokensPer15Min?: number;
     tokensPerDay?: number;
   };
   limit: {
+    /** For image/video/llm: max concurrent operations. For cdn: max requests per 15min */
     requestsPer15Min: number;
     requestsPerDay: number;
     tokensPer15Min?: number;
     tokensPerDay?: number;
   };
   resetAt: {
+    /** Reset time (mainly relevant for CDN rate-based limits) */
     window15Min: string;
     daily: string;
   };
@@ -227,19 +237,29 @@ export interface RateLimitInfo {
 
 /**
  * Current usage for a single operation
+ *
+ * For image/video/llm operations:
+ * - `current.requestsPer15Min` = currently running operations
+ * - `remaining.requestsPer15Min` = available capacity
+ *
+ * For CDN operations:
+ * - Standard rate limiting with 15-minute and daily windows
  */
 export interface OperationUsage {
   current: {
+    /** For image/video/llm: active operations. For cdn: requests in window */
     requestsPer15Min: number;
     requestsPerDay: number;
     tokensPer15Min?: number;
     tokensPerDay?: number;
   };
   remaining: {
+    /** For image/video/llm: available capacity. For cdn: remaining in window */
     requestsPer15Min: number;
     requestsPerDay: number;
   };
   resetAt: {
+    /** Reset time (mainly relevant for CDN rate-based limits) */
     window15Min: string;
     daily: string;
   };

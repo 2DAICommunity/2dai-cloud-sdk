@@ -241,43 +241,47 @@ function formatBytes(bytes: number): string {
 /**
  * Display rate limits when a 429 error is encountered
  * Fetches current usage from API and displays comparison with limits
+ *
+ * Note: Image/Video/LLM use slot-based limiting (concurrent operations),
+ * while CDN uses rate-based limiting (requests per window)
  */
 export async function displayRateLimitsOn429(
   client: TwoDAIClient,
   error: Error
 ): Promise<void> {
-  if (!error.message.includes('429')) return;
+  if (!error.message.includes('429') && !error.message.includes('CONCURRENT_LIMIT_EXCEEDED')) return;
 
-  console.log('\n⚠️  Rate limit hit (HTTP 429). Fetching current usage...');
+  console.log('\n⚠️  Rate/Concurrent limit hit. Fetching current usage...');
 
   try {
     const settings = await client.getSettings();
 
     if (settings.currentUsage) {
       console.log('\n📊 Current Usage vs Limits:');
+      console.log('   (Image/Video/LLM: concurrent slots | CDN: rate-based)');
 
-      // Image
+      // Image (slot-based - concurrent operations)
       const img = settings.currentUsage.image;
       const imgLim = settings.rateLimits.image;
-      console.log(`  Image:  ${img.current.requestsPer15Min}/${imgLim.requestsPer15Min} (15min) | ${img.current.requestsPerDay}/${imgLim.requestsPerDay} (daily)`);
+      console.log(`  Image:  ${img.current.requestsPer15Min}/${imgLim.requestsPer15Min} concurrent slots`);
 
-      // Video
+      // Video (slot-based - concurrent operations)
       const vid = settings.currentUsage.video;
       const vidLim = settings.rateLimits.video;
-      console.log(`  Video:  ${vid.current.requestsPer15Min}/${vidLim.requestsPer15Min} (15min) | ${vid.current.requestsPerDay}/${vidLim.requestsPerDay} (daily)`);
+      console.log(`  Video:  ${vid.current.requestsPer15Min}/${vidLim.requestsPer15Min} concurrent slots`);
 
-      // LLM
+      // LLM (slot-based - concurrent operations)
       const llm = settings.currentUsage.llm;
       const llmLim = settings.rateLimits.llm;
-      console.log(`  LLM:    ${llm.current.requestsPer15Min}/${llmLim.requestsPer15Min} (15min) | ${llm.current.tokensPerDay}/${llmLim.tokensPerDay} (tokens/day)`);
+      console.log(`  LLM:    ${llm.current.requestsPer15Min}/${llmLim.requestsPer15Min} concurrent slots | ${llm.current.tokensPerDay}/${llmLim.tokensPerDay} tokens/day`);
 
-      // CDN
+      // CDN (rate-based - traditional window counting)
       const cdn = settings.currentUsage.cdn;
       const cdnLim = settings.rateLimits.cdn;
       console.log(`  CDN:    ${cdn.current.requestsPer15Min}/${cdnLim.requestsPer15Min} (15min) | ${cdn.current.requestsPerDay}/${cdnLim.requestsPerDay} (daily)`);
 
-      // Reset times
-      console.log(`\n  Reset at: ${new Date(img.resetAt.window15Min).toLocaleTimeString()}`);
+      // Reset times (only relevant for CDN rate-based)
+      console.log(`\n  CDN reset at: ${new Date(cdn.resetAt.window15Min).toLocaleTimeString()}`);
     }
   } catch (e: any) {
     console.log(`  Could not fetch rate limit info: ${e.message}`);

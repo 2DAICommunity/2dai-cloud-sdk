@@ -59,7 +59,11 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 
 ## What's New
 
-### v1.5.0 (Latest)
+### v1.5.1 (Latest)
+
+- **Rate Limit Documentation** - Clarified that Image/Video/LLM use concurrent operation limits while CDN uses rate-based limits
+
+### v1.5.0
 
 - **CDN Download Method** - New `downloadFromCDN()` method for downloading images and videos with automatic authentication
 - **CDN Auth Documentation** - Updated documentation to clarify that CDN URLs require Bearer token authentication
@@ -613,6 +617,21 @@ const { buffer } = await client.downloadFromCDN(imageId, {
 
 ### Settings & Usage Tracking
 
+#### Understanding Rate Limits
+
+Rate limits work differently depending on the operation type:
+
+| Operation | Limit Type | What `requestsPer15Min` Means |
+|-----------|------------|-------------------------------|
+| Image | Concurrent | Max simultaneous image generations |
+| Video | Concurrent | Max simultaneous video generations |
+| LLM | Concurrent | Max simultaneous text generations |
+| CDN | Rate-based | Requests per 15-minute window |
+
+**For Image/Video/LLM:** You can have up to N operations running at once. When one completes, you can start another immediately.
+
+**For CDN:** Traditional rate limiting - counter resets every 15 minutes.
+
 ```typescript
 // Get API key settings with current usage
 const settings = await client.getSettings();
@@ -625,23 +644,27 @@ console.log('Video:', settings.rateLimits.video);
 console.log('LLM:', settings.rateLimits.llm);
 console.log('CDN:', settings.rateLimits.cdn);
 
-// Current usage with remaining quota and reset times
+// Current usage - note: image/video/llm show concurrent operations, cdn shows rate
 console.log('\nCurrent Usage:');
-console.log('Image:', {
-  used15min: settings.currentUsage.image.current.requestsPer15Min,
-  usedDaily: settings.currentUsage.image.current.requestsPerDay,
-  remaining15min: settings.currentUsage.image.remaining.requestsPer15Min,
-  remainingDaily: settings.currentUsage.image.remaining.requestsPerDay,
-  resetAt: settings.currentUsage.image.resetAt
+console.log('Image (concurrent):', {
+  active: settings.currentUsage.image.current.requestsPer15Min,      // Currently running
+  limit: settings.rateLimits.image.requestsPer15Min,                  // Max concurrent
+  available: settings.currentUsage.image.remaining.requestsPer15Min   // Capacity left
 });
 
 // LLM usage includes token tracking
-console.log('LLM:', {
-  requests15min: settings.currentUsage.llm.current.requestsPer15Min,
-  requestsDaily: settings.currentUsage.llm.current.requestsPerDay,
-  tokens15min: settings.currentUsage.llm.current.tokensPer15Min,
-  tokensDaily: settings.currentUsage.llm.current.tokensPerDay,
-  resetAt: settings.currentUsage.llm.resetAt
+console.log('LLM (concurrent):', {
+  active: settings.currentUsage.llm.current.requestsPer15Min,
+  limit: settings.rateLimits.llm.requestsPer15Min,
+  tokensToday: settings.currentUsage.llm.current.tokensPerDay,
+  tokenLimit: settings.rateLimits.llm.tokensPerDay
+});
+
+// CDN uses traditional rate limiting
+console.log('CDN (rate-based):', {
+  used15min: settings.currentUsage.cdn.current.requestsPer15Min,
+  limit15min: settings.rateLimits.cdn.requestsPer15Min,
+  resetAt: settings.currentUsage.cdn.resetAt.window15Min
 });
 ```
 
@@ -653,11 +676,17 @@ const limits = await client.checkLimits();
 
 limits.forEach(limit => {
   console.log(`${limit.operation}:`);
-  console.log(`  Requests: ${limit.current.requestsPer15Min}/${limit.limit.requestsPer15Min} (15min)`);
-  console.log(`  Requests: ${limit.current.requestsPerDay}/${limit.limit.requestsPerDay} (daily)`);
+
+  // For image/video/llm: shows concurrent operations (active/max)
+  // For cdn: shows rate limit usage (used/limit per window)
+  console.log(`  Active: ${limit.current.requestsPer15Min}/${limit.limit.requestsPer15Min}`);
+
+  if (limit.operation === 'cdn') {
+    console.log(`  Daily: ${limit.current.requestsPerDay}/${limit.limit.requestsPerDay}`);
+  }
 
   if (limit.operation === 'llm') {
-    console.log(`  Tokens: ${limit.current.tokensPer15Min}/${limit.limit.tokensPer15Min} (15min)`);
+    console.log(`  Tokens today: ${limit.current.tokensPerDay}/${limit.limit.tokensPerDay}`);
   }
 });
 ```

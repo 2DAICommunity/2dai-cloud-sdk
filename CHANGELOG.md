@@ -5,6 +5,16 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-01-09
+
+### Documentation
+- **Rate Limit Clarification** - Improved documentation for rate limits
+  - Clarified that Image/Video/LLM use concurrent operation limits (max simultaneous operations)
+  - Clarified that CDN uses traditional rate-based limits (requests per 15-minute window)
+  - Added "Understanding Rate Limits" section to README with explanatory table
+  - Updated code examples to use clearer terminology (active/available vs used)
+  - Added JSDoc comments to TypeScript types explaining the difference
+
 ## [1.5.0] - 2026-01-07
 
 ### Added
