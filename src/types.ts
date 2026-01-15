@@ -339,7 +339,7 @@ export interface ClientOptions {
 export interface WsImageRequest {
   /** Text description of the image to generate */
   prompt: string;
-  /** Style preset: 'raw' | 'realistic' | 'text' | 'ciniji' | 'portrait' | 'cine' | 'sport' | 'fashion' | 'niji' | 'anime' | 'manga' | 'paint' */
+  /** Style preset: 'raw' | 'realistic' | 'text' | 'ciniji' | 'portrait' | 'cine' | 'sport' | 'fashion' | 'niji' | 'anime' | 'manga' | 'watercolor' | 'paint' */
   style?: string;
   /** Format preset: 'portrait' | 'landscape' | 'profile' | 'story' | 'post' | 'smartphone' | 'banner' */
   format?: string;

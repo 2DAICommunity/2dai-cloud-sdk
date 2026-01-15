@@ -443,7 +443,7 @@ The test suite covers:
 - ✅ Error handling - Invalid parameters, missing fields
 
 **Feature Coverage:**
-- ✅ **12 style presets** - raw, realistic, text, ciniji, portrait, cine, sport, fashion, niji, anime, manga, paint
+- ✅ **13 style presets** - raw, realistic, text, ciniji, portrait, cine, sport, fashion, niji, anime, manga, watercolor, paint
 - ✅ **7 format presets** - portrait, landscape, profile, story, post, smartphone, banner
 - ✅ **Custom dimensions** - Width/height validation (320-1344px)
 - ✅ **Seed support** - Reproducibility testing with same seed

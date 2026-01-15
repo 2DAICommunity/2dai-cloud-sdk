@@ -108,6 +108,15 @@ export const STYLES = {
   } as StylePreset,
 
   /**
+   * 🎨 Gen6 Watercolor Anime
+   */
+  watercolor: {
+    id: 'watercolor',
+    name: 'Watercolor',
+    description: 'Gen6 Watercolor Anime'
+  } as StylePreset,
+
+  /**
    * 🖌️ Gen6 Paint
    */
   paint: {

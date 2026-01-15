@@ -45,7 +45,7 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 - **Image-to-Video**: Create videos from static images
 - **LLM Text Generation**: Generate text with context, memory, and JSON support
 - **Image Description (Vision)**: Analyze images with LLM for structured data extraction
-- **12 Style Presets**: Realistic, anime, manga, cinematic, and more
+- **13 Style Presets**: Realistic, anime, manga, watercolor, cinematic, and more
 - **7 Format Presets**: Portrait, landscape, profile, story, post, smartphone, banner
 - **Type-Safe**: Full TypeScript support with comprehensive type definitions
 - **Built-in Watermarking**: Apply custom watermarks to generated content
@@ -59,7 +59,12 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 
 ## What's New
 
-### v1.5.1 (Latest)
+### v1.5.2 (Latest)
+
+- **Watercolor Style** - New `watercolor` style preset for Gen6 Watercolor Anime generation
+- **Manga Style Update** - Improved parameters for better results
+
+### v1.5.1
 
 - **Rate Limit Documentation** - Clarified that Image/Video/LLM use concurrent operation limits while CDN uses rate-based limits
 
@@ -251,6 +256,7 @@ STYLES.fashion     // Gen6 Fashion
 STYLES.niji        // Gen6 Anime Niji
 STYLES.anime       // Gen6 Anime
 STYLES.manga       // Gen6 Manga
+STYLES.watercolor  // Gen6 Watercolor Anime
 STYLES.paint       // Gen6 Paint
 ```
 
