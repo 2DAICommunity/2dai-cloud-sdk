@@ -117,6 +117,15 @@ export const STYLES = {
   } as StylePreset,
 
   /**
+   * 💥 Gen6 Comic book illustration
+   */
+  comicbook: {
+    id: 'comicbook',
+    name: 'Comic',
+    description: 'Gen6 Comic book illustration'
+  } as StylePreset,
+
+  /**
    * 🖌️ Gen6 Paint
    */
   paint: {
