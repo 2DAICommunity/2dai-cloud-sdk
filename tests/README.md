@@ -2,9 +2,10 @@
 
 Comprehensive test suite for the 2DAI Public SDK covering all REST and WebSocket API endpoints.
 
-**Current Test Status: 50/50 tests passing (100%)**
-- REST API: 29/29 tests ✅
-- WebSocket: 21/21 tests ✅
+**Current Test Status: 78+ tests**
+- REST API: 25 tests ✅ (includes streaming)
+- WebSocket: 38 tests ✅ (includes streaming, settings)
+- OpenAI: 15 tests ✅
 
 ---
 
@@ -62,10 +63,13 @@ npm run test:rest
 ```
 
 This will test:
-- Image generation (text2img) - All styles, formats, seeds, negative prompts
-- Image editing (img2img) - Text-guided transformations, strength levels
-- Video generation (img2vid) - Multiple durations, FPS settings
-- Text generation (LLM) - Simple prompts, system messages, memory, JSON format
+- Image generation (text2img) - Styles, formats
+- Image editing (img2img) - Text-guided transformations, resize
+- Image upscale (img2ximg) - AI upscaling
+- Video generation (img2vid) - Duration, FPS, GIF conversion
+- Text generation (LLM) - Prompts, system messages, memory, JSON, vision
+- Text streaming (SSE) - Callbacks, abort, accumulation
+- CDN operations - Frame extraction, watermarks, downloads
 - Error handling - Invalid keys, missing prompts, invalid parameters
 - Settings endpoint - API key settings with real-time usage tracking
 
@@ -77,12 +81,31 @@ npm run test:ws
 
 This will test:
 - WebSocket connection & authentication
-- Image generation via WebSocket (all styles, formats, seeds)
-- Image editing via WebSocket (strength adjustments)
-- Video generation via WebSocket (durations, FPS)
-- LLM generation via WebSocket (prompts, system messages, JSON)
+- Image generation via WebSocket
+- Image editing via WebSocket
+- Image upscale via WebSocket
+- Video generation via WebSocket
+- GIF operations via CDN
+- LLM generation via WebSocket (prompts, system messages, JSON, vision)
+- LLM streaming via WebSocket (callbacks, concurrent streams, abort)
 - Error handling via WebSocket (validation, invalid parameters)
 - Connection resilience (graceful disconnect, reconnection)
+- Cancellation (image, LLM, streaming abort)
+- SDK options and behavior
+- Settings via WebSocket (get settings, usage, rate limits)
+
+### Run Only OpenAI Tests
+
+```bash
+npm run test:openai
+```
+
+This will test the OpenAI-compatible endpoints (`/v1/*`):
+- GET /v1/models - List available models
+- GET /v1/models/:model - Get model details
+- POST /v1/chat/completions - Non-streaming and streaming
+- Error handling (400, 401, 404 responses)
+- OpenAI client format compatibility
 
 ### Run Minimal Error Tests
 
@@ -114,86 +137,151 @@ Generates a coverage report in the `coverage/` directory.
 
 ### REST Tests (`rest.test.ts`)
 
+**Test Categories (11 sections, 25 tests):**
+
+1. **Image Generation (text2img)** - 2 tests
+   - Default settings
+   - Style + format presets
+
+2. **Image Editing (img2img)** - 2 tests
+   - Basic edit
+   - Edit with resize dimensions
+
+3. **Image Upscale (img2ximg)** - 1 test
+   - Default factor (2x)
+
+4. **Video Generation (img2vid)** - 3 tests
+   - Generate video from image
+   - Convert MP4 to GIF
+   - Resize GIF via CDN
+
+5. **Text Generation (LLM)** - 5 tests
+   - Simple prompt with token counting
+   - System prompt and memory context
+   - JSON output format
+   - Vision (image description)
+   - Markdown and edge cases
+
+6. **Text Streaming (SSE)** - 4 tests
+   - Stream with callbacks
+   - Full response accumulation
+   - Stream abort handling
+   - Stream with system prompt and memory
+
+7. **Error Handling** - 3 tests
+   - Invalid API key
+   - Invalid image generation params
+   - Invalid IDs for edit/video
+
+8. **Settings & Info** - 1 test
+   - Get API key settings with current usage
+
+9. **Video Frame Extraction (CDN)** - 2 tests
+   - Extract frames at different times (JPG/PNG)
+   - Extract with resize and watermark
+
+10. **Watermark Position Constants (CDN)** - 1 test
+    - Apply watermark at different positions
+
+11. **CDN Download - Manual Axios** - 1 test
+    - Manual download for documentation
+
+### OpenAI Tests (`openai.test.ts`)
+
 **Test Categories:**
 
-1. **Image Generation (text2img)**
-   - Default settings
-   - With style presets (realistic, anime, etc.)
-   - With format presets (portrait, landscape, etc.)
-   - Custom dimensions
-   - Specific seed
-   - Negative prompts
-   - Seed reproducibility
-   - All style presets
-   - All format presets
+1. **Models Endpoints**
+   - GET /v1/models - List available models
+   - GET /v1/models/:model - Get model details
+   - GET /v1/models/:model - 404 for unknown model
 
-2. **Image Editing (img2img)**
-   - Edit existing image
-   - Low strength (subtle changes)
-   - High strength (major changes)
-   - With negative prompt
+2. **Chat Completions - Non-Streaming**
+   - Basic completion
+   - With system message
+   - With conversation history
+   - With temperature parameter
 
-3. **Video Generation (img2vid)**
-   - Generate video from image
-   - Short video (2s)
-   - Long video (10s)
-   - Custom FPS
+3. **Chat Completions - Streaming**
+   - Basic streaming with SSE parsing
+   - Streaming with system prompt
 
-4. **Text Generation (LLM)**
-   - Simple prompt
-   - With system prompt
-   - With conversation memory
-   - JSON output format
-   - Token counting
+4. **Error Handling**
+   - Empty messages array (400)
+   - Missing messages (400)
+   - Unauthorized request (401)
+   - Invalid API key (401)
 
-5. **Error Handling**
-   - Invalid API key
-   - Missing prompt
-   - Invalid dimensions
-   - Invalid seed
-   - Invalid imageId
-
-6. **Settings & Info**
-   - Get API key settings
+5. **OpenAI Client Compatibility**
+   - Standard OpenAI request format
+   - Response format spec verification
 
 ### WebSocket Tests (`websocket.test.ts`)
 
-**Test Categories:**
+**Test Categories (13 sections, 38 tests):**
 
-1. **Connection & Authentication**
+1. **Connection & Authentication** - 4 tests
    - Connect to WebSocket server
    - Authenticate with valid API key
    - Reject invalid API key
    - Ping/pong heartbeat
 
-2. **Image Generation via WebSocket**
+2. **Image Generation via WebSocket** - 2 tests
    - Default settings
-   - With style
-   - With format
-   - Custom dimensions
-   - With seed
+   - Style + format presets
 
-3. **Image Editing via WebSocket**
-   - Edit existing image
-   - Different strength values
+3. **Image Editing via WebSocket** - 2 tests
+   - Basic edit
+   - Edit with resize dimensions
 
-4. **Video Generation via WebSocket**
-   - Generate from image
-   - Custom settings
+4. **Image Upscale via WebSocket (img2ximg)** - 1 test
+   - Default factor (2x)
 
-5. **LLM Generation via WebSocket**
-   - Generate text
-   - With system prompt
-   - JSON output
+5. **Video Generation via WebSocket** - 1 test
+   - Generate video from image
 
-6. **Error Handling via WebSocket**
+6. **GIF Operations (CDN)** - 3 tests
+   - Convert MP4 to GIF
+   - Resize GIF via downloadFromCDN
+   - Download GIF with position parameter
+
+7. **LLM Generation via WebSocket** - 4 tests
+   - Simple prompt
+   - System prompt, memory and JSON
+   - Vision (image description)
+   - Markdown and edge cases
+
+8. **LLM Streaming via WebSocket** - 4 tests
+   - Stream with callbacks
+   - Token breakdown verification
+   - Multiple concurrent streams
+   - Stream with system prompt
+
+9. **Error Handling via WebSocket** - 3 tests
    - Missing prompt
    - Invalid imageId
    - Invalid dimensions
 
-7. **Connection Resilience**
-   - Graceful close
-   - Reconnection after disconnect
+10. **Connection Resilience** - 2 tests
+    - Graceful close
+    - Reconnection after disconnect
+
+11. **Cancellation** - 3 tests
+    - Cancel image generation
+    - Cancel LLM generation (non-streaming)
+    - Abort LLM streaming via SDK
+
+12. **Client SDK Options & Behavior** - 4 tests
+    - Connection state management
+    - WebSocket options configuration
+    - Timeout and error handling
+    - REST integration alongside WebSocket
+
+13. **Settings via WebSocket** - 5 tests
+    - Get API key settings
+    - Get usage statistics (custom days)
+    - Get usage statistics (default days)
+    - Get rate limit status
+    - Authentication requirement check
 
 ---
 
@@ -225,111 +313,130 @@ Generates a coverage report in the `coverage/` directory.
 
 ## Expected Test Results
 
-### Successful Test Run
+### Successful REST Test Run
 
 ```
 PASS tests/rest.test.ts
   REST API Tests
     1. Image Generation (text2img)
-      ✓ should generate image with default settings (45821ms)
-      ✓ should generate image with realistic style (44521ms)
-      ✓ should generate image with portrait format (48234ms)
-      ✓ should generate image with custom dimensions (43567ms)
-      ✓ should generate image with seed (46892ms)
-      ✓ should generate image with negative prompt (47123ms)
-      ✓ should generate reproducible images with same seed (98456ms) - timeout: 180s
-      ✓ should handle all style presets (245678ms) - timeout: 300s
-      ✓ should handle all format presets (178234ms) - timeout: 300s
+      ✓ should generate image with default settings (50647 ms)
+      ✓ should generate image with style and format (51462 ms)
     2. Image Editing (img2img)
-      ✓ should edit existing image (44321ms)
-      ✓ should edit with low strength (45678ms)
-      ✓ should edit with high strength (46234ms)
-      ✓ should edit with negative prompt (47891ms)
-    3. Video Generation (img2vid)
-      ✓ should generate video from image (89234ms)
-      ✓ should generate short video (78456ms)
-      ✓ should generate long video (124567ms)
-      ✓ should generate video with custom FPS (91234ms)
-    4. Text Generation (LLM)
-      ✓ should generate text (3456ms)
-      ✓ should generate text with system prompt (4567ms)
-      ✓ should generate text with memory (5234ms)
-      ✓ should generate JSON output (6789ms)
-      ✓ should count tokens (4321ms)
-    5. Error Handling
-      ✓ should handle invalid API key (12ms) - client-side validation
-      ✓ should handle missing prompt (234ms)
-      ✓ should handle invalid dimensions (345ms)
-      ✓ should handle invalid seed (456ms)
-      ✓ should handle invalid imageId (567ms)
-    6. Settings & Info
-      ✓ should get API key settings (234ms)
-      ✓ should get settings with current usage (345ms)
-      ✓ should check rate limits (456ms)
+      ✓ should edit existing image (61113 ms)
+      ✓ should edit with resize dimensions (46678 ms)
+    3. Image Upscale (img2ximg)
+      ✓ should upscale image with default factor (77917 ms)
+    4. Video Generation (img2vid)
+      ✓ should generate video from image (99208 ms)
+      ✓ should convert MP4 to GIF (first frame) (302 ms)
+      ✓ should resize GIF via downloadFromCDN (328 ms)
+    5. Text Generation (LLM)
+      ✓ should generate text with simple prompt and count tokens (3057 ms)
+      ✓ should generate text with system prompt and memory context (972 ms)
+      ✓ should generate JSON output (simple and complex) (3823 ms)
+      ✓ should describe image with vision (2020 ms)
+      ✓ should handle markdown and edge cases (11483 ms)
+    6. Text Streaming (SSE)
+      ✓ should stream text with callbacks (3296 ms)
+      ✓ should accumulate and verify full response (254 ms)
+      ✓ should handle stream abort (1021 ms)
+      ✓ should stream with system prompt and memory (384 ms)
+    7. Error Handling
+      ✓ should handle invalid API key (2 ms)
+      ✓ should handle invalid image generation params (17 ms)
+      ✓ should handle invalid IDs for edit/video (1546 ms)
+    8. Settings & Info
+      ✓ should get API key settings with current usage (10 ms)
+    9. Video Frame Extraction (CDN)
+      ✓ should extract frames at different times and formats (803 ms)
+      ✓ should extract frame with resize and watermark (326 ms)
+    10. Watermark Position Constants (CDN)
+      ✓ should apply watermark at different positions (12 ms)
+    11. CDN Download - Manual Axios (Documentation)
+      ✓ should download using manual axios call (284 ms)
 
 Test Suites: 1 passed, 1 total
-Tests:       29 passed, 29 total
-Snapshots:   0 total
-Time:        ~25-30 minutes
+Tests:       25 passed, 25 total
+Time:        ~7 minutes
 ```
+
+### Successful WebSocket Test Run
 
 ```
 PASS tests/websocket.test.ts
   WebSocket API Tests
     1. Connection & Authentication
-      ✓ should connect to WebSocket server (52ms)
-      ✓ should authenticate with valid API key (24ms)
-      ✓ should reject invalid API key (22ms)
-      ✓ should handle ping/pong (25ms)
+      ✓ should connect to WebSocket server (42 ms)
+      ✓ should authenticate with valid API key (15 ms)
+      ✓ should reject invalid API key (5 ms)
+      ✓ should handle ping/pong (10 ms)
     2. Image Generation via WebSocket
-      ✓ should generate image with default settings (98234ms) - timeout: 300s
-      ✓ should generate image with style (46199ms)
-      ✓ should generate image with format (54549ms)
-      ✓ should generate image with custom dimensions (29036ms)
-      ✓ should generate image with seed (73911ms)
+      ✓ should generate image with default settings (19348 ms)
+      ✓ should generate image with style and format (33699 ms)
     3. Image Editing via WebSocket
-      ✓ should edit existing image (12ms) - skipped if no image
-      ✓ should edit with color adjustment (7ms) - skipped if no image
-    4. Video Generation via WebSocket
-      ✓ should generate video from image (5ms) - skipped if no image
-      ✓ should generate video with custom settings (4ms) - skipped if no image
-    5. LLM Generation via WebSocket
-      ✓ should generate text (686ms)
-      ✓ should generate text with system prompt (3173ms)
-      ✓ should generate JSON output (490ms)
-    6. Error Handling via WebSocket
-      ✓ should handle missing prompt (39ms)
-      ✓ should handle invalid imageId (789ms)
-      ✓ should handle invalid dimensions (37ms)
-    7. Connection Resilience
-      ✓ should handle connection close gracefully (36ms)
-      ✓ should allow reconnection after disconnect (1063ms)
+      ✓ should edit existing image (47597 ms)
+      ✓ should edit with resize dimensions (40477 ms)
+    4. Image Upscale via WebSocket (img2ximg)
+      ✓ should upscale image with default factor (79187 ms)
+    5. Video Generation via WebSocket
+      ✓ should generate video from image (91793 ms)
+    6. GIF Operations (CDN)
+      ✓ should convert MP4 to GIF (first frame) (306 ms)
+      ✓ should resize GIF via downloadFromCDN (335 ms)
+      ✓ should download GIF with position parameter (71 ms)
+    7. LLM Generation via WebSocket
+      ✓ should generate text with simple prompt (3631 ms)
+      ✓ should generate text with system prompt, memory and JSON (4240 ms)
+      ✓ should describe image with vision (2686 ms)
+      ✓ should handle markdown and edge cases (8550 ms)
+    8. LLM Streaming via WebSocket
+      ✓ should stream text with callbacks (2500 ms)
+      ✓ should include token breakdown in response (1200 ms)
+      ✓ should handle multiple concurrent streams (3000 ms)
+      ✓ should stream with system prompt (1500 ms)
+    9. Error Handling via WebSocket
+      ✓ should handle missing prompt (25 ms)
+      ✓ should handle invalid imageId (736 ms)
+      ✓ should handle invalid dimensions (15 ms)
+    10. Connection Resilience
+      ✓ should handle connection close gracefully (9 ms)
+      ✓ should allow reconnection after disconnect (1024 ms)
+    11. Cancellation
+      ✓ should cancel image generation request (15007 ms)
+      ✓ should cancel LLM generation request (non-streaming) (20009 ms)
+      ✓ should abort LLM streaming via SDK (10019 ms)
+    12. Client SDK Options & Behavior
+      ✓ should report not connected before wsConnect (9 ms)
+      ✓ should use default and custom WebSocket options (10 ms)
+      ✓ should handle request timeout and send without connection (124 ms)
+      ✓ should work alongside REST methods (13 ms)
+    13. Settings via WebSocket
+      ✓ should get API key settings (50 ms)
+      ✓ should get usage statistics (45 ms)
+      ✓ should get usage with default days (42 ms)
+      ✓ should get rate limit status (38 ms)
+      ✓ should require authentication for settings (25 ms)
 
 Test Suites: 1 passed, 1 total
-Tests:       21 passed, 21 total
-Snapshots:   0 total
-Time:        ~5-10 minutes
+Tests:       38 passed, 38 total
+Time:        ~6 minutes
 ```
 
 ### Execution Time
 
-- **REST tests**: ~25-30 minutes (includes extensive style/format preset testing)
-- **WebSocket tests**: ~5-10 minutes (faster due to fewer image generations)
-- **Error tests only**: ~30 seconds
-- **Total (full suite)**: ~30-40 minutes
+- **REST tests**: ~7 minutes
+- **WebSocket tests**: ~6 minutes
+- **OpenAI tests**: ~2 minutes
+- **Total (full suite)**: ~15 minutes
 
 Generation tests are intentionally slow because they perform actual API operations:
-- **Image generation**: 30-120 seconds per image (varies by complexity)
-- **Video generation**: 60-150 seconds per video (depends on duration)
-- **LLM text generation**: 1-5 seconds per request
+- **Image generation**: 20-60 seconds per image
+- **Image upscale**: 60-90 seconds
+- **Video generation**: 90-120 seconds per video
+- **LLM text generation**: 1-10 seconds per request
+- **Streaming**: 1-5 seconds
+- **CDN operations**: <1 second each
 - **Fast tests**: Connection, validation, settings (~1-2 seconds each)
-
-**Test Breakdown:**
-- ~15 image generations (text2img)
-- ~4 image edits (img2img)
-- ~4 video generations (img2vid)
-- ~8 LLM text generations
-- ~19 fast tests (connection, error handling, settings)
 
 ---
 
@@ -426,44 +533,53 @@ To avoid skips, provide `TEST_EDIT_IMAGE_ID` and `TEST_VIDEO_IMAGE_ID` in your `
 The test suite covers:
 
 **REST API Endpoints:**
-- ✅ Image generation (text2img) - All styles, formats, seeds, negative prompts
-- ✅ Image editing (img2img) - Strength levels, negative prompts
-- ✅ Video generation (img2vid) - Durations, FPS settings
-- ✅ LLM text generation - Prompts, system messages, memory, JSON format
+- ✅ Image generation (text2img) - Styles, formats
+- ✅ Image editing (img2img) - Text-guided, resize
+- ✅ Image upscale (img2ximg) - AI upscaling
+- ✅ Video generation (img2vid) - Duration, FPS, GIF conversion
+- ✅ LLM text generation - Prompts, system messages, memory, JSON, vision
+- ✅ LLM streaming (SSE) - Callbacks, abort, accumulation
 - ✅ Settings endpoint - API key info with real-time usage tracking
-- ✅ Rate limit checking - Current usage across all operations
-- ✅ CDN integration - Image/video downloads with authentication
+- ✅ CDN integration - Frame extraction, watermarks, downloads
+
+**OpenAI-Compatible Endpoints (`/v1/*`):**
+- ✅ GET /v1/models - List available models (per API key)
+- ✅ GET /v1/models/:model - Get model details or 404
+- ✅ POST /v1/chat/completions - Non-streaming chat completion
+- ✅ POST /v1/chat/completions - Streaming (SSE) chat completion
+- ✅ System messages - OpenAI format system prompts
+- ✅ Conversation history - Multi-turn conversations
+- ✅ Response format validation - OpenAI spec compliance
+- ✅ Error responses - 400, 401, 404 with OpenAI error format
 
 **WebSocket Operations:**
 - ✅ Connection & authentication - Valid/invalid keys
-- ✅ All generation types via WebSocket - Image, video, text
+- ✅ All generation types via WebSocket - Image, video, text, upscale
+- ✅ LLM streaming via WebSocket - Callbacks, concurrent streams
 - ✅ Real-time message handling - Progress, completion, errors
 - ✅ Ping/pong heartbeat - Connection health
 - ✅ Connection resilience - Graceful disconnect, reconnection
+- ✅ Cancellation - Image, LLM, streaming abort
+- ✅ SDK options - Custom timeouts, reconnect settings
+- ✅ Settings via WebSocket - Get settings, usage, rate limits
 - ✅ Error handling - Invalid parameters, missing fields
 
-**Feature Coverage:**
-- ✅ **14 style presets** - raw, realistic, text, ciniji, portrait, cine, sport, fashion, niji, anime, manga, watercolor, comicbook, paint
-- ✅ **7 format presets** - portrait, landscape, profile, story, post, smartphone, banner
-- ✅ **Custom dimensions** - Width/height validation (320-1344px)
-- ✅ **Seed support** - Reproducibility testing with same seed
-- ✅ **Negative prompts** - Quality control and unwanted element removal
-- ✅ **Token counting** - LLM usage tracking
-- ✅ **Current usage tracking** - Real-time quota with 15-min and daily windows
-- ✅ **Rate limit status** - Remaining requests/tokens with reset timestamps
+**CDN Operations:**
+- ✅ Download images and videos with authentication
+- ✅ Video frame extraction at specific times
+- ✅ Format conversion (MP4 to GIF)
+- ✅ Resize images and GIFs
+- ✅ Watermark positioning (9 positions)
 
 **Error Handling:**
 - ✅ Client-side validation - Invalid API key format
 - ✅ Missing required fields - Prompts, image IDs
 - ✅ Invalid parameters - Dimensions, seeds, FPS
-- ✅ Service errors - API unavailability, generation failures
 - ✅ WebSocket errors - Connection failures, timeout handling
 
 **Not Covered** (requires manual testing):
 - ⚠️ Rate limit enforcement (requires sustained high-volume requests)
 - ⚠️ Watermarking visual quality (requires manual inspection)
-- ⚠️ CDN query parameters (w, h, position) - functional but not tested
-- ⚠️ WebSocket progress updates (events are received but not validated)
 
 ---
 
@@ -528,38 +644,33 @@ All generated content is saved to `tests/tmp/` for manual verification:
 ### REST Test Outputs
 ```
 tests/tmp/
-├── 01-default.jpg              # Default generation settings
-├── 02-realistic.jpg            # Realistic style preset
-├── 03-portrait.jpg             # Portrait format preset
-├── 04-custom-dims.jpg          # Custom dimensions (512x768)
-├── 05-seed.jpg                 # Specific seed (12345)
-├── 06-negative.jpg             # With negative prompt
-├── 07-reproducible-1.jpg       # First reproducible image (seed 99999)
-├── 07-reproducible-2.jpg       # Second reproducible image (same seed)
-├── 08-styles-*.jpg             # All style presets (12 files)
-├── 09-formats-*.jpg            # All format presets (7 files)
-├── 10-edited.jpg               # Image editing (img2img)
-├── 11-edited-low.jpg           # Low strength edit
-├── 12-edited-high.jpg          # High strength edit
-├── 13-edited-negative.jpg      # Edit with negative prompt
-├── 14-video.mp4                # Standard video (5s, 16fps)
-├── 15-video-short.mp4          # Short video (2s)
-├── 16-video-long.mp4           # Long video (10s)
-└── 17-video-fps.mp4            # Custom FPS video (24fps)
+├── 01-default-settings.jpg     # Default generation settings
+├── 02-styled-landscape.jpg     # Style + format preset
+├── 03-edited-bw.jpg            # Image editing (black & white)
+├── 04-edited-resize.jpg        # Image editing with resize
+├── 05-upscaled-2x.jpg          # AI upscaled (2x)
+├── 06-video-5s.mp4             # Video (5s, 16fps)
+├── 07-mp4-to-gif.gif           # GIF from video
+├── 08-gif-resized-256x256.gif  # Resized GIF
+├── 09-frame-0ms.jpg            # Video frame at 0ms
+├── 12-frame-resized-256x256.jpg # Frame resized
+├── 13-frame-with-watermark.jpg # Frame with watermark
+├── 14-watermark-*.jpg          # Watermark positions (3 files)
+└── 15-manual-axios-download.jpg # Manual axios example
 ```
 
 ### WebSocket Test Outputs
 ```
 tests/tmp/
 ├── ws-01-default.jpg           # WebSocket default generation
-├── ws-02-realistic.jpg         # WebSocket realistic style
-├── ws-03-landscape.jpg         # WebSocket landscape format
-├── ws-04-custom-dims.jpg       # WebSocket custom dimensions
-├── ws-05-seed.jpg              # WebSocket with seed
-├── ws-06-edited.jpg            # WebSocket image editing
-├── ws-07-edited-color.jpg      # WebSocket color adjustment
-├── ws-08-video.mp4             # WebSocket video (5s)
-└── ws-09-video-custom.mp4      # WebSocket custom video (8s, 24fps)
+├── ws-02-styled-landscape.jpg  # WebSocket style + format
+├── ws-03-edited-bw.jpg         # WebSocket image editing
+├── ws-04-edited-resize.jpg     # WebSocket edit with resize
+├── ws-05-upscaled-2x.jpg       # WebSocket AI upscale
+├── ws-06-video-5s.mp4          # WebSocket video
+├── ws-07-mp4-to-gif.gif        # GIF from video
+├── ws-08-gif-resized-256x256.gif # Resized GIF
+└── ws-09-gif-with-position.gif # GIF with position
 ```
 
 **Note**: The `tests/tmp/` directory is automatically created if it doesn't exist. Files are overwritten on each test run.

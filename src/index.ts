@@ -1,6 +1,6 @@
 /**
  * 2DAI SDK - Official TypeScript/JavaScript SDK
- *
+ * @version 1.7.0
  * @packageDocumentation
  */
 
@@ -40,7 +40,20 @@ export {
   WsLlmResponse,
   WsUpscaleResponse,
   WsRequestData,
-  WsResponseData
+  WsResponseData,
+  // Streaming types
+  TextStreamOptions,
+  TextStreamChunk,
+  TextStreamResult,
+  TextStreamController,
+  WsLlmStreamRequest,
+  WsStreamCallbacks,
+  WsStreamController,
+  // Settings types
+  WsUsageRequest,
+  WsSettingsResponse,
+  WsUsageResponse,
+  WsRateLimitsResponse
 } from './types';
 
 // Export constants
@@ -55,5 +68,8 @@ export {
   SEED,
   UPSCALE_FACTOR,
   WS_DEFAULTS,
-  WS_TYPES
+  WS_TYPES,
+  // Streaming constants
+  STREAM_DEFAULTS,
+  WS_STREAM_TYPES
 } from './constants';

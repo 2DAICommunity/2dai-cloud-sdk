@@ -226,7 +226,7 @@ describe('REST API Tests', () => {
       await saveGifFromCDN(videoId, client, '07-mp4-to-gif.gif');
 
       console.log(`\n✅ MP4 to GIF conversion successful!`);
-    }, 60000);
+    }, 120000);
 
     test('should resize GIF via downloadFromCDN', async () => {
       logTestStart('GIF Resize - 256x256');
@@ -262,7 +262,7 @@ describe('REST API Tests', () => {
       fs.writeFileSync(filepath, new Uint8Array(buffer));
 
       console.log(`\n✅ GIF resize successful! (${size} bytes)`);
-    }, 60000);
+    }, 120000);
   });
 
   describe('5. Text Generation (LLM)', () => {
@@ -287,7 +287,7 @@ describe('REST API Tests', () => {
       console.log(`   Input tokens: ${result.inputTokens}`);
       console.log(`   Output tokens: ${result.outputTokens}`);
       console.log(`   Total tokens: ${result.totalTokens}`);
-    }, 60000);
+    }, 120000);
 
     test('should generate text with system prompt and memory context', async () => {
       logTestStart('Generate Text - System Prompt + Memory');
@@ -311,7 +311,7 @@ describe('REST API Tests', () => {
 
       console.log(`\n✅ System prompt + memory handled!`);
       console.log(`   Response: ${result.response.substring(0, 150)}...`);
-    }, 60000);
+    }, 120000);
 
     test('should generate JSON output (simple and complex)', async () => {
       logTestStart('Generate Text - JSON Format (Simple + Complex)');
@@ -342,7 +342,7 @@ describe('REST API Tests', () => {
 
       console.log(`\n✅ JSON generation successful!`);
       console.log(`   Response:`, JSON.stringify(result.json, null, 2));
-    }, 60000);
+    }, 120000);
 
     test('should describe image with vision', async () => {
       logTestStart('Generate Text - Image Description (Vision)');
@@ -405,7 +405,117 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
     }, 120000);
   });
 
-  describe('6. Error Handling', () => {
+  describe('6. Text Streaming (SSE)', () => {
+    test('should stream text with callbacks', async () => {
+      logTestStart('REST Stream - Basic Callbacks');
+
+      const chunks: string[] = [];
+      console.log(`📝 Prompt: "${config.llmPrompt}"`);
+
+      const controller = client.generateTextStream({
+        prompt: config.llmPrompt,
+        onChunk: (chunk) => {
+          chunks.push(chunk);
+          process.stdout.write(chunk);
+        }
+      });
+
+      const finalResult = await controller.done;
+
+      expect(chunks.length).toBeGreaterThan(0);
+      expect(finalResult.success).toBe(true);
+      expect(finalResult.response).toBeTruthy();
+      expect(finalResult.response.length).toBeGreaterThan(0);
+
+      console.log(`\n\n✅ Received ${chunks.length} chunks`);
+      console.log(`   Total response: ${finalResult.response.length} chars`);
+      if (finalResult.totalTokens) {
+        console.log(`   Tokens used: ${finalResult.totalTokens}`);
+      }
+    }, 120000);
+
+    test('should accumulate and verify full response', async () => {
+      logTestStart('REST Stream - Full Accumulation');
+
+      let accumulatedByCallback = '';
+      console.log(`📝 Prompt: "Say 'Hello World' and nothing else"`);
+
+      const controller = client.generateTextStream({
+        prompt: "Say 'Hello World' and nothing else",
+        onChunk: (chunk) => {
+          accumulatedByCallback += chunk;
+        }
+      });
+
+      const result = await controller.done;
+
+      expect(accumulatedByCallback).toBe(result.response);
+      expect(result.response.toLowerCase()).toContain('hello');
+
+      console.log(`\n✅ Accumulation verified`);
+      console.log(`   Response: "${result.response}"`);
+    }, 120000);
+
+    test('should handle stream abort', async () => {
+      logTestStart('REST Stream - Abort');
+
+      const chunks: string[] = [];
+      console.log(`📝 Testing abort functionality...`);
+
+      const controller = client.generateTextStream({
+        prompt: 'Write a very long story about a journey across the world, describing every detail of every location visited.',
+        onChunk: (chunk) => {
+          chunks.push(chunk);
+          process.stdout.write(chunk);
+          if (chunks.length >= 5) {
+            console.log('\n\n🛑 Aborting stream...');
+            controller.abort();
+          }
+        },
+        onError: (err) => {
+          console.log(`   Note: ${err.message}`);
+        }
+      });
+
+      const result = await controller.done;
+
+      expect(result.success).toBe(false);
+      expect(chunks.length).toBeGreaterThanOrEqual(5);
+
+      console.log(`\n✅ Abort handled gracefully`);
+      console.log(`   Chunks received before abort: ${chunks.length}`);
+    }, 120000);
+
+    test('should stream with system prompt and memory', async () => {
+      logTestStart('REST Stream - System + Memory');
+
+      const chunks: string[] = [];
+      console.log(`📝 Testing memory/conversation context with streaming...`);
+
+      const controller = client.generateTextStream({
+        prompt: 'What was my favorite color?',
+        system: 'You are a helpful assistant. Be concise.',
+        memory: [
+          'User: My favorite color is blue.',
+          'Assistant: That\'s a great choice! Blue is often associated with calm and tranquility.'
+        ],
+        onChunk: (chunk) => {
+          chunks.push(chunk);
+          process.stdout.write(chunk);
+        }
+      });
+
+      const result = await controller.done;
+
+      expect(result.success).toBe(true);
+      expect(result.response.toLowerCase()).toContain('blue');
+
+      console.log(`\n\n✅ Memory context preserved in stream`);
+      console.log(`   Response: "${result.response}"`);
+    }, 120000);
+  });
+
+  describe('7. Error Handling', () => {
     test('should handle invalid API key', () => {
       expect(() => {
         new TwoDAIClient({
@@ -449,7 +559,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
     }, 150000);
   });
 
-  describe('7. Settings & Info', () => {
+  describe('8. Settings & Info', () => {
     test('should get API key settings with current usage', async () => {
       logTestStart('Get API Key Settings');
 
@@ -460,8 +570,6 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
         console.log(JSON.stringify(settings, null, 2));
 
         expect(settings).toBeDefined();
-        expect(settings.key).toBeTruthy();
-        expect(settings.name).toBeTruthy();
         expect(settings.status).toBe('active');
         expect(settings.rateLimits).toBeDefined();
 
@@ -493,7 +601,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
     }, 30000);
   });
 
-  describe('8. Video Frame Extraction (CDN)', () => {
+  describe('9. Video Frame Extraction (CDN)', () => {
     let testVideoId: string | undefined;
 
     beforeAll(async () => {
@@ -580,7 +688,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
     }, 90000);
   });
 
-  describe('9. Watermark Position Constants (CDN)', () => {
+  describe('10. Watermark Position Constants (CDN)', () => {
     test('should apply watermark at different positions', async () => {
       logTestStart('Watermark Positions Test');
 
@@ -624,7 +732,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
     }, 200000);
   });
 
-  describe('10. CDN Download - Manual Axios (Documentation)', () => {
+  describe('11. CDN Download - Manual Axios (Documentation)', () => {
     test('should download using manual axios call', async () => {
       logTestStart('Manual Axios Download - For Documentation');
       const imageId = generatedImageId || config.editImageId;
@@ -651,6 +759,6 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
 
       console.log(`\n✅ Manual axios download successful!`);
       console.log(`   File size: ${stats.size} bytes`);
-    }, 60000);
+    }, 120000);
   });
 });

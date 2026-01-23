@@ -1,5 +1,6 @@
 /**
  * Type definitions for 2DAI SDK
+ * @version 1.7.0
  */
 
 /**
@@ -500,6 +501,10 @@ export interface WsLlmResponse {
     text: string;
     json?: any;
     tokensUsed: number;
+    /** Number of prompt/input tokens (from vLLM) */
+    promptTokens?: number;
+    /** Number of completion/output tokens (from vLLM) */
+    completionTokens?: number;
   };
 }
 
@@ -524,3 +529,162 @@ export type WsRequestData = WsImageRequest | WsImg2ImgRequest | WsVideoRequest |
  * Union type for all WebSocket response data
  */
 export type WsResponseData = WsImageResponse | WsVideoResponse | WsLlmResponse | WsUpscaleResponse;
+
+// ============================================================================
+// Streaming Types (REST SSE & WebSocket)
+// ============================================================================
+
+/**
+ * Options for streaming text generation (REST SSE)
+ *
+ * @example
+ * ```typescript
+ * client.generateTextStream({
+ *   prompt: 'Write a story',
+ *   onChunk: (chunk) => process.stdout.write(chunk),
+ *   onComplete: (result) => console.log('Done!', result.totalTokens),
+ *   onError: (err) => console.error(err)
+ * });
+ * ```
+ */
+export interface TextStreamOptions extends Omit<TextGenerationOptions, 'jsonFormat' | 'jsonTemplate'> {
+  /** Callback invoked for each text chunk as it arrives */
+  onChunk?: (chunk: string) => void;
+  /** Callback invoked when stream completes successfully */
+  onComplete?: (result: TextStreamResult) => void;
+  /** Callback invoked on error */
+  onError?: (error: Error) => void;
+}
+
+/**
+ * Text streaming chunk from SSE
+ */
+export interface TextStreamChunk {
+  /** Text content of this chunk */
+  chunk?: string;
+  /** Whether this is the final chunk */
+  done?: boolean;
+  /** Token count (only in final chunk) */
+  tokensUsed?: number;
+  /** Error message if stream failed */
+  error?: string;
+}
+
+/**
+ * Result from text stream completion
+ */
+export interface TextStreamResult {
+  /** Whether the stream completed successfully */
+  success: boolean;
+  /** Full accumulated text response */
+  response: string;
+  /** Total tokens used (if available) */
+  totalTokens?: number;
+}
+
+/**
+ * Stream controller returned by generateTextStream
+ * Allows aborting the stream and waiting for completion
+ */
+export interface TextStreamController {
+  /** Abort the stream */
+  abort: () => void;
+  /** Promise that resolves when stream completes */
+  done: Promise<TextStreamResult>;
+}
+
+/**
+ * WebSocket streaming request - extends WsLlmRequest with stream flag
+ */
+export interface WsLlmStreamRequest extends WsLlmRequest {
+  /** Always true for streaming requests */
+  stream: true;
+}
+
+/**
+ * WebSocket streaming callbacks
+ */
+export interface WsStreamCallbacks {
+  /** Called for each text chunk received */
+  onChunk: (chunk: string) => void;
+  /** Called when stream completes with full response */
+  onComplete: (response: WsLlmResponse) => void;
+  /** Called on error */
+  onError: (error: Error) => void;
+}
+
+/**
+ * WebSocket streaming controller
+ */
+export interface WsStreamController {
+  /** Request ID for this stream */
+  requestId: string;
+  /** Abort the stream (sends cancel message to server) */
+  abort: () => void;
+}
+
+// ============================================================================
+// WebSocket Settings Types
+// ============================================================================
+
+/**
+ * WebSocket request for usage statistics
+ */
+export interface WsUsageRequest {
+  /** Number of days to get usage for (1-365, default: 30) */
+  days?: number;
+}
+
+/**
+ * WebSocket response for settings
+ */
+export interface WsSettingsResponse {
+  settings: {
+    status: string;
+    rateLimits: {
+      image: { requestsPer15Min: number; requestsPerDay: number };
+      video: { requestsPer15Min: number; requestsPerDay: number };
+      llm: { requestsPer15Min: number; requestsPerDay: number; tokensPer15Min?: number; tokensPerDay?: number };
+      cdn: { requestsPer15Min: number; requestsPerDay: number };
+    };
+    currentUsage: {
+      image: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
+      video: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
+      llm: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
+      cdn: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
+    };
+    lastUsedAt?: string;
+  };
+}
+
+/**
+ * WebSocket response for usage statistics
+ */
+export interface WsUsageResponse {
+  usage: {
+    period: {
+      start: string;
+      end: string;
+      days: number;
+    };
+    summary: {
+      total: number;
+      byOperation: { [key: string]: number };
+      totalTokens: number;
+      successRate: number;
+    };
+    daily: Array<{
+      date: string;
+      total: number;
+      byOperation: { [key: string]: number };
+      tokens: number;
+    }>;
+  };
+}
+
+/**
+ * WebSocket response for rate limits
+ */
+export interface WsRateLimitsResponse {
+  rateLimits: RateLimitInfo[];
+}

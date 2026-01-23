@@ -1,5 +1,6 @@
 /**
  * Constants and Enums for 2DAI SDK
+ * @version 1.7.0
  */
 
 import { StylePreset, FormatPreset } from './types';
@@ -9,12 +10,12 @@ import { StylePreset, FormatPreset } from './types';
  */
 export const STYLES = {
   /**
-   * ⚡ Raw Gen6 defaults
+   * ⚡ Raw defaults
    */
   raw: {
     id: 'raw',
     name: 'Raw',
-    description: 'Raw Gen6 defaults'
+    description: 'Raw defaults'
   } as StylePreset,
 
   /**
@@ -45,93 +46,93 @@ export const STYLES = {
   } as StylePreset,
 
   /**
-   * 📸 Gen6 Portrait
+   * 📸 Portrait
    */
   portrait: {
     id: 'portrait',
     name: 'Portrait',
-    description: 'Gen6 Portrait'
+    description: 'Portrait'
   } as StylePreset,
 
   /**
-   * 🎥 Gen6 Cinematic
+   * 🎥 Cinematic
    */
   cine: {
     id: 'cine',
     name: 'Cinematic',
-    description: 'Gen6 Cinematic'
+    description: 'Cinematic'
   } as StylePreset,
 
   /**
-   * ⚽ Gen6 Sport
+   * ⚽ Sport
    */
   sport: {
     id: 'sport',
     name: 'Sport',
-    description: 'Gen6 Sport'
+    description: 'Sport'
   } as StylePreset,
 
   /**
-   * 👕 Gen6 Fashion
+   * 👕 Fashion
    */
   fashion: {
     id: 'fashion',
     name: 'Fashion',
-    description: 'Gen6 Fashion'
+    description: 'Fashion'
   } as StylePreset,
 
   /**
-   * 🌸 Gen6 Anime Niji
+   * 🌸 Anime Niji
    */
   niji: {
     id: 'niji',
     name: 'Niji',
-    description: 'Gen6 Anime Niji'
+    description: 'Anime Niji'
   } as StylePreset,
 
   /**
-   * 🎎 Gen6 Anime
+   * 🎎 Anime
    */
   anime: {
     id: 'anime',
     name: 'Anime',
-    description: 'Gen6 Anime'
+    description: 'Anime'
   } as StylePreset,
 
   /**
-   * 📚 Gen6 Manga
+   * 📚 Manga
    */
   manga: {
     id: 'manga',
     name: 'Manga',
-    description: 'Gen6 Manga'
+    description: 'Manga'
   } as StylePreset,
 
   /**
-   * 🎨 Gen6 Watercolor Anime
+   * 🎨 Watercolor Anime
    */
   watercolor: {
     id: 'watercolor',
     name: 'Watercolor',
-    description: 'Gen6 Watercolor Anime'
+    description: 'Watercolor Anime'
   } as StylePreset,
 
   /**
-   * 💥 Gen6 Comic book illustration
+   * 💥 Comic book illustration
    */
   comicbook: {
     id: 'comicbook',
     name: 'Comic',
-    description: 'Gen6 Comic book illustration'
+    description: 'Comic book illustration'
   } as StylePreset,
 
   /**
-   * 🖌️ Gen6 Paint
+   * 🖌️ Paint
    */
   paint: {
     id: 'paint',
     name: 'Paint',
-    description: 'Gen6 Paint'
+    description: 'Paint'
   } as StylePreset
 } as const;
 
@@ -304,4 +305,24 @@ export const WS_TYPES = {
   LLM: 'generate_llm',
   /** AI upscale an image */
   UPSCALE: 'generate_upscale'
+} as const;
+
+/**
+ * Streaming defaults
+ */
+export const STREAM_DEFAULTS = {
+  /** Default timeout for streaming requests (5 minutes) */
+  TIMEOUT_MS: 300000,
+  /** SSE retry interval on connection drop */
+  RETRY_MS: 3000
+} as const;
+
+/**
+ * WebSocket streaming message types
+ */
+export const WS_STREAM_TYPES = {
+  /** LLM generation with streaming (same as regular, stream flag in data) */
+  LLM_STREAM: 'generate_llm',
+  /** Streaming chunk from server */
+  LLM_CHUNK: 'llm_chunk'
 } as const;

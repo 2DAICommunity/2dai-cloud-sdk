@@ -5,16 +5,83 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-01-22
+
+### Added
+- **Upstream Request Cancellation** - `abort()` now stops GPU processing server-side
+  - Calling `controller.abort()` on REST streams cancels upstream generation
+  - Calling `wsController.abort()` on WebSocket streams sends cancel to server
+  - Client disconnects during streaming automatically cancel upstream requests
+  - Saves compute resources when users cancel mid-generation
+
+- **WebSocket Settings API** - Real-time settings access via WebSocket
+  - `wsGetSettings()` - Get API key info and current settings with usage
+  - `wsGetUsage(days?)` - Get usage statistics with daily breakdown (1-365 days)
+  - `wsGetRateLimits()` - Get current rate limit status for all operations
+  - New types: `WsUsageRequest`, `WsSettingsResponse`, `WsUsageResponse`, `WsRateLimitsResponse`
+
+### Fixed
+- **Accurate Token Breakdown** - `prompt_tokens` and `completion_tokens` now properly populated
+  - Previously hardcoded to `0` for `prompt_tokens`
+  - Affects both OpenAI-compatible endpoint and native LLM endpoints
+  - WebSocket responses now include `promptTokens` and `completionTokens`
+
+- **Rate Limits Response** - Added `operation` field to rate-limits response
+  - Now includes `operation` name (`image`, `video`, `llm`, `cdn`) for each limit
+  - Applies to both REST (`GET /settings/rate-limits`) and WebSocket (`get_rate_limits`)
+
+### Changed
+- `WsLlmResponse.result` now includes optional `promptTokens` and `completionTokens` fields
+- `WsUsageResponse.usage.summary` now uses `total`, `successRate`, `totalTokens` instead of `totalRequests`, `successfulRequests`, `failedRequests`
+
+## [1.6.0] - 2026-01-21
+
+### Added
+- **REST SSE Streaming** - `generateTextStream()` method for real-time text streaming
+  - Returns `TextStreamController` with `abort()` and `done` promise
+  - Callbacks: `onChunk(chunk)`, `onComplete(result)`, `onError(error)`
+  - Proper SSE event parsing with `[DONE]` signal handling
+  - Accumulates text chunks and returns full response on completion
+
+- **WebSocket Streaming** - `wsGenerateLlmStream()` method for WebSocket-based streaming
+  - Lower latency than SSE for applications already using WebSocket
+  - Supports concurrent streams with request ID tracking
+  - Returns `WsStreamController` with `requestId` and `abort()` method
+  - Handles `llm_chunk` messages for real-time chunk delivery
+
+- **Streaming Types** - New TypeScript interfaces for streaming
+  - `TextStreamOptions` - Options with onChunk/onComplete/onError callbacks
+  - `TextStreamChunk` - Chunk data from SSE stream
+  - `TextStreamResult` - Final result with accumulated text and token count
+  - `TextStreamController` - Controller with abort() and done promise
+  - `WsLlmStreamRequest` - WebSocket streaming request type
+  - `WsStreamCallbacks` - WebSocket streaming callbacks
+  - `WsStreamController` - WebSocket stream controller
+
+- **Streaming Constants** - New configuration constants
+  - `STREAM_DEFAULTS.TIMEOUT_MS` - Default streaming timeout (5 minutes)
+  - `STREAM_DEFAULTS.RETRY_MS` - SSE retry interval
+  - `WS_STREAM_TYPES.LLM_CHUNK` - WebSocket chunk message type
+
+- **Streaming Tests** - Comprehensive test coverage
+  - REST SSE tests: basic, accumulation, abort, system prompt, memory
+  - WebSocket streaming tests: basic, concurrent, abort, system prompt
+  - Error handling tests for empty prompt and connection errors
+
+### Changed
+- JSON format (`jsonFormat: true`) is not supported with streaming - use non-streaming for JSON
+- Rate limiting applies to streaming requests (slot acquired at start, released at completion)
+
 ## [1.5.3] - 2026-01-15
 
 ### Added
-- **Comic Book Style** - New `comicbook` style preset for Gen6 Comic book illustration
+- **Comic Book Style** - New `comicbook` style preset for Comic book illustration
 - Now 14 style presets available
 
 ## [1.5.2] - 2026-01-15
 
 ### Added
-- **Watercolor Style** - New `watercolor` style preset for Gen6 Watercolor Anime generation
+- **Watercolor Style** - New `watercolor` style preset for Watercolor Anime generation
 - Now 13 style presets available
 
 ### Changed
@@ -152,7 +219,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Style Update**: Replaced `legacy` style with new `text` style
   - New style: `STYLES.text` - "Text & Clarity" optimized for text rendering
   - Removed style: `STYLES.legacy` - Legacy 2DAI generation (deprecated)
-- Updated style presets to match Gen6 bot improvements
+- Updated style presets to match bot improvements
 
 ### Fixed
 - Fixed typo in style name: `fashon` → `fashion`

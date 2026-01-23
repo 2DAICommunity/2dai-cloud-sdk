@@ -1,6 +1,7 @@
 /**
  * 2DAI SDK Client
  * Official TypeScript/JavaScript client for 2DAI API
+ * @version 1.7.0
  */
 
 import WebSocket from 'ws';
@@ -30,12 +31,25 @@ import {
   WsImageResponse,
   WsVideoResponse,
   WsLlmResponse,
-  WsUpscaleResponse
+  WsUpscaleResponse,
+  // Streaming types
+  TextStreamOptions,
+  TextStreamChunk,
+  TextStreamResult,
+  TextStreamController,
+  WsStreamCallbacks,
+  WsStreamController,
+  // Settings types
+  WsUsageRequest,
+  WsSettingsResponse,
+  WsUsageResponse,
+  WsRateLimitsResponse
 } from './types';
 import {
   DEFAULT_BASE_URL,
   DEFAULT_TIMEOUT,
-  WS_DEFAULTS
+  WS_DEFAULTS,
+  STREAM_DEFAULTS
 } from './constants';
 
 /**
@@ -66,6 +80,8 @@ export class TwoDAIClient {
   private wsAuthenticated = false;
   private wsConnecting = false;
   private wsClosingIntentionally = false;
+  // Streaming callbacks for WebSocket
+  private wsStreamCallbacks = new Map<string, WsStreamCallbacks>();
   private wsOptions: {
     autoReconnect: boolean;
     reconnectIntervalMs: number;
@@ -313,6 +329,193 @@ export class TwoDAIClient {
   }
 
   /**
+   * Generate text using LLM with streaming (Server-Sent Events)
+   *
+   * Streams text token-by-token for real-time display.
+   * Returns a controller that can be used to abort the stream.
+   *
+   * Note: JSON format is not supported with streaming.
+   *
+   * @example Basic streaming
+   * ```typescript
+   * const controller = client.generateTextStream({
+   *   prompt: 'Write a story',
+   *   onChunk: (chunk) => process.stdout.write(chunk),
+   *   onComplete: (result) => console.log('\nDone!', result.totalTokens, 'tokens'),
+   *   onError: (err) => console.error('Error:', err.message)
+   * });
+   *
+   * // Wait for completion
+   * const result = await controller.done;
+   * ```
+   *
+   * @example Abort stream
+   * ```typescript
+   * const controller = client.generateTextStream({
+   *   prompt: 'Write a very long story',
+   *   onChunk: (chunk) => console.log(chunk)
+   * });
+   *
+   * // Abort after 5 seconds
+   * setTimeout(() => controller.abort(), 5000);
+   * ```
+   */
+  generateTextStream(options: TextStreamOptions): TextStreamController {
+    this.log('Starting text stream', { prompt: options.prompt.substring(0, 50) });
+
+    const abortController = new AbortController();
+    let accumulatedText = '';
+    let totalTokens = 0;
+
+    const done = new Promise<TextStreamResult>(async (resolve, reject) => {
+      try {
+        const response = await this.axios.post(
+          '/api/v1/llm/generate/stream',
+          {
+            prompt: options.prompt,
+            system: options.system,
+            memory: options.memory,
+            useRandomSeed: options.useRandomSeed,
+            useMarkdown: options.useMarkdown,
+            imageId: options.imageId
+            // Note: jsonFormat not supported for streaming
+          },
+          {
+            responseType: 'stream',
+            signal: abortController.signal,
+            timeout: STREAM_DEFAULTS.TIMEOUT_MS,
+            headers: {
+              'Accept': 'text/event-stream',
+              'Cache-Control': 'no-cache'
+            }
+          }
+        );
+
+        const stream = response.data;
+        let buffer = '';
+
+        stream.on('data', (chunk: Buffer) => {
+          buffer += chunk.toString();
+
+          // Process complete SSE events
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep incomplete line
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+
+              if (data === '[DONE]') {
+                // Stream complete
+                const result: TextStreamResult = {
+                  success: true,
+                  response: accumulatedText,
+                  totalTokens: totalTokens || undefined
+                };
+
+                if (options.onComplete) {
+                  options.onComplete(result);
+                }
+
+                resolve(result);
+                return;
+              }
+
+              try {
+                const parsed: TextStreamChunk = JSON.parse(data);
+
+                if (parsed.error) {
+                  const error = new Error(parsed.error);
+                  if (options.onError) options.onError(error);
+                  reject(error);
+                  return;
+                }
+
+                if (parsed.chunk) {
+                  accumulatedText += parsed.chunk;
+                  if (options.onChunk) {
+                    options.onChunk(parsed.chunk);
+                  }
+                }
+
+                if (parsed.done && parsed.tokensUsed) {
+                  totalTokens = parsed.tokensUsed;
+                }
+              } catch (e: any) {
+                // Handle abort/cancel errors from onChunk callback
+                if (e.name === 'AbortError' || e.name === 'CanceledError' ||
+                    e.code === 'ERR_CANCELED' || e.message === 'canceled') {
+                  const result: TextStreamResult = {
+                    success: false,
+                    response: accumulatedText
+                  };
+                  resolve(result);
+                  return;
+                }
+                this.log('Failed to parse SSE data', data);
+              }
+            }
+          }
+        });
+
+        stream.on('error', (error: any) => {
+          // Handle abort/cancel errors gracefully
+          if (error.name === 'AbortError' || error.name === 'CanceledError' ||
+              error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+            const result: TextStreamResult = {
+              success: false,
+              response: accumulatedText
+            };
+            resolve(result);
+            return;
+          }
+          this.log('Stream error', error.message);
+          if (options.onError) options.onError(error);
+          reject(error);
+        });
+
+        stream.on('end', () => {
+          // If we get here without [DONE], resolve with what we have
+          if (accumulatedText) {
+            const result: TextStreamResult = {
+              success: true,
+              response: accumulatedText,
+              totalTokens: totalTokens || undefined
+            };
+
+            if (options.onComplete) {
+              options.onComplete(result);
+            }
+
+            resolve(result);
+          }
+        });
+
+      } catch (error: any) {
+        // Handle abort/cancel errors gracefully
+        if (error.name === 'AbortError' || error.name === 'CanceledError' ||
+            error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+          const result: TextStreamResult = {
+            success: false,
+            response: accumulatedText
+          };
+          resolve(result);
+          return;
+        }
+
+        this.log('Stream request error', error.message);
+        if (options.onError) options.onError(error);
+        reject(error);
+      }
+    });
+
+    return {
+      abort: () => abortController.abort(),
+      done
+    };
+  }
+
+  /**
    * Get API key settings
    */
   async getSettings(): Promise<APIKeySettings> {
@@ -544,7 +747,22 @@ export class TwoDAIClient {
           break;
 
         case 'generation_complete':
+        case 'settings_response':
           this.wsHandleResult(message);
+          break;
+
+        case 'llm_chunk':
+          // Handle streaming chunk
+          if (message.requestId) {
+            const callbacks = this.wsStreamCallbacks.get(message.requestId);
+            if (callbacks && message.data?.chunk) {
+              try {
+                callbacks.onChunk(message.data.chunk);
+              } catch (err) {
+                this.log('onChunk callback error', err);
+              }
+            }
+          }
           break;
 
         case 'pong':
@@ -567,6 +785,8 @@ export class TwoDAIClient {
     if (requestId && this.wsPendingRequests.has(requestId)) {
       const pending = this.wsPendingRequests.get(requestId)!;
       this.wsPendingRequests.delete(requestId);
+      // Also clean up streaming callbacks if present
+      this.wsStreamCallbacks.delete(requestId);
       pending.resolve(message.data);
     }
   }
@@ -797,6 +1017,233 @@ export class TwoDAIClient {
    */
   async wsUpscaleImage(data: WsUpscaleRequest, timeout?: number): Promise<WsUpscaleResponse> {
     return this.wsSend('generate_upscale', data, timeout);
+  }
+
+  /**
+   * Generate text via LLM over WebSocket with streaming
+   *
+   * Streams text chunks in real-time via WebSocket connection.
+   * More efficient than SSE for applications already using WebSocket.
+   *
+   * Note: JSON format is not supported with streaming.
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   *
+   * const controller = client.wsGenerateLlmStream(
+   *   { prompt: 'Write a haiku about coding' },
+   *   {
+   *     onChunk: (chunk) => process.stdout.write(chunk),
+   *     onComplete: (response) => console.log('\nTokens:', response.result.tokensUsed),
+   *     onError: (err) => console.error('Error:', err)
+   *   }
+   * );
+   *
+   * // Optionally abort the stream
+   * // controller.abort();
+   * ```
+   */
+  wsGenerateLlmStream(
+    data: Omit<WsLlmRequest, 'jsonFormat' | 'jsonTemplate'>,
+    callbacks: WsStreamCallbacks,
+    timeout?: number
+  ): WsStreamController {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected. Call wsConnect() first.');
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const request = {
+      type: 'generate_llm',
+      data: { ...data, stream: true },
+      requestId
+    };
+
+    // Store callbacks for this request
+    this.wsStreamCallbacks.set(requestId, callbacks);
+
+    // Set timeout
+    const timer = setTimeout(() => {
+      this.wsStreamCallbacks.delete(requestId);
+      this.wsPendingRequests.delete(requestId);
+      callbacks.onError(new Error('Stream timeout'));
+    }, timeout || STREAM_DEFAULTS.TIMEOUT_MS);
+
+    // Track for cleanup and completion
+    this.wsPendingRequests.set(requestId, {
+      request,
+      resolve: (value) => {
+        clearTimeout(timer);
+        this.wsStreamCallbacks.delete(requestId);
+        callbacks.onComplete(value);
+      },
+      reject: (reason) => {
+        clearTimeout(timer);
+        this.wsStreamCallbacks.delete(requestId);
+        callbacks.onError(reason);
+      }
+    });
+
+    // Send request
+    this.ws.send(JSON.stringify(request));
+    this.log('WebSocket stream request sent', { requestId });
+
+    return {
+      requestId,
+      abort: () => {
+        this.wsStreamCallbacks.delete(requestId);
+        this.wsPendingRequests.delete(requestId);
+        clearTimeout(timer);
+        // Send cancel message to server
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({
+            type: 'cancel',
+            requestId
+          }));
+        }
+        this.log('WebSocket stream aborted', { requestId });
+      }
+    };
+  }
+
+  // ============================================================================
+  // WebSocket Settings Methods
+  // ============================================================================
+
+  /**
+   * Get API key settings via WebSocket
+   *
+   * Returns current settings including rate limits and usage.
+   * More efficient than REST for applications already using WebSocket.
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   * const response = await client.wsGetSettings();
+   * console.log('Status:', response.settings.status);
+   * console.log('Image limit:', response.settings.rateLimits.image.requestsPer15Min);
+   * ```
+   */
+  async wsGetSettings(timeout?: number): Promise<WsSettingsResponse> {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected. Call wsConnect() first.');
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const request = { type: 'get_settings', requestId };
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.wsPendingRequests.delete(requestId);
+        reject(new Error('Request timeout'));
+      }, timeout || 30000);
+
+      this.wsPendingRequests.set(requestId, {
+        request,
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (reason) => {
+          clearTimeout(timer);
+          reject(reason);
+        }
+      });
+
+      this.ws!.send(JSON.stringify(request));
+      this.log('WebSocket get_settings sent', { requestId });
+    });
+  }
+
+  /**
+   * Get usage statistics via WebSocket
+   *
+   * Returns usage summary and daily breakdown for the specified period.
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   * const response = await client.wsGetUsage({ days: 7 });
+   * console.log('Total requests:', response.usage.summary.total);
+   * console.log('Success rate:', response.usage.summary.successRate);
+   * console.log('Period:', response.usage.period.start, '-', response.usage.period.end);
+   * ```
+   */
+  async wsGetUsage(data?: WsUsageRequest, timeout?: number): Promise<WsUsageResponse> {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected. Call wsConnect() first.');
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const request = { type: 'get_usage', data: data || {}, requestId };
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.wsPendingRequests.delete(requestId);
+        reject(new Error('Request timeout'));
+      }, timeout || 30000);
+
+      this.wsPendingRequests.set(requestId, {
+        request,
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (reason) => {
+          clearTimeout(timer);
+          reject(reason);
+        }
+      });
+
+      this.ws!.send(JSON.stringify(request));
+      this.log('WebSocket get_usage sent', { requestId, days: data?.days || 30 });
+    });
+  }
+
+  /**
+   * Get rate limit status via WebSocket
+   *
+   * Returns current rate limit status for all operations.
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   * const response = await client.wsGetRateLimits();
+   * for (const limit of response.rateLimits) {
+   *   console.log(`${limit.operation}: ${limit.current.requestsPer15Min}/${limit.limit.requestsPer15Min}`);
+   * }
+   * ```
+   */
+  async wsGetRateLimits(timeout?: number): Promise<WsRateLimitsResponse> {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected. Call wsConnect() first.');
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const request = { type: 'get_rate_limits', requestId };
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.wsPendingRequests.delete(requestId);
+        reject(new Error('Request timeout'));
+      }, timeout || 30000);
+
+      this.wsPendingRequests.set(requestId, {
+        request,
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (reason) => {
+          clearTimeout(timer);
+          reject(reason);
+        }
+      });
+
+      this.ws!.send(JSON.stringify(request));
+      this.log('WebSocket get_rate_limits sent', { requestId });
+    });
   }
 
   /**
