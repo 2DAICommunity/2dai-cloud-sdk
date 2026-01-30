@@ -1,6 +1,6 @@
 /**
  * Constants and Enums for 2DAI SDK
- * @version 1.7.0
+ * @version 1.8.0
  */
 
 import { StylePreset, FormatPreset } from './types';
@@ -224,7 +224,7 @@ export const VALID_FORMAT_IDS = Object.keys(FORMATS) as ReadonlyArray<keyof type
 /**
  * Default API base URL
  */
-export const DEFAULT_BASE_URL = 'https://api.2dai.com';
+export const DEFAULT_BASE_URL = 'https://apiv2.2dai.io:800';
 
 /**
  * Default request timeout (milliseconds)

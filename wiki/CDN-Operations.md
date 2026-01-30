@@ -133,7 +133,7 @@ const image = await client.generateImage({
   prompt: 'a beautiful landscape',
   watermark: 'watermark-cdn-id',
   watermarkPosition: 'southeast',
-  copyright: '2024 My Company'
+  copyright: '2026 My Company'
 });
 ```
 

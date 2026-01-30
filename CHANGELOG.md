@@ -5,6 +5,19 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-01-30
+
+### Added
+- **Video Motion Prompt** - New `prompt` parameter for video generation
+  - Control video motion/animation with text descriptions
+  - Examples: "the scene view (the camera) pans left", "zoom in slowly", "smooth motion"
+  - Available in both REST `generateVideo()` and WebSocket `wsGenerateVideo()`
+  - Optional parameter, defaults to automatic motion detection
+
+### Changed
+- Updated internal workflow to Gen6 v6.7.0 compatibility
+- Improved video generation quality with new motion control system
+
 ## [1.7.0] - 2026-01-22
 
 ### Added

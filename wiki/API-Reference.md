@@ -610,6 +610,7 @@ Generate a video from an image.
 ```json
 {
   "imageId": "f71f8d0d-488f-4b94-a260-06de434ae5ed",
+  "prompt": "the scene view (the camera) pans left, smooth motion",
   "duration": 3,
   "fps": 16
 }
@@ -618,6 +619,7 @@ Generate a video from an image.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `imageId` | string | Yes | Source image CDN ID |
+| `prompt` | string | No | Motion/animation prompt (e.g., "the scene view (the camera) pans left", "zoom in slowly") |
 | `duration` | number | No | Duration in seconds: 1-10 (default: 5) |
 | `fps` | number | No | Frames per second: 8-60 (default: 16) |
 
@@ -1129,6 +1131,7 @@ interface ImageGenerationOptions {
 interface VideoGenerationOptions {
   imageId?: string;
   imageBuffer?: Buffer;
+  prompt?: string;    // Motion/animation prompt
   duration?: number;  // 1-10 seconds
   fps?: number;       // 8-60 fps
   watermark?: string;

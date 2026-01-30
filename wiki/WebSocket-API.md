@@ -143,6 +143,7 @@ await client.wsConnect();
 
 const result = await client.wsGenerateVideo({
   imageId: 'source-image-id',
+  prompt: 'the scene view (the camera) pans left, smooth motion',
   duration: 5,
   fps: 16
 });
@@ -156,6 +157,7 @@ console.log(`${result.result.duration}s at ${result.result.fps}fps`);
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `imageId` | `string` | required | Source image CDN ID |
+| `prompt` | `string` | - | Motion/animation prompt |
 | `duration` | `number` | `5` | Duration in seconds (1-10) |
 | `fps` | `number` | `16` | Frames per second (8-60) |
 

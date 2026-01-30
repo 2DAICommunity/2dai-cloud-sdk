@@ -120,7 +120,7 @@ async function combinedProtection() {
     prompt: 'professional headshot portrait',
     watermark: 'your-watermark-id',
     watermarkPosition: 'southeast',
-    copyright: '© 2024 Photo Studio'
+    copyright: '© 2026 Photo Studio'
   });
 
   console.log('Protected image:', result.imageId);
@@ -176,9 +176,10 @@ async function generateVideoAndExtractFrame() {
     });
     console.log('Image generated:', image.imageId);
 
-    // Generate video from image
+    // Generate video from image with motion prompt
     const video = await client.generateVideo({
       imageId: image.imageId,
+      prompt: 'dancing motion, disco lights flashing',
       duration: 3,
       fps: 16
     });
@@ -422,9 +423,10 @@ async function realtimeGeneration() {
       );
     });
 
-    // Generate video via WebSocket
+    // Generate video via WebSocket with motion prompt
     const videoResult = await client.wsGenerateVideo({
       imageId: imageResult.result.imageId,
+      prompt: 'the scene view (the camera) slowly zooms in',
       duration: 3,
       fps: 16
     });
@@ -676,10 +678,11 @@ async function fullWorkflow() {
   console.log('Upscaled ID:', upscaled.imageId);
   console.log(`Size: ${image.width}x${image.height} -> ${upscaled.width}x${upscaled.height}`);
 
-  // Step 4: Generate video
+  // Step 4: Generate video with motion prompt
   console.log('\nStep 4: Generating video...');
   const video = await client.generateVideo({
     imageId: image.imageId,
+    prompt: 'the scene view (the camera) pans gently, ambient motion, magical atmosphere',
     duration: 5,
     fps: 16
   });

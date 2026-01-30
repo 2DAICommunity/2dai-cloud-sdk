@@ -1,6 +1,6 @@
 /**
  * Type definitions for 2DAI SDK
- * @version 1.7.0
+ * @version 1.8.0
  */
 
 /**
@@ -71,6 +71,7 @@ export interface ImageGenerationOptions {
 export interface VideoGenerationOptions {
   imageId?: string;
   imageBuffer?: Buffer;
+  prompt?: string;
   duration?: number;
   fps?: number;
   watermark?: string;
@@ -397,6 +398,8 @@ export interface WsImg2ImgRequest {
 export interface WsVideoRequest {
   /** Source image ID from CDN */
   imageId: string;
+  /** Motion/animation prompt describing the video movement */
+  prompt?: string;
   /** Video duration in seconds (1-10, default: 5) */
   duration?: number;
   /** Frames per second (8-60, default: 16) */
