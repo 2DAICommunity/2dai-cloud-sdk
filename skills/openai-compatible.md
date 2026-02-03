@@ -1,7 +1,7 @@
 ---
 name: 2DAI OpenAI Compatible API
 capability: openai_compatible
-version: 1.10.0
+version: 1.11.0
 api_base_url: https://apiv2.2dai.io:800/v1
 openai_compatible: true
 ---

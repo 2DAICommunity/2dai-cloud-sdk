@@ -1,7 +1,7 @@
 ---
 name: 2DAI CDN Operations
 capability: cdn_operations
-version: 1.10.0
+version: 1.11.0
 api_base_url: https://apiv2.2dai.io:800
 ---
 

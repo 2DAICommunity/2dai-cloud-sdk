@@ -1,6 +1,6 @@
 ---
 name: 2DAI SDK
-version: 1.10.0
+version: 1.11.0
 description: Official SDK for 2DAI.io Cloud AI Generation API - Image, Video, and LLM generation
 homepage: https://2dai.io
 api_base_url: https://apiv2.2dai.io:800
@@ -205,4 +205,4 @@ See [LLM Text Generation](./skills/llm-text.md) for streaming details.
 
 ---
 
-**Version:** 1.10.0 | [Documentation](https://github.com/2DAICommunity/2dai-cloud-sdk) | [npm](https://www.npmjs.com/package/2dai-cloud-sdk)
+**Version:** 1.11.0 | [Documentation](https://github.com/2DAICommunity/2dai-cloud-sdk) | [npm](https://www.npmjs.com/package/2dai-cloud-sdk)

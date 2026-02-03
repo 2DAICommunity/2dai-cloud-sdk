@@ -1,7 +1,7 @@
 /**
  * 2DAI SDK Client
  * Official TypeScript/JavaScript client for 2DAI API
- * @version 1.10.0
+ * @version 1.11.0
  */
 
 import WebSocket from 'ws';

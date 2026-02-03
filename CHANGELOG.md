@@ -5,6 +5,30 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-02-03
+
+### Added
+- **AI Agent Integration** - New skill files for AI agent discovery and usage
+  - `skill.md` - Root entry point for AI agents with YAML frontmatter
+  - `skills/image-generation.md` - Image generation skill documentation
+  - `skills/video-generation.md` - Video generation skill documentation
+  - `skills/llm-text.md` - LLM text generation skill documentation
+  - `skills/cdn-operations.md` - CDN operations skill documentation
+  - `skills/openai-compatible.md` - OpenAI-compatible API skill documentation
+  - Enables any AI agent (Claude, GPT, open-source) to discover and use the SDK
+  - YAML frontmatter for machine-readable capability metadata
+  - Comprehensive curl examples and parameter tables
+
+- **Wiki Documentation** - New AI Agent Integration wiki page
+  - Human-readable documentation for agent integration
+  - Framework integrations (LangChain, Vercel AI, OpenAI SDK)
+  - Decision trees for operations
+  - Best practices for agents
+
+### Changed
+- Updated recommended video settings to 6.5s at 16fps throughout documentation
+- Updated official rate limits across all documentation
+
 ## [1.10.0] - 2026-02-02
 
 ### Added

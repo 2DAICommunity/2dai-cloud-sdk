@@ -1,6 +1,6 @@
 /**
  * Type definitions for 2DAI SDK
- * @version 1.10.0
+ * @version 1.11.0
  */
 
 /**
