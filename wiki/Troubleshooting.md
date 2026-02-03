@@ -450,7 +450,7 @@ For enterprise customers:
 - Higher rate limits and dedicated infrastructure
 - Priority support and SLA guarantees
 
-Contact [enterprise@2dai.io](mailto:enterprise@2dai.io) for more information.
+Contact [support@2dai.io](mailto:support@2dai.io) for more information.
 
 ---
 

@@ -11,6 +11,7 @@ Welcome to the official documentation for **2dai-cloud-sdk** - the TypeScript/Ja
 | [Video Generation](Video-Generation) | Image-to-video creation |
 | [LLM & Streaming](LLM-Text-Generation) | Text generation, streaming, OpenAI-compatible API |
 | [OpenAI Compatibility](OpenAI-Compatibility) | Framework integrations: LangChain, Vercel AI, LlamaIndex |
+| [AI Agent Integration](AI-Agent-Integration) | Enable AI agents (Claude, GPT, etc.) to use the SDK |
 | [CDN Operations](CDN-Operations) | Downloads, watermarks, format conversion |
 | [WebSocket API](WebSocket-API) | Real-time generation with progress updates |
 | [API Reference](API-Reference) | Complete endpoint documentation |
