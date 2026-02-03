@@ -24,7 +24,8 @@ import imageSize from 'image-size';
 describe('REST API Tests', () => {
   let client: TwoDAIClient;
   let config: ReturnType<typeof loadTestEnv>;
-  let generatedImageId: string | undefined;
+  let generatedImageId: string | undefined;      // Landscape image
+  let generatedBirdImageId: string | undefined;  // Bird image for dual-image tests
   let generatedVideoId: string | undefined;
 
   beforeAll(() => {
@@ -89,6 +90,29 @@ describe('REST API Tests', () => {
 
       await saveImageFromCDN(result.imageId, client, '02-styled-landscape.jpg');
     }, 200000);
+
+    test('should generate bird image for dual-image tests', async () => {
+      logTestStart('Generate Image - Bird (for blend test)');
+      const birdPrompt = 'a colorful tropical bird with vibrant feathers, perched on a branch';
+      console.log(`📝 Prompt: "${birdPrompt}"`);
+
+      const result = await client.generateImage({
+        prompt: birdPrompt,
+        style: STYLES.realistic.id
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.imageId).toBeValidCdnId();
+
+      // Store for dual-image tests
+      generatedBirdImageId = result.imageId;
+
+      console.log(`\n✅ Bird generation successful!`);
+      console.log(`   Image ID: ${result.imageId}`);
+      console.log(`   Dimensions: ${result.width}×${result.height}`);
+
+      await saveImageFromCDN(result.imageId, client, '02b-bird-for-blend.jpg');
+    }, 200000);
   });
 
   describe('2. Image Editing (img2img)', () => {
@@ -147,7 +171,72 @@ describe('REST API Tests', () => {
       console.log(`\n✅ Edit with resize successful!`);
       console.log(`   New ID: ${result.imageId}`);
       console.log(`   Dimensions: ${result.width}×${result.height}`);
-      await saveImageFromCDN(result.imageId, client, '04-edited-resize.jpg');
+      await saveImageFromCDN(result.imageId, client, '03b-edited-resize.jpg');
+    }, 200000);
+  });
+
+  describe('2b. Dual-Image Editing (imgs2img)', () => {
+    test('should blend landscape and bird images', async () => {
+      logTestStart('Dual-Image Edit - Blend Bird into Landscape');
+      const imageId = generatedImageId || config.editImageId;   // Landscape
+      const imageId2 = generatedBirdImageId;                     // Bird
+
+      if (!imageId || !imageId2) {
+        console.warn('⚠️  Skipping imgs2img test: need both landscape and bird images from previous tests');
+        return;
+      }
+
+      console.log(`🖼️  Image 1 (landscape): ${imageId}`);
+      console.log(`🖼️  Image 2 (bird): ${imageId2}`);
+      console.log(`📝 Edit Prompt: "add the bird from image 2 flying in the sky of image 1"`);
+
+      const result = await client.editImage(imageId, {
+        imageId2,
+        prompt: 'add the bird from image 2 flying in the sky of image 1'
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.imageId).toBeValidCdnId();
+      expect(typeof result.seed).toBe('number');
+
+      console.log(`\n✅ Dual-image blend successful!`);
+      console.log(`   Result ID: ${result.imageId}`);
+      await saveImageFromCDN(result.imageId, client, '03c-bird-in-landscape.jpg');
+    }, 200000);
+
+    test('should blend two images with resize dimensions', async () => {
+      logTestStart('Dual-Image Edit - With Resize');
+      const imageId = generatedImageId || config.editImageId;   // Landscape
+      const imageId2 = generatedBirdImageId;                     // Bird
+
+      if (!imageId || !imageId2) {
+        console.warn('⚠️  Skipping imgs2img resize test: need both images');
+        return;
+      }
+
+      console.log(`🖼️  Image 1 (landscape): ${imageId}`);
+      console.log(`🖼️  Image 2 (bird): ${imageId2}`);
+      console.log(`📝 Edit Prompt: "combine the landscape and bird into a panoramic scene"`);
+      console.log(`📐 Target size: 1344×768 (Landscape)`);
+
+      const result = await client.editImage(imageId, {
+        imageId2,
+        prompt: 'combine image 1 landscape with the bird from image 2',
+        width: 1344,
+        height: 768
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.imageId).toBeValidCdnId();
+      if (result.width > 0 && result.height > 0) {
+        expect(result.width).toBe(1344);
+        expect(result.height).toBe(768);
+      }
+
+      console.log(`\n✅ Dual-image blend with resize successful!`);
+      console.log(`   Result ID: ${result.imageId}`);
+      console.log(`   Dimensions: ${result.width}×${result.height}`);
+      await saveImageFromCDN(result.imageId, client, '03d-bird-landscape-resize.jpg');
     }, 200000);
   });
 
@@ -176,7 +265,7 @@ describe('REST API Tests', () => {
       console.log(`   Upscaled Dimensions: ${result.width}×${result.height}`);
       console.log(`   Seed: ${result.seed}`);
 
-      await saveImageFromCDN(result.imageId, client, '05-upscaled-2x.jpg');
+      await saveImageFromCDN(result.imageId, client, '04-upscaled-2x.jpg');
     }, 200000);
   });
 
@@ -210,7 +299,7 @@ describe('REST API Tests', () => {
       console.log(`\n✅ Video generation successful!`);
       console.log(`   Video ID: ${result.videoId}`);
       console.log(`   Duration: ${result.duration}s @ ${result.fps} FPS`);
-      await saveVideoFromCDN(result.videoId, client, '06-video-5s.mp4');
+      await saveVideoFromCDN(result.videoId, client, '05-video-5s.mp4');
     }, 200000);
 
     test('should convert MP4 to GIF (first frame)', async () => {
@@ -223,7 +312,7 @@ describe('REST API Tests', () => {
       }
 
       console.log(`🎬 Source Video ID: ${videoId}`);
-      await saveGifFromCDN(videoId, client, '07-mp4-to-gif.gif');
+      await saveGifFromCDN(videoId, client, '06-mp4-to-gif.gif');
 
       console.log(`\n✅ MP4 to GIF conversion successful!`);
     }, 120000);
@@ -258,7 +347,7 @@ describe('REST API Tests', () => {
       console.log(`   ✓ Verified dimensions: ${dimensions.width}×${dimensions.height}`);
 
       ensureTmpDir();
-      const filepath = path.join(__dirname, 'tmp', '08-gif-resized-256x256.gif');
+      const filepath = path.join(__dirname, 'tmp', '07-gif-resized-256x256.gif');
       fs.writeFileSync(filepath, new Uint8Array(buffer));
 
       console.log(`\n✅ GIF resize successful! (${size} bytes)`);
@@ -636,7 +725,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
       expect(pngMime).toContain('image/png');
       console.log(`   ✓ PNG at 1500ms`);
 
-      await saveFrameFromCDN(testVideoId, client, 0, '09-frame-0ms.jpg', 'jpg');
+      await saveFrameFromCDN(testVideoId, client, 0, '08-frame-0ms.jpg', 'jpg');
       console.log(`\n✅ Frame extraction with multiple formats successful!`);
     }, 90000);
 
@@ -667,7 +756,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
       console.log(`   ✓ Resize to 256x256 (verified: ${dimensions.width}×${dimensions.height})`);
 
       ensureTmpDir();
-      fs.writeFileSync(path.join(__dirname, 'tmp', '12-frame-resized-256x256.jpg'), new Uint8Array(resizeBuffer));
+      fs.writeFileSync(path.join(__dirname, 'tmp', '09-frame-resized-256x256.jpg'), new Uint8Array(resizeBuffer));
 
       // Test watermark if configured
       if (config.watermarkId) {
@@ -678,7 +767,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
           watermarkPosition: 'center'
         });
         expect(wmBuffer).toBeInstanceOf(Buffer);
-        fs.writeFileSync(path.join(__dirname, 'tmp', '13-frame-with-watermark.jpg'), new Uint8Array(wmBuffer));
+        fs.writeFileSync(path.join(__dirname, 'tmp', '10-frame-with-watermark.jpg'), new Uint8Array(wmBuffer));
         console.log(`   ✓ Watermark applied`);
       } else {
         console.log(`   ⚠️  Watermark skipped (TEST_WATERMARK_ID not set)`);
@@ -750,7 +839,7 @@ Use headers, bullet points, and handle "quotes" and <brackets>.`;
         imageId,
         config.baseUrl,
         config.apiKey,
-        '15-manual-axios-download.jpg'
+        '11-manual-axios-download.jpg'
       );
 
       expect(fs.existsSync(filepath)).toBe(true);

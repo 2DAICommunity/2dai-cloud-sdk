@@ -478,6 +478,7 @@ Image and video generation endpoints.
 |--------|----------|-------------|
 | POST | `/api/v1/generation/image` | Generate images (text2img) |
 | POST | `/api/v1/generation/image/edit` | Edit/transform images (img2img) |
+| POST | `/api/v1/generation/image/edit` | Dual-image editing (imgs2img) with `imageId2` |
 | POST | `/api/v1/generation/image/upscale` | AI upscale images (img2ximg) |
 | POST | `/api/v1/generation/video` | Generate videos (img2vid) |
 
@@ -561,6 +562,56 @@ Edit an existing image (img2img).
 |-------|------|-------------|
 | `success` | boolean | Request success status |
 | `data.imageId` | string | Edited image CDN ID (UUID) |
+| `data.seed` | number | Seed used for generation |
+
+### POST /api/v1/generation/image/edit (Dual-Image Mode - imgs2img)
+
+Edit images using two source images. Use this to merge, blend, or mix elements from two images together.
+
+**Request:**
+```json
+{
+  "imageId": "f71f8d0d-488f-4b94-a260-06de434ae5ed",
+  "imageId2": "9cba3bf4-865f-4d2d-a0a2-92470fba2dc8",
+  "prompt": "make an image with both subjects"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `imageId` | string | Yes | Image 1 (primary) - CDN ID of the main image |
+| `imageId2` | string | Yes | Image 2 (secondary) - CDN ID for dual-image mode |
+| `prompt` | string | Yes | Instructions using "image 1" and "image 2" terminology |
+| `negativePrompt` | string | No | What to avoid |
+| `seed` | number | No | Seed for reproducibility |
+| `width` | number | No | Output width (320-1344) |
+| `height` | number | No | Output height (320-1344) |
+
+**Prompt Examples:**
+
+| Action | Prompt |
+|--------|--------|
+| Combine subjects | `make an image with both subjects` |
+| Blend character | `blend the character from image 2 into the scene of image 1` |
+| Apply style | `apply the style of image 2 to image 1` |
+| Mix elements | `mix elements from image 2 into image 1` |
+| Combine | `combine image 1 and image 2 into a seamless scene` |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "imageId": "1f1af23f-643b-43b8-8f5c-09fd10e6719a",
+    "seed": 666934679
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Request success status |
+| `data.imageId` | string | Result image CDN ID (UUID) |
 | `data.seed` | number | Seed used for generation |
 
 ### POST /api/v1/generation/image/upscale
@@ -1098,10 +1149,46 @@ For detailed WebSocket documentation, see the dedicated [WebSocket API](WebSocke
 **Connection:** `wss://api.2dai.io/ws/generation`
 
 **Supported Operations:**
-- `generate_image` - Text-to-image or img2img
+- `generate_image` - Text-to-image, img2img, or imgs2img (dual-image with `imageId2`)
 - `generate_video` - Image-to-video
 - `generate_upscale` - AI image upscale
 - `generate_llm` - LLM text generation (supports streaming)
+
+### WebSocket Dual-Image Example (imgs2img)
+
+**Request:**
+```json
+{
+  "type": "generate_image",
+  "requestId": "req_1770076044100",
+  "data": {
+    "imageId": "f71f8d0d-488f-4b94-a260-06de434ae5ed",
+    "imageId2": "9cba3bf4-865f-4d2d-a0a2-92470fba2dc8",
+    "prompt": "blend elements from image 2 into the scene of image 1"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "type": "generation_complete",
+  "requestId": "req_1770076044100",
+  "data": {
+    "result": {
+      "imageId": "91f613a7-5816-42a8-a6b4-543cecc09975",
+      "seed": 1338529555
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | Always `"generation_complete"` on success |
+| `requestId` | string | Matches the request ID sent |
+| `data.result.imageId` | string | Result image CDN ID (UUID) |
+| `data.result.seed` | number | Seed used for generation |
 
 ---
 
@@ -1118,6 +1205,7 @@ interface ImageGenerationOptions {
   seed?: number;
   width?: number;
   height?: number;
+  imageId2?: string;           // Image 2 for dual-image mode (imgs2img)
   watermark?: string;
   watermarkPosition?: WatermarkPosition;
   watermarkAsTiles?: boolean;

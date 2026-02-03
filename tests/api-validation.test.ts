@@ -747,6 +747,60 @@ describe('5. Generation API (Image)', () => {
     }
   }, 120000);
 
+  test('POST /api/v1/generation/image/edit (imgs2img - dual image)', async () => {
+    const endpoint = '/api/v1/generation/image/edit (imgs2img)';
+
+    if (!generatedImageId) {
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: 'SKIP',
+        notes: 'No imageId from previous test (need two images for imgs2img)'
+      });
+      return;
+    }
+
+    // For imgs2img we need two images - use generatedImageId for both as a test
+    // In real usage, these would be different images
+    try {
+      const response = await api.post('/api/v1/generation/image/edit', {
+        imageId: generatedImageId,
+        imageId2: generatedImageId, // Using same image for test - normally would be different
+        prompt: 'blend elements from image 2 into the scene of image 1'
+      });
+      const data = response.data;
+
+      const { missing } = checkFields(data, ['success', 'data']);
+
+      let nestedMissing: string[] = [];
+      if (data.data) {
+        // Documented: imageId, sourceImageId, width, height, url
+        const dataCheck = checkFields(data.data, ['imageId', 'width', 'height']);
+        nestedMissing = dataCheck.missing;
+      }
+
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: missing.length === 0 ? 'PASS' : 'FAIL',
+        actualResponse: data,
+        documentedFields: ['success', 'data.imageId', 'data.sourceImageId', 'data.width', 'data.height', 'data.url'],
+        missingFields: [...missing, ...nestedMissing],
+        notes: 'Dual-image (imgs2img) edit with imageId + imageId2'
+      });
+
+      expect(data.success).toBe(true);
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: 'FAIL',
+        notes: error.response?.data?.error?.message || error.message
+      });
+      throw error;
+    }
+  }, 120000);
+
   test('POST /api/v1/generation/image/upscale', async () => {
     const endpoint = '/api/v1/generation/image/upscale';
 
@@ -1062,7 +1116,113 @@ describe('7. CDN API', () => {
   });
 });
 
-describe('8. WebSocket Settings API', () => {
+describe('8. WebSocket Generation API', () => {
+  // Helper function to send WebSocket message and wait for response
+  async function wsGenRequest(messageType: string, data?: any, timeoutMs = 120000): Promise<any> {
+    const wsUrl = config.baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+    const ws = new WebSocket(`${wsUrl}/ws/generation`);
+
+    return new Promise((resolve, reject) => {
+      const requestId = `req_${Date.now()}`;
+      let authenticated = false;
+
+      ws.on('open', () => {
+        // First authenticate
+        ws.send(JSON.stringify({
+          type: 'auth',
+          data: { apiKey: config.apiKey }
+        }));
+      });
+
+      ws.on('message', (rawData) => {
+        const message = JSON.parse(rawData.toString());
+
+        if (message.type === 'auth_success') {
+          authenticated = true;
+          // Send the actual request
+          ws.send(JSON.stringify({
+            type: messageType,
+            requestId,
+            data: data || {}
+          }));
+        } else if (message.type === 'error' && !authenticated) {
+          ws.close();
+          reject(new Error(`Auth failed: ${message.data?.message}`));
+        } else if (message.type === 'error' && message.requestId === requestId) {
+          ws.close();
+          reject(new Error(message.data?.message || 'Generation error'));
+        } else if (message.type === 'generation_complete' && message.requestId === requestId) {
+          ws.close();
+          resolve(message);
+        }
+      });
+
+      ws.on('error', (err) => {
+        reject(err);
+      });
+
+      // Timeout
+      setTimeout(() => {
+        ws.close();
+        reject(new Error('WebSocket request timeout'));
+      }, timeoutMs);
+    });
+  }
+
+  test('WS generate_image (imgs2img - dual image)', async () => {
+    const endpoint = 'WS generate_image (imgs2img)';
+
+    if (!generatedImageId) {
+      logResult({
+        endpoint,
+        method: 'WS',
+        status: 'SKIP',
+        notes: 'No imageId from previous REST test (need image for imgs2img)'
+      });
+      return;
+    }
+
+    try {
+      const response = await wsGenRequest('generate_image', {
+        imageId: generatedImageId,
+        imageId2: generatedImageId, // Using same image for test - normally would be different
+        prompt: 'blend elements from image 2 into the scene of image 1'
+      });
+
+      // Documented: type=generation_complete, data.result.imageId
+      const { missing } = checkFields(response, ['type', 'data', 'requestId']);
+
+      let nestedMissing: string[] = [];
+      if (response.data?.result) {
+        const resultCheck = checkFields(response.data.result, ['imageId', 'width', 'height']);
+        nestedMissing = resultCheck.missing;
+      }
+
+      logResult({
+        endpoint,
+        method: 'WS',
+        status: response.type === 'generation_complete' && missing.length === 0 ? 'PASS' : 'FAIL',
+        actualResponse: response,
+        documentedFields: ['type', 'requestId', 'data.result.imageId', 'data.result.width', 'data.result.height', 'data.result.seed'],
+        missingFields: [...missing, ...nestedMissing],
+        notes: 'Dual-image (imgs2img) edit via WebSocket with imageId + imageId2'
+      });
+
+      expect(response.type).toBe('generation_complete');
+      expect(response.data.result.imageId).toBeDefined();
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'WS',
+        status: 'FAIL',
+        notes: error.message
+      });
+      throw error;
+    }
+  }, 180000);
+});
+
+describe('9. WebSocket Settings API', () => {
   // Helper function to send WebSocket message and wait for response
   async function wsRequest(messageType: string, data?: any): Promise<any> {
     const wsUrl = config.baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');

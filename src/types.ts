@@ -1,6 +1,6 @@
 /**
  * Type definitions for 2DAI SDK
- * @version 1.8.0
+ * @version 1.10.0
  */
 
 /**
@@ -63,6 +63,8 @@ export interface ImageGenerationOptions {
   copyright?: string;
   /** Enable resize padding (default: false) */
   resizePad?: boolean;
+  /** Image 2 (secondary) for dual-image mode - merge, blend, or mix two images together */
+  imageId2?: string;
 }
 
 /**
@@ -360,15 +362,25 @@ export interface WsImageRequest {
  *
  * @example
  * ```typescript
+ * // Single image edit (img2img)
  * await client.wsGenerateImage({
  *   imageId: 'existing-image-id',
  *   prompt: 'add dramatic lighting'
  * });
+ *
+ * // Dual-image edit (imgs2img) - merge, blend, mix two images
+ * await client.wsGenerateImage({
+ *   imageId: 'image-1-id',
+ *   imageId2: 'image-2-id',
+ *   prompt: 'make an image with both subjects'
+ * });
  * ```
  */
 export interface WsImg2ImgRequest {
-  /** Source image ID from CDN to edit */
+  /** Image 1 (primary) - CDN ID of the main image to edit */
   imageId: string;
+  /** Image 2 (secondary) for dual-image mode - merge, blend, or mix two images together */
+  imageId2?: string;
   /** Edit instructions describing the changes */
   prompt: string;
   /** Negative prompt - what to avoid in the image */

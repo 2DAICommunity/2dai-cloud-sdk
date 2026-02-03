@@ -8,6 +8,7 @@ Generate, edit, and upscale images using AI.
 - [Available Styles](#available-styles)
 - [Available Formats](#available-formats)
 - [Image Editing](#image-editing)
+- [Dual-Image Editing (imgs2img)](#dual-image-editing-imgs2img)
 - [AI Image Upscaling](#ai-image-upscaling)
 - [WebSocket Methods](#websocket-methods)
 
@@ -150,6 +151,92 @@ const padded = await client.editImage('existing-image-id', {
 |-----------|----------|
 | `false` (default) | Image is cropped/stretched to fill target dimensions |
 | `true` | Original fits entirely within frame, extra space is black |
+
+---
+
+## Dual-Image Editing (imgs2img)
+
+Use two images (image 1 + image 2) to merge, blend, or mix elements together.
+
+### Combine Subjects
+
+Combine subjects from both images together:
+
+```typescript
+const result = await client.editImage('image-1-id', {
+  imageId2: 'image-2-id',
+  prompt: 'make an image with both subjects'
+});
+```
+
+### Blend Characters
+
+Blend a character from image 2 into the scene of image 1:
+
+```typescript
+const result = await client.editImage('image-1-id', {
+  imageId2: 'image-2-id',
+  prompt: 'blend the character from image 2 into the scene of image 1'
+});
+```
+
+### Mix Elements / Style
+
+Mix elements or apply the style from image 2 to image 1:
+
+```typescript
+const result = await client.editImage('image-1-id', {
+  imageId2: 'image-2-id',
+  prompt: 'apply the style of image 2 to image 1'
+});
+```
+
+### Combine Images
+
+Combine image 1 and image 2 together:
+
+```typescript
+const result = await client.editImage('image-1-id', {
+  imageId2: 'image-2-id',
+  prompt: 'combine image 1 and image 2 into a seamless scene'
+});
+```
+
+### With Resize
+
+Combine dual-image editing with custom dimensions:
+
+```typescript
+const result = await client.editImage('image-1-id', {
+  imageId2: 'image-2-id',
+  prompt: 'blend image 1 and image 2 together seamlessly',
+  width: 1344,
+  height: 768
+});
+```
+
+### Options Reference
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `imageId` | `string` | yes | Image 1 (primary) - the main image |
+| `imageId2` | `string` | no | Image 2 (secondary) - for dual-image mode |
+| `prompt` | `string` | yes | Instructions using "image 1" and "image 2" terminology |
+| `negativePrompt` | `string` | no | What to avoid |
+| `seed` | `number` | no | Seed for reproducibility |
+| `width` | `number` | no | Custom output width (320-1344) |
+| `height` | `number` | no | Custom output height (320-1344) |
+| `resizePad` | `boolean` | no | Enable resize padding |
+
+### Prompt Examples
+
+| Action | Prompt |
+|--------|--------|
+| Combine subjects | `make an image with both subjects` |
+| Blend character | `blend the character from image 2 into the scene of image 1` |
+| Apply style | `apply the style of image 2 to image 1` |
+| Mix elements | `mix elements from image 2 into image 1` |
+| Combine | `combine image 1 and image 2 into a seamless scene` |
 
 ---
 

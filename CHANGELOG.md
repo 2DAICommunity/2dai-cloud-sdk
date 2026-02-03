@@ -5,6 +5,44 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-02-02
+
+### Added
+- **Dual-Image Editing (imgs2img)** - New `imageId2` parameter for dual-image workflows
+  - Combine subjects: `make an image with both subjects`
+  - Blend characters: `blend the character from image 2 into the scene of image 1`
+  - Mix elements: `mix elements from image 2 into image 1`
+  - Available via REST `editImage()` and WebSocket `wsGenerateImage()`
+  - `imageId` = image 1 (primary), `imageId2` = image 2 (secondary)
+
+### Example
+```typescript
+// Combine subjects from both images
+const result = await client.editImage('image-1-id', {
+  imageId2: 'image-2-id',
+  prompt: 'make an image with both subjects'
+});
+```
+
+## [1.9.0] - 2026-02-02
+
+### Added
+- **Vision/Multimodal Support** - `imageId` parameter now works for LLM image analysis
+  - Pass `imageId` to `generateText()` or `wsGenerateLlm()` for image understanding
+  - Images are automatically fetched from CDN and converted to base64
+  - Supports JPEG, PNG, GIF, and WebP formats
+  - Works with both REST API and WebSocket connections
+
+### Fixed
+- **Client Disconnect Handling** - Generation requests are now cancelled when clients disconnect
+  - REST endpoints cancel upstream GPU processing on client disconnect
+  - Rate limit slots are properly released on disconnect
+  - Prevents wasted compute resources for abandoned requests
+
+- **Error Logging** - Error objects now properly serialize in logs
+  - Previously showed `{}` for Error objects due to non-enumerable properties
+  - Now correctly displays `name`, `message`, and `stack` properties
+
 ## [1.8.0] - 2026-01-30
 
 ### Added

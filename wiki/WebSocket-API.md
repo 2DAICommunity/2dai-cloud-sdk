@@ -110,6 +110,18 @@ const result = await client.wsGenerateImage({
 });
 ```
 
+### Dual-Image Editing (imgs2img)
+
+Use two images to merge, blend, or mix elements together:
+
+```typescript
+const result = await client.wsGenerateImage({
+  imageId: 'image-1-id',
+  imageId2: 'image-2-id',
+  prompt: 'make an image with both subjects'
+});
+```
+
 ### WsImageRequest Options
 
 | Option | Type | Description |
@@ -126,7 +138,8 @@ const result = await client.wsGenerateImage({
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `imageId` | `string` | Source image CDN ID |
+| `imageId` | `string` | Image 1 (primary) - CDN ID of the main image |
+| `imageId2` | `string` | Image 2 (secondary) for dual-image mode - merge, blend, mix |
 | `prompt` | `string` | Edit instructions |
 | `negativePrompt` | `string` | What to avoid |
 | `seed` | `number` | For reproducibility |

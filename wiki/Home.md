@@ -61,4 +61,4 @@ console.log('Image ID:', image.imageId);
 
 ---
 
-**Version:** 1.7.0 | [View on npm](https://www.npmjs.com/package/2dai-cloud-sdk)
+**Version:** 1.10.0 | [View on npm](https://www.npmjs.com/package/2dai-cloud-sdk)

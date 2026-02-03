@@ -16,7 +16,8 @@ import { logTestStart, saveImageFromCDN, saveVideoFromCDN, saveGifFromCDN, ensur
 describe('WebSocket API Tests', () => {
   let config: ReturnType<typeof loadTestEnv>;
   let client: TwoDAIClient | null = null;
-  let generatedImageId: string | undefined;
+  let generatedImageId: string | undefined;      // Landscape image
+  let generatedBirdImageId: string | undefined;  // Bird image for dual-image tests
   let generatedVideoId: string | undefined;
 
   beforeAll(() => {
@@ -187,6 +188,30 @@ describe('WebSocket API Tests', () => {
       console.log(`   Dimensions: ${result.result.width}×${result.result.height}`);
       await saveImageFromCDN(result.result.imageId, client, 'ws-02-styled-landscape.jpg');
     }, 200000);
+
+    test('should generate bird image for dual-image tests', async () => {
+      logTestStart('WS Generate Image - Bird (for blend test)');
+      client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true, wsAutoReconnect: false });
+      await client.wsConnect();
+      const birdPrompt = 'a colorful tropical bird with vibrant feathers, perched on a branch';
+      console.log(`📝 Prompt: "${birdPrompt}"`);
+
+      const result = await client.wsGenerateImage({
+        prompt: birdPrompt,
+        style: STYLES.realistic.id
+      });
+
+      expect(result.result.imageId).toBeTruthy();
+
+      // Store for dual-image tests
+      generatedBirdImageId = result.result.imageId;
+
+      console.log(`\n✅ WS bird generation successful!`);
+      console.log(`   Image ID: ${result.result.imageId}`);
+      console.log(`   Dimensions: ${result.result.width}×${result.result.height}`);
+
+      await saveImageFromCDN(result.result.imageId, client, 'ws-02b-bird-for-blend.jpg');
+    }, 200000);
   });
 
   describe('3. Image Editing via WebSocket', () => {
@@ -242,7 +267,73 @@ describe('WebSocket API Tests', () => {
       console.log(`\n✅ WS img2img resize successful!`);
       console.log(`   New ID: ${result.result.imageId}`);
       console.log(`   Dimensions: ${result.result.width}×${result.result.height}`);
-      await saveImageFromCDN(result.result.imageId, client, 'ws-04-edited-resize.jpg');
+      await saveImageFromCDN(result.result.imageId, client, 'ws-03b-edited-resize.jpg');
+    }, 200000);
+  });
+
+  describe('3b. Dual-Image Editing via WebSocket (imgs2img)', () => {
+    test('should blend landscape and bird images via WebSocket', async () => {
+      logTestStart('WS Dual-Image Edit - Blend Bird into Landscape');
+      const imageId = generatedImageId || config.editImageId;   // Landscape
+      const imageId2 = generatedBirdImageId;                     // Bird
+
+      if (!imageId || !imageId2) {
+        console.warn('⚠️  Skipping WS imgs2img test: need both landscape and bird images from previous tests');
+        return;
+      }
+
+      client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true, wsAutoReconnect: false });
+      await client.wsConnect();
+      console.log(`🖼️  Image 1 (landscape): ${imageId}`);
+      console.log(`🖼️  Image 2 (bird): ${imageId2}`);
+      console.log(`📝 Edit Prompt: "add the bird from image 2 flying in the sky of image 1"`);
+
+      const result = await client.wsGenerateImage({
+        imageId,
+        imageId2,
+        prompt: 'add the bird from image 2 flying in the sky of image 1'
+      });
+
+      expect(result.result.imageId).toBeTruthy();
+
+      console.log(`\n✅ WS dual-image blend successful!`);
+      console.log(`   Result ID: ${result.result.imageId}`);
+      await saveImageFromCDN(result.result.imageId, client, 'ws-03c-bird-in-landscape.jpg');
+    }, 200000);
+
+    test('should blend two images with resize via WebSocket', async () => {
+      logTestStart('WS Dual-Image Edit - With Resize');
+      const imageId = generatedImageId || config.editImageId;   // Landscape
+      const imageId2 = generatedBirdImageId;                     // Bird
+
+      if (!imageId || !imageId2) {
+        console.warn('⚠️  Skipping WS imgs2img resize test: need both images');
+        return;
+      }
+
+      client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true, wsAutoReconnect: false });
+      await client.wsConnect();
+      console.log(`🖼️  Image 1 (landscape): ${imageId}`);
+      console.log(`🖼️  Image 2 (bird): ${imageId2}`);
+      console.log(`📝 Edit Prompt: "combine the landscape and bird into a panoramic scene"`);
+      console.log(`📐 Target dimensions: 1344×768 (landscape)`);
+
+      const result = await client.wsGenerateImage({
+        imageId,
+        imageId2,
+        prompt: 'combine image 1 landscape with the bird from image 2',
+        width: 1344,
+        height: 768
+      });
+
+      expect(result.result.imageId).toBeTruthy();
+      expect(result.result.width).toBe(1344);
+      expect(result.result.height).toBe(768);
+
+      console.log(`\n✅ WS dual-image blend with resize successful!`);
+      console.log(`   Result ID: ${result.result.imageId}`);
+      console.log(`   Dimensions: ${result.result.width}×${result.result.height}`);
+      await saveImageFromCDN(result.result.imageId, client, 'ws-03d-bird-landscape-resize.jpg');
     }, 200000);
   });
 
@@ -274,7 +365,7 @@ describe('WebSocket API Tests', () => {
         console.log(`   Upscaled Dimensions: ${result.result.width}×${result.result.height}`);
         console.log(`   Seed: ${result.result.seed}`);
 
-        await saveImageFromCDN(result.result.imageId, client, 'ws-05-upscaled-2x.jpg');
+        await saveImageFromCDN(result.result.imageId, client, 'ws-04-upscaled-2x.jpg');
     }, 200000);
   });
 
@@ -309,7 +400,7 @@ describe('WebSocket API Tests', () => {
       console.log(`   Video ID: ${result.result.videoId}`);
       console.log(`   Duration: ${result.result.duration}s @ ${result.result.fps} FPS`);
 
-      await saveVideoFromCDN(result.result.videoId, client, 'ws-06-video-5s.mp4');
+      await saveVideoFromCDN(result.result.videoId, client, 'ws-05-video-5s.mp4');
     }, 190000);
   });
 
@@ -327,7 +418,7 @@ describe('WebSocket API Tests', () => {
       client = createClient(config.apiKey, { baseUrl: config.baseUrl, debug: true });
 
       console.log(`🎬 Source Video ID: ${videoId}`);
-      await saveGifFromCDN(videoId, client, 'ws-07-mp4-to-gif.gif');
+      await saveGifFromCDN(videoId, client, 'ws-06-mp4-to-gif.gif');
 
       console.log(`\n✅ WS MP4 to GIF conversion successful!`);
     }, 120000);
@@ -365,7 +456,7 @@ describe('WebSocket API Tests', () => {
       console.log(`   ✓ Verified dimensions: ${dimensions.width}×${dimensions.height}`);
 
       ensureTmpDir();
-      const filepath = path.join(__dirname, 'tmp', 'ws-08-gif-resized-256x256.gif');
+      const filepath = path.join(__dirname, 'tmp', 'ws-07-gif-resized-256x256.gif');
       fs.writeFileSync(filepath, new Uint8Array(buffer));
 
       console.log(`\n✅ WS GIF resize successful! (${size} bytes)`);
@@ -397,7 +488,7 @@ describe('WebSocket API Tests', () => {
       expect(size).toBeGreaterThan(0);
 
       ensureTmpDir();
-      const filepath = path.join(__dirname, 'tmp', 'ws-09-gif-with-position.gif');
+      const filepath = path.join(__dirname, 'tmp', 'ws-08-gif-with-position.gif');
       fs.writeFileSync(filepath, new Uint8Array(buffer));
 
       console.log(`\n✅ WS GIF download successful!`);

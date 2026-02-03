@@ -1,6 +1,6 @@
 /**
  * Constants and Enums for 2DAI SDK
- * @version 1.8.0
+ * @version 1.10.0
  */
 
 import { StylePreset, FormatPreset } from './types';

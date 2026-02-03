@@ -1,7 +1,7 @@
 /**
  * 2DAI SDK Client
  * Official TypeScript/JavaScript client for 2DAI API
- * @version 1.8.0
+ * @version 1.10.0
  */
 
 import WebSocket from 'ws';
@@ -181,13 +181,28 @@ export class TwoDAIClient {
   }
 
   /**
-   * Edit an existing image (img2img)
-   * Supports optional width/height for resizing the output image
-   * Note: The API does not support strength parameter - it uses fixed settings
+   * Edit an existing image (img2img) or merge two images (imgs2img)
+   *
+   * Single-image mode: Edit an existing image with a prompt
+   * Dual-image mode: Use imageId2 to merge, blend, or mix two images
+   *
+   * @param imageId Image 1 (primary image) - CDN ID
+   * @param options Edit options including optional imageId2 (image 2) for dual-image mode
+   *
+   * @example
+   * // Single image edit
+   * await client.editImage('image-id', { prompt: 'make it black and white' });
+   *
+   * // Dual-image edit (combine subjects)
+   * await client.editImage('image-1-id', {
+   *   imageId2: 'image-2-id',
+   *   prompt: 'make an image with both subjects'
+   * });
    */
   async editImage(imageId: string, options: Omit<ImageGenerationOptions, 'format' | 'style'>): Promise<ImageGenerationResult> {
-    this.log('Editing image', {
+    this.log(options.imageId2 ? 'Dual-image edit (imgs2img)' : 'Editing image', {
       imageId,
+      ...(options.imageId2 && { imageId2: options.imageId2 }),
       prompt: options.prompt,
       ...(options.width !== undefined && { width: options.width }),
       ...(options.height !== undefined && { height: options.height }),
@@ -197,6 +212,7 @@ export class TwoDAIClient {
     try {
       const response = await this.axios.post('/api/v1/generation/image/edit', {
         imageId,
+        imageId2: options.imageId2,
         prompt: options.prompt,
         negativePrompt: options.negativePrompt,
         seed: options.seed,

@@ -1,6 +1,6 @@
 {
   "name": "2dai-cloud-sdk",
-  "version": "1.8.0",
+  "version": "1.10.0",
   "description": "Official 2DAI SDK - Multimodal AI for autonomous image/video generation, vision analysis and agentic LLM workflows",
   "keywords": [
     "2dai",

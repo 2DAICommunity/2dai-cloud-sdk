@@ -16,6 +16,7 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 
 - **Text-to-Image** - Generate stunning images from text prompts
 - **Image-to-Image** - Edit and transform existing images
+- **Dual-Image Editing** - Face restoration, character consistency, and image merging with two source images
 - **AI Image Upscale** - Upscale images 2-4x using AI
 - **Image-to-Video** - Create videos from static images
 - **LLM Text Generation** - Generate text with context, memory, and JSON support
@@ -69,6 +70,13 @@ const controller = client.generateTextStream({
   onComplete: (result) => console.log(`\nTokens: ${result.totalTokens}`)
 });
 await controller.done;
+
+// Dual-image editing (merge, blend, mix two images)
+const result = await client.editImage('image-1-id', {
+  imageId2: 'image-2-id',
+  prompt: 'make an image with both subjects'
+});
+console.log('Merged Image ID:', result.imageId);
 ```
 
 ---
