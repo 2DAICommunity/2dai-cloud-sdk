@@ -10,6 +10,8 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> 🤖 **New** AI agents can now discover and use this SDK automatically via [`skill.md`](./skill.md). See [AI Agent Integration](../../wiki/AI-Agent-Integration).
+
 ---
 
 ## Features
@@ -21,7 +23,6 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 - **Image-to-Video** - Create videos from static images
 - **LLM Text Generation** - Generate text with context, memory, and JSON support
 - **LLM Streaming** - Real-time token-by-token streaming with SSE and WebSocket
-- **OpenAI-Compatible API** - Drop-in `/v1/chat/completions` endpoint
 - **Image Vision** - Analyze images with LLM for structured data extraction
 - **14 Style Presets** - Realistic, anime, manga, watercolor, cinematic, and more
 - **7 Format Presets** - Portrait, landscape, profile, story, post, smartphone, banner
@@ -29,6 +30,11 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 - **WebSocket Support** - Real-time generation with progress updates
 - **CDN Operations** - Format conversion, resizing, frame extraction
 - **Full TypeScript Support** - Comprehensive type definitions
+
+🤖 **For AI Agents and Tools:**
+
+- **OpenAI-Compatible API** - Drop-in `/v1/chat/completions` endpoint
+- **AI Agent Integration** - Enable any AI agent (Claude, GPT, etc.) to discover and use the SDK via `skill.md`
 
 ---
 
@@ -96,6 +102,7 @@ Full documentation is available in the **[Wiki](../../wiki)**.
 | [API Reference](../../wiki/API-Reference) | Complete endpoint documentation |
 | [Examples](../../wiki/Examples) | Full code examples |
 | [Troubleshooting](../../wiki/Troubleshooting) | Common issues, debug mode, best practices |
+| [AI Agent Integration](../../wiki/AI-Agent-Integration) | Enable AI agents to use the SDK |
 
 ---
 
