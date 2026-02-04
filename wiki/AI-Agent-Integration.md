@@ -116,7 +116,7 @@ https://forms.gle/TdQ8Wu3zpegvAwVg9
 
 **Option 2: Email Request**
 Send to: support@2dai.io
-Subject: `AI Agent - 2DAI.io API Access Request Form`
+Subject: `AI Agent - 2DAI.io SDK API Access Request Form`
 
 Required information:
 - Full Name

@@ -5,7 +5,7 @@ This guide will help you install the SDK, obtain an API key, and make your first
 ## Table of Contents
 
 - [Installation](#installation)
-- [Getting an API Key](#getting-an-api-key)
+- [How to Get an API Key](#how-to-get-an-api-key)
 - [Initialization](#initialization)
 - [Quick Start](#quick-start)
 - [Client Options](#client-options)
@@ -30,18 +30,32 @@ yarn add 2dai-cloud-sdk
 
 ---
 
-## Getting an API Key
+## How to Get an API Key
 
 To use this SDK, you need an API key.
 
-### Request Access
+**Option 1: Online Form**
 
-1. Fill out the [API Access Request Form](https://forms.gle/TdQ8Wu3zpegvAwVg9)
-2. We'll review your request within 24-48 hours
-3. Once approved, you'll receive your API key via email
+Fill out the [API Access Request Form](https://forms.gle/TdQ8Wu3zpegvAwVg9)
+
+**Option 2: Email Request**
+
+Send to: [support@2dai.io](mailto:support@2dai.io)
+Subject: `2DAI.io SDK API Access Request Form`
+
+Required information:
+- Full Name
+- Email Address (for API key delivery)
+- Company/Organization (optional)
+- Project Name
+- Project Description (what you're building and how you'll use the API)
+- Expected Monthly Usage: Testing / Low (<1k) / Medium (1k-10k) / High (10k+)
+
+API keys are reviewed within 24-48 hours and sent via email once approved.
 
 ### Contact
 
+- Email: [support@2dai.io](mailto:support@2dai.io)
 - Twitter/X: [@2DAICommunity](https://x.com/2DAICommunity)
 - Telegram: [Token2dAI](https://t.me/Token2dAI)
 
