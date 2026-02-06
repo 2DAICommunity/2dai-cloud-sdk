@@ -1,6 +1,6 @@
 /**
  * Constants and Enums for 2DAI SDK
- * @version 1.11.0
+ * @version 1.12.0
  */
 
 import { StylePreset, FormatPreset } from './types';
@@ -304,7 +304,11 @@ export const WS_TYPES = {
   /** Generate text using LLM */
   LLM: 'generate_llm',
   /** AI upscale an image */
-  UPSCALE: 'generate_upscale'
+  UPSCALE: 'generate_upscale',
+  /** Transcribe audio using STT */
+  STT: 'generate_stt',
+  /** Generate speech using TTS */
+  TTS: 'generate_tts'
 } as const;
 
 /**
@@ -324,5 +328,55 @@ export const WS_STREAM_TYPES = {
   /** LLM generation with streaming (same as regular, stream flag in data) */
   LLM_STREAM: 'generate_llm',
   /** Streaming chunk from server */
-  LLM_CHUNK: 'llm_chunk'
+  LLM_CHUNK: 'llm_chunk',
+  /** STT generation with streaming */
+  STT_STREAM: 'generate_stt',
+  /** STT streaming chunk from server */
+  STT_CHUNK: 'stt_chunk',
+  /** TTS generation with streaming */
+  TTS_STREAM: 'generate_tts',
+  /** TTS streaming chunk from server */
+  TTS_CHUNK: 'tts_chunk'
 } as const;
+
+/**
+ * Supported STT audio formats
+ */
+export const STT_FORMATS = ['wav', 'mp3', 'aac', 'webm', 'ogg', 'm4a', 'flac'] as const;
+
+/**
+ * Maximum STT audio size in bytes (5 MB)
+ */
+export const STT_MAX_AUDIO_SIZE_BYTES = 5 * 1024 * 1024;
+
+/**
+ * TTS voice models
+ */
+export const TTS_VOICES = {
+  PAUL: 'paul',
+  ALICE: 'alice'
+} as const;
+
+/**
+ * Supported TTS languages
+ */
+export const TTS_LANGUAGES = ['auto', 'en', 'zh', 'ja', 'ko', 'de', 'fr', 'es', 'ru', 'pt', 'it'] as const;
+
+/**
+ * Supported TTS output formats
+ */
+export const TTS_OUTPUT_FORMATS = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'] as const;
+
+/**
+ * TTS speech speed constraints
+ */
+export const TTS_SPEED = {
+  MIN: 0.25,
+  MAX: 4.0,
+  DEFAULT: 1.0
+} as const;
+
+/**
+ * Maximum TTS text length (characters)
+ */
+export const TTS_MAX_TEXT_LENGTH = 500;

@@ -1,7 +1,7 @@
 ---
 name: 2DAI OpenAI Compatible API
 capability: openai_compatible
-version: 1.11.0
+version: 1.12.0
 api_base_url: https://apiv2.2dai.io:800/v1
 openai_compatible: true
 ---
@@ -292,6 +292,8 @@ print(response.text)
 | Image editing | **Native API only** |
 | CDN operations | **Native API only** |
 | Vision/image analysis | **Native API only** |
+| Speech-to-text (STT) | **Native API only** |
+| Text-to-speech (TTS) | **Native API only** |
 | WebSocket real-time | **Native API only** |
 
 ---
@@ -350,8 +352,8 @@ Same as native LLM API:
 
 | Metric | Per 15 Minutes | Per Day |
 |--------|----------------|---------|
-| Requests | 75 | 1,800 |
-| Tokens | 150,000 | 3,500,000 |
+| Requests | 30 | 300 |
+| Tokens | 150,000 | 1,500,000 |
 
 ---
 

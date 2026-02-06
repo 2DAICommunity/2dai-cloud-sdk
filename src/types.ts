@@ -1,6 +1,6 @@
 /**
  * Type definitions for 2DAI SDK
- * @version 1.11.0
+ * @version 1.12.0
  */
 
 /**
@@ -217,7 +217,7 @@ export interface APIError {
  * operations can run at the same time. The count decreases as operations complete.
  */
 export interface RateLimitInfo {
-  operation: 'image' | 'video' | 'llm' | 'cdn';
+  operation: 'image' | 'video' | 'llm' | 'cdn' | 'stt' | 'tts';
   current: {
     /** For image/video/llm: currently running operations. For cdn: requests in current window */
     requestsPer15Min: number;
@@ -296,14 +296,25 @@ export interface APIKeySettings {
       requestsPer15Min: number;
       requestsPerDay: number;
     };
+    stt: {
+      requestsPer15Min: number;
+      requestsPerDay: number;
+    };
+    tts: {
+      requestsPer15Min: number;
+      requestsPerDay: number;
+    };
   };
   currentUsage?: {
     image: OperationUsage;
     video: OperationUsage;
     llm: OperationUsage;
     cdn: OperationUsage;
+    stt: OperationUsage;
+    tts: OperationUsage;
   };
   llmSettings?: any;
+  ttsSettings?: any;
   createdAt?: string;
   lastUsedAt?: string;
 }
@@ -538,12 +549,12 @@ export interface WsUpscaleResponse {
 /**
  * Union type for all WebSocket request data
  */
-export type WsRequestData = WsImageRequest | WsImg2ImgRequest | WsVideoRequest | WsLlmRequest | WsUpscaleRequest;
+export type WsRequestData = WsImageRequest | WsImg2ImgRequest | WsVideoRequest | WsLlmRequest | WsUpscaleRequest | WsSttRequest | WsTtsRequest;
 
 /**
  * Union type for all WebSocket response data
  */
-export type WsResponseData = WsImageResponse | WsVideoResponse | WsLlmResponse | WsUpscaleResponse;
+export type WsResponseData = WsImageResponse | WsVideoResponse | WsLlmResponse | WsUpscaleResponse | WsSttResponse | WsTtsResponse;
 
 // ============================================================================
 // Streaming Types (REST SSE & WebSocket)
@@ -661,12 +672,16 @@ export interface WsSettingsResponse {
       video: { requestsPer15Min: number; requestsPerDay: number };
       llm: { requestsPer15Min: number; requestsPerDay: number; tokensPer15Min?: number; tokensPerDay?: number };
       cdn: { requestsPer15Min: number; requestsPerDay: number };
+      stt: { requestsPer15Min: number; requestsPerDay: number };
+      tts: { requestsPer15Min: number; requestsPerDay: number };
     };
     currentUsage: {
       image: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
       video: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
       llm: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
       cdn: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
+      stt: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
+      tts: { current: any; remaining: { requestsPer15Min: number; requestsPerDay: number }; resetAt: any };
     };
     lastUsedAt?: string;
   };
@@ -702,4 +717,353 @@ export interface WsUsageResponse {
  */
 export interface WsRateLimitsResponse {
   rateLimits: RateLimitInfo[];
+}
+
+// ============================================================================
+// STT (Speech-to-Text) Types
+// ============================================================================
+
+/**
+ * Supported audio formats for STT
+ */
+export type STTAudioFormat = 'wav' | 'mp3' | 'aac' | 'webm' | 'ogg' | 'm4a' | 'flac';
+
+/**
+ * Options for speech-to-text transcription
+ */
+export interface STTOptions {
+  /** Base64 encoded audio data */
+  audio: string;
+  /** Audio format */
+  audioFormat: STTAudioFormat;
+  /** Language code (ISO 639-1) or 'auto' for detection */
+  language?: string;
+  /** Context hint to improve transcription accuracy */
+  prompt?: string;
+}
+
+/**
+ * Result from speech-to-text transcription
+ */
+export interface STTResult {
+  success: boolean;
+  /** Transcribed text */
+  text: string;
+  /** Detected language code */
+  language?: string;
+}
+
+/**
+ * Options for streaming speech-to-text (REST SSE)
+ *
+ * @example
+ * ```typescript
+ * const controller = client.transcribeAudioStream({
+ *   audio: audioBase64,
+ *   audioFormat: 'wav',
+ *   onChunk: (chunk, lang) => process.stdout.write(chunk),
+ *   onComplete: (result) => console.log('Done:', result.text),
+ *   onError: (err) => console.error(err)
+ * });
+ * ```
+ */
+export interface STTStreamOptions extends STTOptions {
+  /** Callback for each transcription chunk */
+  onChunk?: (chunk: string, language?: string) => void;
+  /** Callback when stream completes */
+  onComplete?: (result: STTStreamResult) => void;
+  /** Callback on error */
+  onError?: (error: Error) => void;
+}
+
+/**
+ * STT streaming chunk from SSE
+ */
+export interface STTStreamChunk {
+  /** Transcribed text chunk */
+  chunk?: string;
+  /** Detected language */
+  language?: string;
+  /** Whether this is the final chunk */
+  done?: boolean;
+  /** Full transcribed text (only in final chunk) */
+  text?: string;
+  /** Error message if stream failed */
+  error?: string;
+}
+
+/**
+ * Result from STT stream completion
+ */
+export interface STTStreamResult {
+  success: boolean;
+  /** Full transcribed text */
+  text: string;
+  /** Detected language */
+  language?: string;
+}
+
+/**
+ * Stream controller for STT streaming
+ */
+export interface STTStreamController {
+  /** Abort the stream */
+  abort: () => void;
+  /** Promise that resolves when stream completes */
+  done: Promise<STTStreamResult>;
+}
+
+/**
+ * WebSocket request for STT transcription
+ *
+ * @example
+ * ```typescript
+ * const result = await client.wsTranscribeAudio({
+ *   audio: audioBase64,
+ *   audioFormat: 'wav'
+ * });
+ * console.log(result.result.text);
+ * ```
+ */
+export interface WsSttRequest {
+  /** Base64 encoded audio data */
+  audio: string;
+  /** Audio format */
+  audioFormat: STTAudioFormat;
+  /** Language code or 'auto' */
+  language?: string;
+  /** Context hint */
+  prompt?: string;
+}
+
+/**
+ * WebSocket response for STT transcription
+ */
+export interface WsSttResponse {
+  result: {
+    /** Transcribed text */
+    text: string;
+    /** Detected language */
+    language?: string;
+  };
+}
+
+/**
+ * WebSocket STT streaming callbacks
+ */
+export interface WsSttStreamCallbacks {
+  /** Called for each transcription chunk */
+  onChunk: (chunk: string, language?: string) => void;
+  /** Called when stream completes */
+  onComplete: (response: WsSttResponse) => void;
+  /** Called on error */
+  onError: (error: Error) => void;
+}
+
+// ============================================================================
+// TTS (Text-to-Speech) Types
+// ============================================================================
+
+/**
+ * Supported output formats for TTS
+ */
+export type TTSOutputFormat = 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
+
+/**
+ * Supported TTS languages
+ */
+export type TTSLanguage = 'auto' | 'en' | 'zh' | 'ja' | 'ko' | 'de' | 'fr' | 'es' | 'ru' | 'pt' | 'it';
+
+/**
+ * Options for text-to-speech generation
+ *
+ * Supports two modes:
+ * 1. Voice Model: use a pre-configured voice (e.g., 'paul', 'alice')
+ * 2. Voice Cloning: provide referenceAudio + referenceTranscript
+ */
+export interface TTSOptions {
+  /** Text to synthesize (max 500 characters) */
+  text: string;
+  /** Voice model name (e.g., 'paul', 'alice') */
+  voice?: string;
+  /** Base64 encoded reference audio for voice cloning (3+ seconds) */
+  referenceAudio?: string;
+  /** Exact transcript of the reference audio (required with referenceAudio) */
+  referenceTranscript?: string;
+  /** Output language (default: 'auto') */
+  language?: TTSLanguage;
+  /** Speech speed multiplier (0.25 - 4.0, default: 1.0) */
+  speed?: number;
+  /** Output audio format (default: 'wav') */
+  outputFormat?: TTSOutputFormat;
+  /** Output sample rate in Hz (default: 12000) */
+  sampleRate?: number;
+  /** Use realtime mode for low-latency generation. Not compatible with voice cloning (referenceAudio). */
+  realtime?: boolean;
+}
+
+/**
+ * Result from text-to-speech generation
+ */
+export interface TTSResult {
+  success: boolean;
+  /** Base64 encoded audio data */
+  audio?: string;
+  /** CDN file ID (if audio exceeds threshold) */
+  cdnFileId?: string;
+  /** Output format used */
+  format?: string;
+  /** Audio duration in seconds */
+  duration?: number;
+  /** Output sample rate */
+  sampleRate?: number;
+  /** Number of characters processed */
+  characterCount?: number;
+  /** Language used */
+  language?: string;
+}
+
+/**
+ * Options for streaming TTS (REST SSE)
+ *
+ * @example
+ * ```typescript
+ * const controller = client.generateSpeechStream({
+ *   text: 'Hello world',
+ *   voice: 'paul',
+ *   onChunk: (audio, text, lang) => playAudioChunk(audio),
+ *   onComplete: (result) => console.log('Done:', result.duration, 'seconds'),
+ *   onError: (err) => console.error(err)
+ * });
+ * ```
+ */
+export interface TTSStreamOptions extends TTSOptions {
+  /** Callback for each audio chunk */
+  onChunk?: (audio: string, text: string, language?: string) => void;
+  /** Callback when stream completes */
+  onComplete?: (result: TTSStreamResult) => void;
+  /** Callback on error */
+  onError?: (error: Error) => void;
+}
+
+/**
+ * TTS streaming chunk from SSE
+ */
+export interface TTSStreamChunk {
+  /** Base64 encoded audio chunk */
+  audio?: string;
+  /** Text fragment synthesized */
+  text?: string;
+  /** Language used */
+  language?: string;
+  /** Whether this is the final summary chunk */
+  done?: boolean;
+  /** Output format (only in final chunk) */
+  format?: string;
+  /** Audio duration in seconds (only in final chunk) */
+  duration?: number;
+  /** Sample rate (only in final chunk) */
+  sampleRate?: number;
+  /** Character count (only in final chunk) */
+  characterCount?: number;
+  /** CDN file ID (only in final chunk) */
+  cdnFileId?: string;
+  /** Error message if stream failed */
+  error?: string;
+}
+
+/**
+ * Result from TTS stream completion
+ */
+export interface TTSStreamResult {
+  success: boolean;
+  /** Output format */
+  format?: string;
+  /** Audio duration in seconds */
+  duration?: number;
+  /** Sample rate */
+  sampleRate?: number;
+  /** Number of characters processed */
+  characterCount?: number;
+  /** Language used */
+  language?: string;
+  /** CDN file ID */
+  cdnFileId?: string;
+}
+
+/**
+ * Stream controller for TTS streaming
+ */
+export interface TTSStreamController {
+  /** Abort the stream */
+  abort: () => void;
+  /** Promise that resolves when stream completes */
+  done: Promise<TTSStreamResult>;
+}
+
+/**
+ * WebSocket request for TTS generation
+ *
+ * @example
+ * ```typescript
+ * const result = await client.wsGenerateSpeech({
+ *   text: 'Hello world',
+ *   voice: 'paul'
+ * });
+ * console.log(result.result.duration, 'seconds');
+ * ```
+ */
+export interface WsTtsRequest {
+  /** Text to synthesize */
+  text: string;
+  /** Voice model name */
+  voice?: string;
+  /** Base64 reference audio for voice cloning */
+  referenceAudio?: string;
+  /** Transcript of reference audio */
+  referenceTranscript?: string;
+  /** Output language */
+  language?: TTSLanguage;
+  /** Speech speed (0.25 - 4.0) */
+  speed?: number;
+  /** Output format */
+  outputFormat?: TTSOutputFormat;
+  /** Sample rate in Hz */
+  sampleRate?: number;
+  /** Use realtime mode for low-latency generation. Not compatible with voice cloning (referenceAudio). */
+  realtime?: boolean;
+}
+
+/**
+ * WebSocket response for TTS generation
+ */
+export interface WsTtsResponse {
+  result: {
+    /** Base64 encoded audio */
+    audio?: string;
+    /** CDN file ID */
+    cdnFileId?: string;
+    /** Output format */
+    format?: string;
+    /** Audio duration in seconds */
+    duration?: number;
+    /** Sample rate */
+    sampleRate?: number;
+    /** Characters processed */
+    characterCount?: number;
+    /** Language used */
+    language?: string;
+  };
+}
+
+/**
+ * WebSocket TTS streaming callbacks
+ */
+export interface WsTtsStreamCallbacks {
+  /** Called for each audio chunk */
+  onChunk: (audio: string, text: string, language?: string) => void;
+  /** Called when stream completes */
+  onComplete: (response: WsTtsResponse) => void;
+  /** Called on error */
+  onError: (error: Error) => void;
 }

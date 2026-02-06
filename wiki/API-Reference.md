@@ -8,6 +8,8 @@ Complete reference of all REST and WebSocket endpoints available in the 2DAI API
 - [Settings API](#settings-api)
 - [Generation API](#generation-api)
 - [LLM API](#llm-api)
+- [STT API](#stt-api)
+- [TTS API](#tts-api)
 - [CDN API](#cdn-api)
 - [OpenAI-Compatible API](#openai-compatible-api)
 - [WebSocket API](#websocket-api)
@@ -31,7 +33,7 @@ Public endpoints that don't require authentication.
 {
   "status": "ok",
   "timestamp": "2026-01-22T22:30:34.801Z",
-  "version": "1.6.0",
+  "version": "1.12.0",
   "environment": "local"
 }
 ```
@@ -47,7 +49,7 @@ Public endpoints that don't require authentication.
 
 ```json
 {
-  "version": "1.6.0",
+  "version": "1.12.0",
   "environment": "local"
 }
 ```
@@ -84,22 +86,30 @@ Get account status, rate limits, and current usage.
     "rateLimits": {
       "image": {
         "requestsPer15Min": 15,
-        "requestsPerDay": 360
+        "requestsPerDay": 100
       },
       "video": {
         "requestsPer15Min": 5,
         "requestsPerDay": 30
       },
       "llm": {
-        "requestsPer15Min": 75,
-        "requestsPerDay": 1800,
+        "requestsPer15Min": 30,
+        "requestsPerDay": 300,
         "tokensPer15Min": 150000,
-        "tokensPerDay": 3500000,
+        "tokensPerDay": 1500000,
         "maxPromptLength": 90000
       },
       "cdn": {
         "requestsPer15Min": 200,
         "requestsPerDay": 5000
+      },
+      "stt": {
+        "requestsPer15Min": 15,
+        "requestsPerDay": 100
+      },
+      "tts": {
+        "requestsPer15Min": 10,
+        "requestsPerDay": 60
       }
     },
     "currentUsage": {
@@ -112,11 +122,11 @@ Get account status, rate limits, and current usage.
         },
         "remaining": {
           "requestsPer15Min": 15,
-          "requestsPerDay": 360
+          "requestsPerDay": 100
         },
         "resetAt": {
-          "window15Min": "2026-01-22T22:45:00.000Z",
-          "daily": "2026-01-23T05:00:00.000Z"
+          "window15Min": "2026-02-06T22:45:00.000Z",
+          "daily": "2026-02-07T05:00:00.000Z"
         }
       },
       "video": {
@@ -131,8 +141,8 @@ Get account status, rate limits, and current usage.
           "requestsPerDay": 30
         },
         "resetAt": {
-          "window15Min": "2026-01-22T22:45:00.000Z",
-          "daily": "2026-01-23T05:00:00.000Z"
+          "window15Min": "2026-02-06T22:45:00.000Z",
+          "daily": "2026-02-07T05:00:00.000Z"
         }
       },
       "llm": {
@@ -143,28 +153,60 @@ Get account status, rate limits, and current usage.
           "tokensPerDay": 0
         },
         "remaining": {
-          "requestsPer15Min": 75,
-          "requestsPerDay": 1800
+          "requestsPer15Min": 30,
+          "requestsPerDay": 300
         },
         "resetAt": {
-          "window15Min": "2026-01-22T22:45:00.000Z",
-          "daily": "2026-01-23T05:00:00.000Z"
+          "window15Min": "2026-02-06T22:45:00.000Z",
+          "daily": "2026-02-07T05:00:00.000Z"
         }
       },
       "cdn": {
         "current": {
           "requestsPer15Min": 0,
-          "requestsPerDay": 42,
+          "requestsPerDay": 0,
           "tokensPer15Min": 0,
           "tokensPerDay": 0
         },
         "remaining": {
           "requestsPer15Min": 200,
-          "requestsPerDay": 4958
+          "requestsPerDay": 5000
         },
         "resetAt": {
-          "window15Min": "2026-01-22T22:45:00.000Z",
-          "daily": "2026-01-23T05:00:00.000Z"
+          "window15Min": "2026-02-06T22:45:00.000Z",
+          "daily": "2026-02-07T05:00:00.000Z"
+        }
+      },
+      "stt": {
+        "current": {
+          "requestsPer15Min": 0,
+          "requestsPerDay": 0,
+          "tokensPer15Min": 0,
+          "tokensPerDay": 0
+        },
+        "remaining": {
+          "requestsPer15Min": 15,
+          "requestsPerDay": 100
+        },
+        "resetAt": {
+          "window15Min": "2026-02-06T22:45:00.000Z",
+          "daily": "2026-02-07T05:00:00.000Z"
+        }
+      },
+      "tts": {
+        "current": {
+          "requestsPer15Min": 0,
+          "requestsPerDay": 0,
+          "tokensPer15Min": 0,
+          "tokensPerDay": 0
+        },
+        "remaining": {
+          "requestsPer15Min": 10,
+          "requestsPerDay": 60
+        },
+        "resetAt": {
+          "window15Min": "2026-02-06T22:45:00.000Z",
+          "daily": "2026-02-07T05:00:00.000Z"
         }
       }
     }
@@ -190,6 +232,10 @@ Get account status, rate limits, and current usage.
 | `data.rateLimits.llm.maxPromptLength` | number | Maximum prompt length allowed |
 | `data.rateLimits.cdn.requestsPer15Min` | number | CDN requests allowed per 15 minutes |
 | `data.rateLimits.cdn.requestsPerDay` | number | CDN requests allowed per day |
+| `data.rateLimits.stt.requestsPer15Min` | number | STT requests allowed per 15 minutes |
+| `data.rateLimits.stt.requestsPerDay` | number | STT requests allowed per day |
+| `data.rateLimits.tts.requestsPer15Min` | number | TTS requests allowed per 15 minutes |
+| `data.rateLimits.tts.requestsPerDay` | number | TTS requests allowed per day |
 | `data.currentUsage` | object | Current usage per operation |
 | `data.currentUsage.*.current` | object | Current usage values |
 | `data.currentUsage.*.remaining` | object | Remaining usage values |
@@ -262,7 +308,7 @@ Recent usage logs with filtering.
 
 **Query Parameters:**
 - `limit` - Number of logs to return (default: 10)
-- `operation` - Filter by operation type (`image`, `video`, `llm`, `cdn`)
+- `operation` - Filter by operation type (`image`, `video`, `llm`, `cdn`, `stt`, `tts`)
 
 ```json
 {
@@ -353,7 +399,7 @@ Recent usage logs with filtering.
 | `success` | boolean | Request success status |
 | `data.count` | number | Number of logs returned |
 | `data.logs` | array | Array of usage log entries |
-| `data.logs[].operation` | string | Operation type (`image`, `video`, `llm`, `cdn`) |
+| `data.logs[].operation` | string | Operation type (`image`, `video`, `llm`, `cdn`, `stt`, `tts`) |
 | `data.logs[].timestamp` | string | Log timestamp (ISO 8601) |
 | `data.logs[].success` | boolean | Whether operation succeeded |
 | `data.logs[].tokensUsed` | number | Tokens used (LLM only) |
@@ -372,7 +418,7 @@ Current rate limit status for all operations.
       "operation": "image",
       "allowed": true,
       "remaining15min": 15,
-      "remainingDaily": 360,
+      "remainingDaily": 100,
       "current": {
         "requestsPer15Min": 0,
         "requestsPerDay": 0,
@@ -381,11 +427,11 @@ Current rate limit status for all operations.
       },
       "limit": {
         "requestsPer15Min": 15,
-        "requestsPerDay": 360
+        "requestsPerDay": 100
       },
       "resetAt": {
-        "window15Min": "2026-01-23T03:00:00.000Z",
-        "daily": "2026-01-23T05:00:00.000Z"
+        "window15Min": "2026-02-07T03:00:00.000Z",
+        "daily": "2026-02-07T05:00:00.000Z"
       }
     },
     {
@@ -404,15 +450,15 @@ Current rate limit status for all operations.
         "requestsPerDay": 30
       },
       "resetAt": {
-        "window15Min": "2026-01-23T03:00:00.000Z",
-        "daily": "2026-01-23T05:00:00.000Z"
+        "window15Min": "2026-02-07T03:00:00.000Z",
+        "daily": "2026-02-07T05:00:00.000Z"
       }
     },
     {
       "operation": "llm",
       "allowed": true,
-      "remaining15min": 75,
-      "remainingDaily": 1800,
+      "remaining15min": 30,
+      "remainingDaily": 300,
       "current": {
         "requestsPer15Min": 0,
         "requestsPerDay": 0,
@@ -420,24 +466,24 @@ Current rate limit status for all operations.
         "tokensPerDay": 0
       },
       "limit": {
-        "requestsPer15Min": 75,
-        "requestsPerDay": 1800,
+        "requestsPer15Min": 30,
+        "requestsPerDay": 300,
         "tokensPer15Min": 150000,
-        "tokensPerDay": 3500000
+        "tokensPerDay": 1500000
       },
       "resetAt": {
-        "window15Min": "2026-01-23T03:00:00.000Z",
-        "daily": "2026-01-23T05:00:00.000Z"
+        "window15Min": "2026-02-07T03:00:00.000Z",
+        "daily": "2026-02-07T05:00:00.000Z"
       }
     },
     {
       "operation": "cdn",
       "allowed": true,
-      "remaining15min": 194,
-      "remainingDaily": 4879,
+      "remaining15min": 200,
+      "remainingDaily": 5000,
       "current": {
-        "requestsPer15Min": 6,
-        "requestsPerDay": 121,
+        "requestsPer15Min": 0,
+        "requestsPerDay": 0,
         "tokensPer15Min": 0,
         "tokensPerDay": 0
       },
@@ -446,8 +492,48 @@ Current rate limit status for all operations.
         "requestsPerDay": 5000
       },
       "resetAt": {
-        "window15Min": "2026-01-23T03:00:00.000Z",
-        "daily": "2026-01-23T05:00:00.000Z"
+        "window15Min": "2026-02-07T03:00:00.000Z",
+        "daily": "2026-02-07T05:00:00.000Z"
+      }
+    },
+    {
+      "operation": "stt",
+      "allowed": true,
+      "remaining15min": 15,
+      "remainingDaily": 100,
+      "current": {
+        "requestsPer15Min": 0,
+        "requestsPerDay": 0,
+        "tokensPer15Min": 0,
+        "tokensPerDay": 0
+      },
+      "limit": {
+        "requestsPer15Min": 15,
+        "requestsPerDay": 100
+      },
+      "resetAt": {
+        "window15Min": "2026-02-07T03:00:00.000Z",
+        "daily": "2026-02-07T05:00:00.000Z"
+      }
+    },
+    {
+      "operation": "tts",
+      "allowed": true,
+      "remaining15min": 10,
+      "remainingDaily": 60,
+      "current": {
+        "requestsPer15Min": 0,
+        "requestsPerDay": 0,
+        "tokensPer15Min": 0,
+        "tokensPerDay": 0
+      },
+      "limit": {
+        "requestsPer15Min": 10,
+        "requestsPerDay": 60
+      },
+      "resetAt": {
+        "window15Min": "2026-02-07T03:00:00.000Z",
+        "daily": "2026-02-07T05:00:00.000Z"
       }
     }
   ]
@@ -457,8 +543,8 @@ Current rate limit status for all operations.
 | Field | Type | Description |
 |-------|------|-------------|
 | `success` | boolean | Request success status |
-| `data` | array | Array of rate limit status objects (ordered: image, video, llm, cdn) |
-| `data[].operation` | string | Operation type: `image`, `video`, `llm`, `cdn` |
+| `data` | array | Array of rate limit status objects (ordered: image, video, llm, cdn, stt, tts) |
+| `data[].operation` | string | Operation type: `image`, `video`, `llm`, `cdn`, `stt`, `tts` |
 | `data[].allowed` | boolean | Whether operation is allowed |
 | `data[].remaining15min` | number | Remaining requests in 15-min window |
 | `data[].remainingDaily` | number | Remaining requests in day |
@@ -795,6 +881,180 @@ data: [DONE]
 | `completionTokens` | number | Output tokens (final event) |
 
 > **Note:** The stream ends with `data: [DONE]`. The final chunk includes token counts.
+
+---
+
+## STT API
+
+Speech-to-text transcription endpoints.
+
+**Base Path:** `/api/v1/stt`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/stt/transcribe` | Non-streaming audio transcription |
+| POST | `/api/v1/stt/transcribe/stream` | Streaming transcription (SSE) |
+
+### POST /api/v1/stt/transcribe
+
+Transcribe audio to text.
+
+**Request:**
+```json
+{
+  "audio": "<base64 encoded audio>",
+  "audioFormat": "wav",
+  "language": "en",
+  "prompt": "optional context hint"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `audio` | string | Yes | Base64 encoded audio data |
+| `audioFormat` | string | Yes | Audio format: `wav`, `mp3`, `aac`, `webm`, `ogg`, `m4a`, `flac` |
+| `language` | string | No | Language code (auto-detected if omitted) |
+| `prompt` | string | No | Context hint to improve accuracy |
+
+> **Note:** Maximum audio size is 5MB (calculated from base64 length).
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "text": "Hello, this is a test of the speech to text system.",
+    "language": "en"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Request success status |
+| `data.text` | string | Transcribed text |
+| `data.language` | string | Detected or provided language |
+
+### POST /api/v1/stt/transcribe/stream (SSE)
+
+Transcribe audio with streaming results.
+
+**Request:** Same as `/stt/transcribe`.
+
+**Response (SSE):**
+```
+data: {"chunk":"Hello, this is","language":"en"}
+
+data: {"chunk":" a test of the speech","language":"en"}
+
+data: {"done":true,"text":"Hello, this is a test of the speech to text system.","language":"en"}
+data: [DONE]
+```
+
+**Chunk Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `chunk` | string | Transcribed text chunk (content events) |
+| `language` | string | Detected language |
+| `done` | boolean | `true` on final event |
+| `text` | string | Full transcribed text (final event) |
+
+---
+
+## TTS API
+
+Text-to-speech synthesis endpoints.
+
+**Base Path:** `/api/v1/tts`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/tts/generate` | Non-streaming speech generation |
+| POST | `/api/v1/tts/generate/stream` | Streaming speech generation (SSE) |
+
+### POST /api/v1/tts/generate
+
+Generate speech from text.
+
+**Request:**
+```json
+{
+  "text": "Hello, welcome to 2DAI!",
+  "voice": "paul",
+  "language": "en",
+  "speed": 1.0,
+  "outputFormat": "mp3",
+  "realtime": false
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `text` | string | Yes | Text to synthesize (max 500 characters) |
+| `voice` | string | Conditional | Voice model: `paul`, `alice`. Required if no `referenceAudio` |
+| `referenceAudio` | string | No | Base64 encoded reference audio for voice cloning (3+ seconds) |
+| `referenceTranscript` | string | Conditional | Exact transcript of reference audio. Required with `referenceAudio` |
+| `language` | string | No | Language: `auto`, `en`, `zh`, `ja`, `ko`, `de`, `fr`, `es`, `ru`, `pt`, `it` (default: `auto`) |
+| `speed` | number | No | Speed multiplier: 0.25 - 4.0 (default: 1.0) |
+| `outputFormat` | string | No | Output format: `mp3`, `opus`, `aac`, `flac`, `wav`, `pcm` (default: `wav`) |
+| `sampleRate` | number | No | Output sample rate in Hz |
+| `realtime` | boolean | No | Use realtime mode for low-latency generation. Not compatible with voice cloning (`referenceAudio`) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "audio": "<base64 encoded audio>",
+    "format": "mp3",
+    "duration": 1.85,
+    "sampleRate": 24000,
+    "characterCount": 24,
+    "language": "en"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Request success status |
+| `data.audio` | string | Base64 encoded audio data |
+| `data.cdnFileId` | string | CDN file ID (if audio exceeds threshold) |
+| `data.format` | string | Output audio format |
+| `data.duration` | number | Audio duration in seconds |
+| `data.sampleRate` | number | Output sample rate in Hz |
+| `data.characterCount` | number | Number of characters synthesized |
+| `data.language` | string | Language used |
+
+### POST /api/v1/tts/generate/stream (SSE)
+
+Generate speech with streaming audio chunks.
+
+**Request:** Same as `/tts/generate`.
+
+**Response (SSE):**
+```
+data: {"audio":"<base64 audio chunk>","text":"Hello, welcome","language":"en"}
+
+data: {"audio":"<base64 audio chunk>","text":" to 2DAI!","language":"en"}
+
+data: {"done":true,"format":"mp3","duration":1.85,"sampleRate":24000,"characterCount":24,"language":"en"}
+data: [DONE]
+```
+
+**Chunk Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `audio` | string | Base64 encoded audio chunk (content events) |
+| `text` | string | Text segment for this chunk |
+| `language` | string | Language used |
+| `done` | boolean | `true` on final event |
+| `format` | string | Output format (final event) |
+| `duration` | number | Total duration in seconds (final event) |
+| `sampleRate` | number | Sample rate in Hz (final event) |
+| `characterCount` | number | Total characters (final event) |
 
 ---
 
@@ -1153,6 +1413,8 @@ For detailed WebSocket documentation, see the dedicated [WebSocket API](WebSocke
 - `generate_video` - Image-to-video
 - `generate_upscale` - AI image upscale
 - `generate_llm` - LLM text generation (supports streaming)
+- `generate_stt` - Speech-to-text transcription (supports streaming)
+- `generate_tts` - Text-to-speech synthesis (supports streaming)
 
 ### WebSocket Dual-Image Example (imgs2img)
 

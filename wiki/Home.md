@@ -12,6 +12,8 @@ Welcome to the official documentation for **2dai-cloud-sdk** - the TypeScript/Ja
 | [LLM & Streaming](LLM-Text-Generation) | Text generation, streaming, OpenAI-compatible API |
 | [OpenAI Compatibility](OpenAI-Compatibility) | Framework integrations: LangChain, Vercel AI, LlamaIndex |
 | [AI Agent Integration](AI-Agent-Integration) | Enable AI agents (Claude, GPT, etc.) to use the SDK |
+| [STT Speech-to-Text](STT-Speech-to-Text) | Audio transcription, streaming, multi-language |
+| [TTS Text-to-Speech](TTS-Text-to-Speech) | Voice synthesis, cloning, realtime mode, streaming |
 | [CDN Operations](CDN-Operations) | Downloads, watermarks, format conversion |
 | [WebSocket API](WebSocket-API) | Real-time generation with progress updates |
 | [API Reference](API-Reference) | Complete endpoint documentation |
@@ -27,6 +29,8 @@ Welcome to the official documentation for **2dai-cloud-sdk** - the TypeScript/Ja
 - **LLM Text Generation** - Generate text with memory, JSON support, and streaming
 - **OpenAI-Compatible API** - Drop-in `/v1/chat/completions` endpoint
 - **Image Description (Vision)** - Analyze images with LLM
+- **STT Speech-to-Text** - Audio transcription with streaming and multi-language support
+- **TTS Text-to-Speech** - Voice synthesis with voice models, cloning, realtime mode, and streaming
 - **Built-in Watermarking** - Apply custom watermarks to content
 - **WebSocket Support** - Real-time generation with progress updates
 - **Full TypeScript Support** - Comprehensive type definitions
@@ -62,4 +66,4 @@ console.log('Image ID:', image.imageId);
 
 ---
 
-**Version:** 1.11.0 | [View on npm](https://www.npmjs.com/package/2dai-cloud-sdk)
+**Version:** 1.12.0 | [View on npm](https://www.npmjs.com/package/2dai-cloud-sdk)

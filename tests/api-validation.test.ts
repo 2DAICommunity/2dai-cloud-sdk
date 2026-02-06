@@ -1116,7 +1116,310 @@ describe('7. CDN API', () => {
   });
 });
 
-describe('8. WebSocket Generation API', () => {
+describe('8. STT API', () => {
+  test('POST /api/v1/stt/transcribe', async () => {
+    const endpoint = '/api/v1/stt/transcribe';
+
+    // Generate a minimal valid WAV file (silence) for testing
+    // WAV header: 44 bytes + 8000 bytes of silence (0.5s at 16kHz mono 16-bit)
+    const sampleRate = 16000;
+    const durationSamples = sampleRate / 2; // 0.5 seconds
+    const dataSize = durationSamples * 2; // 16-bit = 2 bytes per sample
+    const wavBuffer = Buffer.alloc(44 + dataSize);
+    // RIFF header
+    wavBuffer.write('RIFF', 0);
+    wavBuffer.writeUInt32LE(36 + dataSize, 4);
+    wavBuffer.write('WAVE', 8);
+    // fmt chunk
+    wavBuffer.write('fmt ', 12);
+    wavBuffer.writeUInt32LE(16, 16); // chunk size
+    wavBuffer.writeUInt16LE(1, 20); // PCM
+    wavBuffer.writeUInt16LE(1, 22); // mono
+    wavBuffer.writeUInt32LE(sampleRate, 24);
+    wavBuffer.writeUInt32LE(sampleRate * 2, 28); // byte rate
+    wavBuffer.writeUInt16LE(2, 32); // block align
+    wavBuffer.writeUInt16LE(16, 34); // bits per sample
+    // data chunk
+    wavBuffer.write('data', 36);
+    wavBuffer.writeUInt32LE(dataSize, 40);
+    // Audio data is already zeros (silence)
+
+    const audioBase64 = wavBuffer.toString('base64');
+
+    try {
+      const response = await api.post(endpoint, {
+        audio: audioBase64,
+        audioFormat: 'wav',
+        language: 'en'
+      });
+      const data = response.data;
+
+      const { missing } = checkFields(data, ['success', 'data']);
+
+      let nestedMissing: string[] = [];
+      if (data.data) {
+        const dataCheck = checkFields(data.data, ['text', 'language']);
+        nestedMissing = dataCheck.missing;
+      }
+
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: missing.length === 0 ? 'PASS' : 'FAIL',
+        actualResponse: data,
+        documentedFields: ['success', 'data.text', 'data.language'],
+        missingFields: [...missing, ...nestedMissing]
+      });
+
+      expect(data.success).toBe(true);
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: 'FAIL',
+        notes: error.response?.data?.error?.message || error.message
+      });
+      throw error;
+    }
+  }, 120000);
+
+  test('POST /api/v1/stt/transcribe/stream (SSE)', async () => {
+    const endpoint = '/api/v1/stt/transcribe/stream';
+
+    // Same minimal WAV as above
+    const sampleRate = 16000;
+    const durationSamples = sampleRate / 2;
+    const dataSize = durationSamples * 2;
+    const wavBuffer = Buffer.alloc(44 + dataSize);
+    wavBuffer.write('RIFF', 0);
+    wavBuffer.writeUInt32LE(36 + dataSize, 4);
+    wavBuffer.write('WAVE', 8);
+    wavBuffer.write('fmt ', 12);
+    wavBuffer.writeUInt32LE(16, 16);
+    wavBuffer.writeUInt16LE(1, 20);
+    wavBuffer.writeUInt16LE(1, 22);
+    wavBuffer.writeUInt32LE(sampleRate, 24);
+    wavBuffer.writeUInt32LE(sampleRate * 2, 28);
+    wavBuffer.writeUInt16LE(2, 32);
+    wavBuffer.writeUInt16LE(16, 34);
+    wavBuffer.write('data', 36);
+    wavBuffer.writeUInt32LE(dataSize, 40);
+
+    const audioBase64 = wavBuffer.toString('base64');
+
+    try {
+      const response = await api.post(endpoint, {
+        audio: audioBase64,
+        audioFormat: 'wav',
+        language: 'en'
+      }, {
+        responseType: 'stream',
+        headers: { 'Accept': 'text/event-stream' }
+      });
+
+      let chunks: string[] = [];
+      let finalData: any = null;
+
+      await new Promise<void>((resolve, reject) => {
+        let buffer = '';
+        response.data.on('data', (chunk: Buffer) => {
+          buffer += chunk.toString();
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                resolve();
+                return;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                chunks.push(data);
+                if (parsed.done) {
+                  finalData = parsed;
+                }
+              } catch (e) {
+                // Skip parse errors
+              }
+            }
+          }
+        });
+        response.data.on('error', reject);
+        response.data.on('end', resolve);
+      });
+
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: chunks.length > 0 ? 'PASS' : 'FAIL',
+        actualResponse: { chunksReceived: chunks.length, finalChunk: finalData, sampleChunk: chunks[0] },
+        documentedFields: ['chunk', 'language', 'done', 'text'],
+        notes: `Received ${chunks.length} chunks`
+      });
+
+      expect(chunks.length).toBeGreaterThan(0);
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: 'FAIL',
+        notes: error.response?.data?.error?.message || error.message
+      });
+      throw error;
+    }
+  }, 120000);
+});
+
+describe('9. TTS API', () => {
+  test('POST /api/v1/tts/generate', async () => {
+    const endpoint = '/api/v1/tts/generate';
+    try {
+      const response = await api.post(endpoint, {
+        text: 'Hello, this is a test.',
+        voice: 'paul'
+      });
+      const data = response.data;
+
+      const { missing } = checkFields(data, ['success', 'data']);
+
+      let nestedMissing: string[] = [];
+      if (data.data) {
+        const dataCheck = checkFields(data.data, ['audio', 'format', 'duration', 'characterCount', 'language']);
+        nestedMissing = dataCheck.missing;
+      }
+
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: missing.length === 0 ? 'PASS' : 'FAIL',
+        actualResponse: { ...data, data: { ...data.data, audio: data.data?.audio ? `<base64 ${Math.ceil(data.data.audio.length * 3 / 4)} bytes>` : undefined } },
+        documentedFields: ['success', 'data.audio', 'data.format', 'data.duration', 'data.sampleRate', 'data.characterCount', 'data.language'],
+        missingFields: [...missing, ...nestedMissing]
+      });
+
+      expect(data.success).toBe(true);
+      expect(data.data.audio || data.data.cdnFileId).toBeDefined();
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: 'FAIL',
+        notes: error.response?.data?.error?.message || error.message
+      });
+      throw error;
+    }
+  }, 120000);
+
+  test('POST /api/v1/tts/generate (realtime mode)', async () => {
+    const endpoint = '/api/v1/tts/generate (realtime)';
+    try {
+      const response = await api.post('/api/v1/tts/generate', {
+        text: 'Hello, this is a realtime test.',
+        voice: 'paul',
+        realtime: true
+      });
+      const data = response.data;
+
+      const { missing } = checkFields(data, ['success', 'data']);
+
+      let nestedMissing: string[] = [];
+      if (data.data) {
+        const dataCheck = checkFields(data.data, ['audio', 'format', 'duration', 'characterCount', 'language']);
+        nestedMissing = dataCheck.missing;
+      }
+
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: missing.length === 0 ? 'PASS' : 'FAIL',
+        actualResponse: { ...data, data: { ...data.data, audio: data.data?.audio ? `<base64 ${Math.ceil(data.data.audio.length * 3 / 4)} bytes>` : undefined } },
+        documentedFields: ['success', 'data.audio', 'data.format', 'data.duration', 'data.sampleRate', 'data.characterCount', 'data.language'],
+        missingFields: [...missing, ...nestedMissing],
+        notes: 'Realtime mode (low-latency)'
+      });
+
+      expect(data.success).toBe(true);
+      expect(data.data.audio || data.data.cdnFileId).toBeDefined();
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: 'FAIL',
+        notes: error.response?.data?.error?.message || error.message
+      });
+      throw error;
+    }
+  }, 120000);
+
+  test('POST /api/v1/tts/generate/stream (SSE)', async () => {
+    const endpoint = '/api/v1/tts/generate/stream';
+    try {
+      const response = await api.post(endpoint, {
+        text: 'Hello world. This is a streaming speech test.',
+        voice: 'paul'
+      }, {
+        responseType: 'stream',
+        headers: { 'Accept': 'text/event-stream' }
+      });
+
+      let chunks: string[] = [];
+      let finalData: any = null;
+
+      await new Promise<void>((resolve, reject) => {
+        let buffer = '';
+        response.data.on('data', (chunk: Buffer) => {
+          buffer += chunk.toString();
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                resolve();
+                return;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                chunks.push(data);
+                if (parsed.done) {
+                  finalData = parsed;
+                }
+              } catch (e) {
+                // Skip parse errors
+              }
+            }
+          }
+        });
+        response.data.on('error', reject);
+        response.data.on('end', resolve);
+      });
+
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: chunks.length > 0 ? 'PASS' : 'FAIL',
+        actualResponse: { chunksReceived: chunks.length, finalChunk: finalData },
+        documentedFields: ['audio', 'text', 'language', 'done', 'format', 'duration', 'sampleRate', 'characterCount'],
+        notes: `Received ${chunks.length} chunks`
+      });
+
+      expect(chunks.length).toBeGreaterThan(0);
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'POST',
+        status: 'FAIL',
+        notes: error.response?.data?.error?.message || error.message
+      });
+      throw error;
+    }
+  }, 120000);
+});
+
+describe('10. WebSocket Generation API', () => {
   // Helper function to send WebSocket message and wait for response
   async function wsGenRequest(messageType: string, data?: any, timeoutMs = 120000): Promise<any> {
     const wsUrl = config.baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
@@ -1222,7 +1525,154 @@ describe('8. WebSocket Generation API', () => {
   }, 180000);
 });
 
-describe('9. WebSocket Settings API', () => {
+describe('11. WebSocket STT/TTS API', () => {
+  // Helper function for WebSocket generation requests (waits for generation_complete)
+  async function wsGenRequest2(messageType: string, data?: any, timeoutMs = 120000): Promise<any> {
+    const wsUrl = config.baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+    const ws = new WebSocket(`${wsUrl}/ws/generation`);
+
+    return new Promise((resolve, reject) => {
+      const requestId = `req_${Date.now()}`;
+      let authenticated = false;
+
+      ws.on('open', () => {
+        ws.send(JSON.stringify({
+          type: 'auth',
+          data: { apiKey: config.apiKey }
+        }));
+      });
+
+      ws.on('message', (rawData) => {
+        const message = JSON.parse(rawData.toString());
+
+        if (message.type === 'auth_success') {
+          authenticated = true;
+          ws.send(JSON.stringify({
+            type: messageType,
+            requestId,
+            data: data || {}
+          }));
+        } else if (message.type === 'error' && !authenticated) {
+          ws.close();
+          reject(new Error(`Auth failed: ${message.data?.message}`));
+        } else if (message.type === 'error' && message.requestId === requestId) {
+          ws.close();
+          reject(new Error(message.data?.message || 'Generation error'));
+        } else if (message.type === 'generation_complete' && message.requestId === requestId) {
+          ws.close();
+          resolve(message);
+        }
+      });
+
+      ws.on('error', (err) => {
+        reject(err);
+      });
+
+      setTimeout(() => {
+        ws.close();
+        reject(new Error('WebSocket request timeout'));
+      }, timeoutMs);
+    });
+  }
+
+  test('WS generate_stt', async () => {
+    const endpoint = 'WS generate_stt';
+
+    // Minimal WAV (silence)
+    const sampleRate = 16000;
+    const durationSamples = sampleRate / 2;
+    const dataSize = durationSamples * 2;
+    const wavBuffer = Buffer.alloc(44 + dataSize);
+    wavBuffer.write('RIFF', 0);
+    wavBuffer.writeUInt32LE(36 + dataSize, 4);
+    wavBuffer.write('WAVE', 8);
+    wavBuffer.write('fmt ', 12);
+    wavBuffer.writeUInt32LE(16, 16);
+    wavBuffer.writeUInt16LE(1, 20);
+    wavBuffer.writeUInt16LE(1, 22);
+    wavBuffer.writeUInt32LE(sampleRate, 24);
+    wavBuffer.writeUInt32LE(sampleRate * 2, 28);
+    wavBuffer.writeUInt16LE(2, 32);
+    wavBuffer.writeUInt16LE(16, 34);
+    wavBuffer.write('data', 36);
+    wavBuffer.writeUInt32LE(dataSize, 40);
+
+    try {
+      const response = await wsGenRequest2('generate_stt', {
+        audio: wavBuffer.toString('base64'),
+        audioFormat: 'wav',
+        language: 'en'
+      });
+
+      const { missing } = checkFields(response, ['type', 'data', 'requestId']);
+
+      let nestedMissing: string[] = [];
+      if (response.data?.result) {
+        const resultCheck = checkFields(response.data.result, ['text', 'language']);
+        nestedMissing = resultCheck.missing;
+      }
+
+      logResult({
+        endpoint,
+        method: 'WS',
+        status: response.type === 'generation_complete' && missing.length === 0 ? 'PASS' : 'FAIL',
+        actualResponse: response,
+        documentedFields: ['type', 'requestId', 'data.result.text', 'data.result.language'],
+        missingFields: [...missing, ...nestedMissing]
+      });
+
+      expect(response.type).toBe('generation_complete');
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'WS',
+        status: 'FAIL',
+        notes: error.message
+      });
+      throw error;
+    }
+  }, 120000);
+
+  test('WS generate_tts', async () => {
+    const endpoint = 'WS generate_tts';
+    try {
+      const response = await wsGenRequest2('generate_tts', {
+        text: 'Hello from WebSocket TTS.',
+        voice: 'paul'
+      });
+
+      const { missing } = checkFields(response, ['type', 'data', 'requestId']);
+
+      let nestedMissing: string[] = [];
+      if (response.data?.result) {
+        const resultCheck = checkFields(response.data.result, ['audio', 'format', 'duration', 'characterCount', 'language']);
+        nestedMissing = resultCheck.missing;
+      }
+
+      logResult({
+        endpoint,
+        method: 'WS',
+        status: response.type === 'generation_complete' && missing.length === 0 ? 'PASS' : 'FAIL',
+        actualResponse: { ...response, data: { ...response.data, result: { ...response.data?.result, audio: response.data?.result?.audio ? '<base64 truncated>' : undefined } } },
+        documentedFields: ['type', 'requestId', 'data.result.audio', 'data.result.format', 'data.result.duration', 'data.result.sampleRate', 'data.result.characterCount', 'data.result.language'],
+        missingFields: [...missing, ...nestedMissing]
+      });
+
+      expect(response.type).toBe('generation_complete');
+      expect(response.data.result.audio || response.data.result.cdnFileId).toBeDefined();
+    } catch (error: any) {
+      logResult({
+        endpoint,
+        method: 'WS',
+        status: 'FAIL',
+        notes: error.message
+      });
+      throw error;
+    }
+  }, 120000);
+});
+
+describe('12. WebSocket Settings API', () => {
   // Helper function to send WebSocket message and wait for response
   async function wsRequest(messageType: string, data?: any): Promise<any> {
     const wsUrl = config.baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');

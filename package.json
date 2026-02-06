@@ -1,7 +1,7 @@
 {
   "name": "2dai-cloud-sdk",
-  "version": "1.11.0",
-  "description": "Official 2DAI SDK - Multimodal AI for autonomous image/video generation, vision analysis and agentic LLM workflows",
+  "version": "1.12.0",
+  "description": "Official 2DAI SDK - Multimodal AI for autonomous image/video generation, vision analysis, agentic LLM workflows, STT speech-to-text, and TTS text-to-speech",
   "keywords": [
     "2dai",
     "ai",
@@ -39,6 +39,8 @@
     "test:rest": "jest tests/rest.test.ts --forceExit",
     "test:ws": "jest tests/websocket.test.ts --forceExit",
     "test:openai": "jest tests/openai.test.ts --forceExit",
+    "test:stt": "jest tests/stt.test.ts --forceExit",
+    "test:tts": "jest tests/tts.test.ts --forceExit",
     "test:coverage": "jest --coverage"
   },
   "dependencies": {

@@ -5,6 +5,29 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-02-06
+
+### Added
+- **STT Speech-to-Text** - Audio transcription via REST, WebSocket, and SSE streaming
+  - `transcribeAudio()` - REST transcription
+  - `transcribeAudioStream()` - REST SSE streaming with `onChunk` callback
+  - `wsTranscribeAudio()` - WebSocket transcription
+  - `wsTranscribeAudioStream()` - WebSocket streaming with `onChunk`/`onComplete`/`onError`
+  - Formats: wav, mp3, aac, webm, ogg, m4a, flac (max 5MB)
+  - Multi-language with auto-detection
+- **TTS Text-to-Speech** - Voice synthesis via REST, WebSocket, and SSE streaming
+  - `generateSpeech()` - REST voice generation
+  - `generateSpeechStream()` - REST SSE streaming with `onChunk` callback
+  - `wsGenerateSpeech()` - WebSocket voice generation
+  - `wsGenerateSpeechStream()` - WebSocket streaming with `onChunk`/`onComplete`/`onError`
+  - Voice models (`TTS_VOICES.PAUL`, `TTS_VOICES.ALICE`) and voice cloning via reference audio
+  - Realtime mode (`realtime: true`) for low-latency via realtime engine (not compatible with voice cloning)
+  - Speed control (0.25x - 4.0x), 6 output formats (mp3, opus, aac, flac, wav, pcm), 10 languages
+  - Response includes duration, language, characterCount
+- **STT/TTS Tests** - Comprehensive test suites
+  - `npm run test:stt` - STT tests (REST + WS + streaming)
+  - `npm run test:tts` - TTS tests (REST + WS + streaming + realtime)
+
 ## [1.11.0] - 2026-02-03
 
 ### Added

@@ -1,6 +1,6 @@
 /**
  * 2DAI SDK - Official TypeScript/JavaScript SDK
- * @version 1.11.0
+ * @version 1.12.0
  * @packageDocumentation
  */
 
@@ -53,7 +53,30 @@ export {
   WsUsageRequest,
   WsSettingsResponse,
   WsUsageResponse,
-  WsRateLimitsResponse
+  WsRateLimitsResponse,
+  // STT types
+  STTAudioFormat,
+  STTOptions,
+  STTResult,
+  STTStreamOptions,
+  STTStreamChunk,
+  STTStreamResult,
+  STTStreamController,
+  WsSttRequest,
+  WsSttResponse,
+  WsSttStreamCallbacks,
+  // TTS types
+  TTSOutputFormat,
+  TTSLanguage,
+  TTSOptions,
+  TTSResult,
+  TTSStreamOptions,
+  TTSStreamChunk,
+  TTSStreamResult,
+  TTSStreamController,
+  WsTtsRequest,
+  WsTtsResponse,
+  WsTtsStreamCallbacks
 } from './types';
 
 // Export constants
@@ -71,5 +94,14 @@ export {
   WS_TYPES,
   // Streaming constants
   STREAM_DEFAULTS,
-  WS_STREAM_TYPES
+  WS_STREAM_TYPES,
+  // STT constants
+  STT_FORMATS,
+  STT_MAX_AUDIO_SIZE_BYTES,
+  // TTS constants
+  TTS_VOICES,
+  TTS_LANGUAGES,
+  TTS_OUTPUT_FORMATS,
+  TTS_SPEED,
+  TTS_MAX_TEXT_LENGTH
 } from './constants';

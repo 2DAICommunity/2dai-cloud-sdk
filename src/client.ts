@@ -1,7 +1,7 @@
 /**
  * 2DAI SDK Client
  * Official TypeScript/JavaScript client for 2DAI API
- * @version 1.11.0
+ * @version 1.12.0
  */
 
 import WebSocket from 'ws';
@@ -43,7 +43,27 @@ import {
   WsUsageRequest,
   WsSettingsResponse,
   WsUsageResponse,
-  WsRateLimitsResponse
+  WsRateLimitsResponse,
+  // STT types
+  STTOptions,
+  STTResult,
+  STTStreamOptions,
+  STTStreamChunk,
+  STTStreamResult,
+  STTStreamController,
+  WsSttRequest,
+  WsSttResponse,
+  WsSttStreamCallbacks,
+  // TTS types
+  TTSOptions,
+  TTSResult,
+  TTSStreamOptions,
+  TTSStreamChunk,
+  TTSStreamResult,
+  TTSStreamController,
+  WsTtsRequest,
+  WsTtsResponse,
+  WsTtsStreamCallbacks
 } from './types';
 import {
   DEFAULT_BASE_URL,
@@ -82,6 +102,8 @@ export class TwoDAIClient {
   private wsClosingIntentionally = false;
   // Streaming callbacks for WebSocket
   private wsStreamCallbacks = new Map<string, WsStreamCallbacks>();
+  private wsSttStreamCallbacks = new Map<string, WsSttStreamCallbacks>();
+  private wsTtsStreamCallbacks = new Map<string, WsTtsStreamCallbacks>();
   private wsOptions: {
     autoReconnect: boolean;
     reconnectIntervalMs: number;
@@ -782,6 +804,34 @@ export class TwoDAIClient {
           }
           break;
 
+        case 'stt_chunk':
+          // Handle STT streaming chunk
+          if (message.requestId) {
+            const sttCallbacks = this.wsSttStreamCallbacks.get(message.requestId);
+            if (sttCallbacks && message.data?.chunk) {
+              try {
+                sttCallbacks.onChunk(message.data.chunk, message.data.language);
+              } catch (err) {
+                this.log('STT onChunk callback error', err);
+              }
+            }
+          }
+          break;
+
+        case 'tts_chunk':
+          // Handle TTS streaming chunk
+          if (message.requestId) {
+            const ttsCallbacks = this.wsTtsStreamCallbacks.get(message.requestId);
+            if (ttsCallbacks && message.data?.audio) {
+              try {
+                ttsCallbacks.onChunk(message.data.audio, message.data.text || '', message.data.language);
+              } catch (err) {
+                this.log('TTS onChunk callback error', err);
+              }
+            }
+          }
+          break;
+
         case 'pong':
           // Application-level pong (in addition to WebSocket pong)
           break;
@@ -804,6 +854,8 @@ export class TwoDAIClient {
       this.wsPendingRequests.delete(requestId);
       // Also clean up streaming callbacks if present
       this.wsStreamCallbacks.delete(requestId);
+      this.wsSttStreamCallbacks.delete(requestId);
+      this.wsTtsStreamCallbacks.delete(requestId);
       pending.resolve(message.data);
     }
   }
@@ -915,6 +967,8 @@ export class TwoDAIClient {
   async wsSend(type: 'generate_video', data: WsVideoRequest, timeout?: number): Promise<WsVideoResponse>;
   async wsSend(type: 'generate_llm', data: WsLlmRequest, timeout?: number): Promise<WsLlmResponse>;
   async wsSend(type: 'generate_upscale', data: WsUpscaleRequest, timeout?: number): Promise<WsUpscaleResponse>;
+  async wsSend(type: 'generate_stt', data: WsSttRequest, timeout?: number): Promise<WsSttResponse>;
+  async wsSend(type: 'generate_tts', data: WsTtsRequest, timeout?: number): Promise<WsTtsResponse>;
   async wsSend(type: string, data: WsRequestData, timeout?: number): Promise<WsResponseData>;
   // Implementation
   async wsSend(type: string, data: WsRequestData, timeout = 180000): Promise<WsResponseData> {
@@ -1121,6 +1175,566 @@ export class TwoDAIClient {
           }));
         }
         this.log('WebSocket stream aborted', { requestId });
+      }
+    };
+  }
+
+  // ============================================================================
+  // STT (Speech-to-Text) Methods
+  // ============================================================================
+
+  /**
+   * Transcribe audio to text
+   *
+   * @example
+   * ```typescript
+   * const result = await client.transcribeAudio({
+   *   audio: audioBase64,
+   *   audioFormat: 'wav',
+   *   language: 'en'
+   * });
+   * console.log(result.text);
+   * ```
+   */
+  async transcribeAudio(options: STTOptions): Promise<STTResult> {
+    this.log('Transcribing audio', { audioFormat: options.audioFormat, language: options.language });
+
+    try {
+      const response = await this.axios.post('/api/v1/stt/transcribe', {
+        audio: options.audio,
+        audioFormat: options.audioFormat,
+        language: options.language,
+        prompt: options.prompt
+      });
+
+      return {
+        success: response.data.success,
+        text: response.data.data.text || '',
+        language: response.data.data.language
+      };
+    } catch (error: any) {
+      this.log('STT transcription error', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Transcribe audio with streaming (Server-Sent Events)
+   *
+   * Streams transcription chunks in real-time.
+   * Returns a controller that can abort the stream.
+   *
+   * @example
+   * ```typescript
+   * const controller = client.transcribeAudioStream({
+   *   audio: audioBase64,
+   *   audioFormat: 'wav',
+   *   onChunk: (chunk, lang) => process.stdout.write(chunk),
+   *   onComplete: (result) => console.log('\nFull text:', result.text),
+   *   onError: (err) => console.error(err)
+   * });
+   *
+   * const result = await controller.done;
+   * ```
+   */
+  transcribeAudioStream(options: STTStreamOptions): STTStreamController {
+    this.log('Starting STT stream', { audioFormat: options.audioFormat });
+
+    const abortController = new AbortController();
+    let accumulatedText = '';
+    let detectedLanguage: string | undefined;
+
+    const done = new Promise<STTStreamResult>(async (resolve, reject) => {
+      try {
+        const response = await this.axios.post(
+          '/api/v1/stt/transcribe/stream',
+          {
+            audio: options.audio,
+            audioFormat: options.audioFormat,
+            language: options.language,
+            prompt: options.prompt
+          },
+          {
+            responseType: 'stream',
+            signal: abortController.signal,
+            timeout: STREAM_DEFAULTS.TIMEOUT_MS,
+            headers: {
+              'Accept': 'text/event-stream',
+              'Cache-Control': 'no-cache'
+            }
+          }
+        );
+
+        const stream = response.data;
+        let buffer = '';
+
+        stream.on('data', (chunk: Buffer) => {
+          buffer += chunk.toString();
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+
+              if (data === '[DONE]') {
+                const result: STTStreamResult = {
+                  success: true,
+                  text: accumulatedText,
+                  language: detectedLanguage
+                };
+                if (options.onComplete) options.onComplete(result);
+                resolve(result);
+                return;
+              }
+
+              try {
+                const parsed: STTStreamChunk = JSON.parse(data);
+
+                if (parsed.error) {
+                  const error = new Error(parsed.error);
+                  if (options.onError) options.onError(error);
+                  reject(error);
+                  return;
+                }
+
+                if (parsed.chunk) {
+                  accumulatedText += parsed.chunk;
+                  if (parsed.language) detectedLanguage = parsed.language;
+                  if (options.onChunk) options.onChunk(parsed.chunk, parsed.language);
+                }
+
+                if (parsed.done) {
+                  if (parsed.text) accumulatedText = parsed.text;
+                  if (parsed.language) detectedLanguage = parsed.language;
+                }
+              } catch (e: any) {
+                if (e.name === 'AbortError' || e.name === 'CanceledError' ||
+                    e.code === 'ERR_CANCELED' || e.message === 'canceled') {
+                  resolve({ success: false, text: accumulatedText, language: detectedLanguage });
+                  return;
+                }
+                this.log('Failed to parse STT SSE data', data);
+              }
+            }
+          }
+        });
+
+        stream.on('error', (error: any) => {
+          if (error.name === 'AbortError' || error.name === 'CanceledError' ||
+              error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+            resolve({ success: false, text: accumulatedText, language: detectedLanguage });
+            return;
+          }
+          this.log('STT stream error', error.message);
+          if (options.onError) options.onError(error);
+          reject(error);
+        });
+
+        stream.on('end', () => {
+          if (accumulatedText) {
+            const result: STTStreamResult = { success: true, text: accumulatedText, language: detectedLanguage };
+            if (options.onComplete) options.onComplete(result);
+            resolve(result);
+          }
+        });
+      } catch (error: any) {
+        if (error.name === 'AbortError' || error.name === 'CanceledError' ||
+            error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+          resolve({ success: false, text: accumulatedText, language: detectedLanguage });
+          return;
+        }
+        this.log('STT stream request error', error.message);
+        if (options.onError) options.onError(error);
+        reject(error);
+      }
+    });
+
+    return {
+      abort: () => abortController.abort(),
+      done
+    };
+  }
+
+  /**
+   * Transcribe audio via WebSocket
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   * const result = await client.wsTranscribeAudio({
+   *   audio: audioBase64,
+   *   audioFormat: 'wav'
+   * });
+   * console.log(result.result.text);
+   * ```
+   */
+  async wsTranscribeAudio(data: WsSttRequest, timeout?: number): Promise<WsSttResponse> {
+    return this.wsSend('generate_stt', data, timeout);
+  }
+
+  /**
+   * Transcribe audio via WebSocket with streaming
+   *
+   * Streams transcription chunks in real-time via WebSocket.
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   * const controller = client.wsTranscribeAudioStream(
+   *   { audio: audioBase64, audioFormat: 'wav' },
+   *   {
+   *     onChunk: (chunk, lang) => process.stdout.write(chunk),
+   *     onComplete: (response) => console.log('\nDone:', response.result.text),
+   *     onError: (err) => console.error(err)
+   *   }
+   * );
+   * ```
+   */
+  wsTranscribeAudioStream(
+    data: WsSttRequest,
+    callbacks: WsSttStreamCallbacks,
+    timeout?: number
+  ): WsStreamController {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected. Call wsConnect() first.');
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const request = {
+      type: 'generate_stt',
+      data: { ...data, stream: true },
+      requestId
+    };
+
+    this.wsSttStreamCallbacks.set(requestId, callbacks);
+
+    const timer = setTimeout(() => {
+      this.wsSttStreamCallbacks.delete(requestId);
+      this.wsPendingRequests.delete(requestId);
+      callbacks.onError(new Error('Stream timeout'));
+    }, timeout || STREAM_DEFAULTS.TIMEOUT_MS);
+
+    this.wsPendingRequests.set(requestId, {
+      request,
+      resolve: (value) => {
+        clearTimeout(timer);
+        this.wsSttStreamCallbacks.delete(requestId);
+        callbacks.onComplete(value);
+      },
+      reject: (reason) => {
+        clearTimeout(timer);
+        this.wsSttStreamCallbacks.delete(requestId);
+        callbacks.onError(reason);
+      }
+    });
+
+    this.ws.send(JSON.stringify(request));
+    this.log('WebSocket STT stream request sent', { requestId });
+
+    return {
+      requestId,
+      abort: () => {
+        this.wsSttStreamCallbacks.delete(requestId);
+        this.wsPendingRequests.delete(requestId);
+        clearTimeout(timer);
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ type: 'cancel', requestId }));
+        }
+        this.log('WebSocket STT stream aborted', { requestId });
+      }
+    };
+  }
+
+  // ============================================================================
+  // TTS (Text-to-Speech) Methods
+  // ============================================================================
+
+  /**
+   * Generate speech from text
+   *
+   * @example Using voice model
+   * ```typescript
+   * const result = await client.generateSpeech({
+   *   text: 'Hello, world!',
+   *   voice: 'paul',
+   *   outputFormat: 'mp3'
+   * });
+   * console.log(result.audio); // base64 encoded audio
+   * ```
+   *
+   * @example Voice cloning
+   * ```typescript
+   * const result = await client.generateSpeech({
+   *   text: 'Hello from a cloned voice',
+   *   referenceAudio: referenceBase64,
+   *   referenceTranscript: 'This is the reference transcript'
+   * });
+   * ```
+   */
+  async generateSpeech(options: TTSOptions): Promise<TTSResult> {
+    this.log('Generating speech', { text: options.text.substring(0, 50), voice: options.voice });
+
+    try {
+      const response = await this.axios.post('/api/v1/tts/generate', {
+        text: options.text,
+        voice: options.voice,
+        referenceAudio: options.referenceAudio,
+        referenceTranscript: options.referenceTranscript,
+        language: options.language,
+        speed: options.speed,
+        outputFormat: options.outputFormat,
+        sampleRate: options.sampleRate,
+        realtime: options.realtime
+      });
+
+      const data = response.data.data || {};
+      return {
+        success: response.data.success,
+        audio: data.audio,
+        cdnFileId: data.cdnFileId,
+        format: data.format,
+        duration: data.duration,
+        sampleRate: data.sampleRate,
+        characterCount: data.characterCount,
+        language: data.language
+      };
+    } catch (error: any) {
+      this.log('TTS generation error', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate speech with streaming (Server-Sent Events)
+   *
+   * Streams audio chunks in real-time for low-latency playback.
+   * Returns a controller that can abort the stream.
+   *
+   * @example
+   * ```typescript
+   * const controller = client.generateSpeechStream({
+   *   text: 'Hello, world! This is streamed speech.',
+   *   voice: 'alice',
+   *   onChunk: (audio, text, lang) => playAudioChunk(audio),
+   *   onComplete: (result) => console.log('Done:', result.duration, 'seconds'),
+   *   onError: (err) => console.error(err)
+   * });
+   *
+   * const result = await controller.done;
+   * ```
+   */
+  generateSpeechStream(options: TTSStreamOptions): TTSStreamController {
+    this.log('Starting TTS stream', { text: options.text.substring(0, 50), voice: options.voice });
+
+    const abortController = new AbortController();
+    let streamResult: Partial<TTSStreamResult> = {};
+
+    const done = new Promise<TTSStreamResult>(async (resolve, reject) => {
+      try {
+        const response = await this.axios.post(
+          '/api/v1/tts/generate/stream',
+          {
+            text: options.text,
+            voice: options.voice,
+            referenceAudio: options.referenceAudio,
+            referenceTranscript: options.referenceTranscript,
+            language: options.language,
+            speed: options.speed,
+            outputFormat: options.outputFormat,
+            sampleRate: options.sampleRate,
+            realtime: options.realtime
+          },
+          {
+            responseType: 'stream',
+            signal: abortController.signal,
+            timeout: STREAM_DEFAULTS.TIMEOUT_MS,
+            headers: {
+              'Accept': 'text/event-stream',
+              'Cache-Control': 'no-cache'
+            }
+          }
+        );
+
+        const stream = response.data;
+        let buffer = '';
+
+        stream.on('data', (chunk: Buffer) => {
+          buffer += chunk.toString();
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+
+              if (data === '[DONE]') {
+                const result: TTSStreamResult = { success: true, ...streamResult };
+                if (options.onComplete) options.onComplete(result);
+                resolve(result);
+                return;
+              }
+
+              try {
+                const parsed: TTSStreamChunk = JSON.parse(data);
+
+                if (parsed.error) {
+                  const error = new Error(parsed.error);
+                  if (options.onError) options.onError(error);
+                  reject(error);
+                  return;
+                }
+
+                if (parsed.audio && !parsed.done) {
+                  if (options.onChunk) {
+                    options.onChunk(parsed.audio, parsed.text || '', parsed.language);
+                  }
+                }
+
+                if (parsed.done) {
+                  streamResult = {
+                    format: parsed.format,
+                    duration: parsed.duration,
+                    sampleRate: parsed.sampleRate,
+                    characterCount: parsed.characterCount,
+                    language: parsed.language,
+                    cdnFileId: parsed.cdnFileId
+                  };
+                }
+              } catch (e: any) {
+                if (e.name === 'AbortError' || e.name === 'CanceledError' ||
+                    e.code === 'ERR_CANCELED' || e.message === 'canceled') {
+                  resolve({ success: false, ...streamResult });
+                  return;
+                }
+                this.log('Failed to parse TTS SSE data', data);
+              }
+            }
+          }
+        });
+
+        stream.on('error', (error: any) => {
+          if (error.name === 'AbortError' || error.name === 'CanceledError' ||
+              error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+            resolve({ success: false, ...streamResult });
+            return;
+          }
+          this.log('TTS stream error', error.message);
+          if (options.onError) options.onError(error);
+          reject(error);
+        });
+
+        stream.on('end', () => {
+          const result: TTSStreamResult = { success: true, ...streamResult };
+          if (options.onComplete) options.onComplete(result);
+          resolve(result);
+        });
+      } catch (error: any) {
+        if (error.name === 'AbortError' || error.name === 'CanceledError' ||
+            error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+          resolve({ success: false, ...streamResult });
+          return;
+        }
+        this.log('TTS stream request error', error.message);
+        if (options.onError) options.onError(error);
+        reject(error);
+      }
+    });
+
+    return {
+      abort: () => abortController.abort(),
+      done
+    };
+  }
+
+  /**
+   * Generate speech via WebSocket
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   * const result = await client.wsGenerateSpeech({
+   *   text: 'Hello, world!',
+   *   voice: 'paul'
+   * });
+   * console.log(result.result.audio); // base64
+   * ```
+   */
+  async wsGenerateSpeech(data: WsTtsRequest, timeout?: number): Promise<WsTtsResponse> {
+    return this.wsSend('generate_tts', data, timeout);
+  }
+
+  /**
+   * Generate speech via WebSocket with streaming
+   *
+   * Streams audio chunks in real-time via WebSocket.
+   *
+   * @example
+   * ```typescript
+   * await client.wsConnect();
+   * const controller = client.wsGenerateSpeechStream(
+   *   { text: 'Hello, world!', voice: 'alice' },
+   *   {
+   *     onChunk: (audio, text, lang) => playAudioChunk(audio),
+   *     onComplete: (response) => console.log('Done:', response.result.duration),
+   *     onError: (err) => console.error(err)
+   *   }
+   * );
+   * ```
+   */
+  wsGenerateSpeechStream(
+    data: WsTtsRequest,
+    callbacks: WsTtsStreamCallbacks,
+    timeout?: number
+  ): WsStreamController {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected. Call wsConnect() first.');
+    }
+
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const request = {
+      type: 'generate_tts',
+      data: { ...data, stream: true },
+      requestId
+    };
+
+    this.wsTtsStreamCallbacks.set(requestId, callbacks);
+
+    const timer = setTimeout(() => {
+      this.wsTtsStreamCallbacks.delete(requestId);
+      this.wsPendingRequests.delete(requestId);
+      callbacks.onError(new Error('Stream timeout'));
+    }, timeout || STREAM_DEFAULTS.TIMEOUT_MS);
+
+    this.wsPendingRequests.set(requestId, {
+      request,
+      resolve: (value) => {
+        clearTimeout(timer);
+        this.wsTtsStreamCallbacks.delete(requestId);
+        callbacks.onComplete(value);
+      },
+      reject: (reason) => {
+        clearTimeout(timer);
+        this.wsTtsStreamCallbacks.delete(requestId);
+        callbacks.onError(reason);
+      }
+    });
+
+    this.ws.send(JSON.stringify(request));
+    this.log('WebSocket TTS stream request sent', { requestId });
+
+    return {
+      requestId,
+      abort: () => {
+        this.wsTtsStreamCallbacks.delete(requestId);
+        this.wsPendingRequests.delete(requestId);
+        clearTimeout(timer);
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ type: 'cancel', requestId }));
+        }
+        this.log('WebSocket TTS stream aborted', { requestId });
       }
     };
   }

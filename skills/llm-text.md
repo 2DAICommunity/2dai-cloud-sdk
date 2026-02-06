@@ -1,7 +1,7 @@
 ---
 name: 2DAI LLM Text Generation
 capability: llm_text_generation
-version: 1.11.0
+version: 1.12.0
 api_base_url: https://apiv2.2dai.io:800
 ---
 
@@ -266,8 +266,8 @@ For real-time streaming via WebSocket:
 
 | Metric | Per 15 Minutes | Per Day |
 |--------|----------------|---------|
-| Requests | 75 | 1,800 |
-| Tokens | 150,000 | 3,500,000 |
+| Requests | 30 | 300 |
+| Tokens | 150,000 | 1,500,000 |
 | Max Input | 90,000 chars | - |
 
 Check current limits:

@@ -12,6 +12,8 @@ Real-time generation with progress updates and streaming support.
 - [LLM Generation](#llm-generation)
 - [LLM Streaming](#llm-streaming)
 - [Image Upscaling](#image-upscaling)
+- [STT Transcription](#stt-transcription)
+- [TTS Speech](#tts-speech)
 - [Settings](#settings)
 - [Raw WebSocket Protocol](#raw-websocket-protocol)
 - [Connection Options](#connection-options)
@@ -77,6 +79,10 @@ await client.close();
 | `wsGenerateLlm()` | Generate text (non-streaming) | `Promise<WsLlmResponse>` |
 | `wsGenerateLlmStream()` | Generate text (streaming) | `WsStreamController` |
 | `wsUpscaleImage()` | AI upscale image | `Promise<WsUpscaleResponse>` |
+| `wsTranscribeAudio()` | Transcribe audio (non-streaming) | `Promise<WsSttResponse>` |
+| `wsTranscribeAudioStream()` | Transcribe audio (streaming) | `WsStreamController` |
+| `wsGenerateSpeech()` | Generate speech (non-streaming) | `Promise<WsTtsResponse>` |
+| `wsGenerateSpeechStream()` | Generate speech (streaming) | `WsStreamController` |
 | `wsGetSettings()` | Get API key settings | `Promise<WsSettingsResponse>` |
 | `wsGetUsage()` | Get usage statistics | `Promise<WsUsageResponse>` |
 | `wsGetRateLimits()` | Get rate limit status | `Promise<WsRateLimitsResponse>` |
@@ -308,6 +314,132 @@ console.log(`${result.result.width}x${result.result.height}`);
 
 ---
 
+## STT Transcription
+
+### Basic Transcription
+
+```typescript
+await client.wsConnect();
+
+const result = await client.wsTranscribeAudio({
+  audio: audioBase64,
+  audioFormat: 'wav',
+  language: 'en'
+});
+
+console.log(result.result.text);
+console.log(result.result.language);
+```
+
+### Streaming Transcription
+
+```typescript
+await client.wsConnect();
+
+client.wsTranscribeAudioStream(
+  {
+    audio: audioBase64,
+    audioFormat: 'wav'
+  },
+  {
+    onChunk: (text, language) => {
+      console.log(`Chunk: ${text}`);
+    },
+    onComplete: (response) => {
+      console.log('Full text:', response.result.text);
+    },
+    onError: (err) => {
+      console.error('Error:', err.message);
+    }
+  }
+);
+```
+
+### WsSttRequest Options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `audio` | `string` | Yes | Base64 encoded audio data |
+| `audioFormat` | `string` | Yes | Audio format: `wav`, `mp3`, `aac`, `webm`, `ogg`, `m4a`, `flac` |
+| `language` | `string` | No | Language code (auto-detected if omitted) |
+| `prompt` | `string` | No | Context hint to improve accuracy |
+
+---
+
+## TTS Speech
+
+### Basic Generation
+
+```typescript
+await client.wsConnect();
+
+const result = await client.wsGenerateSpeech({
+  text: 'Hello from WebSocket TTS.',
+  voice: 'paul'
+});
+
+console.log(`Duration: ${result.result.duration}s`);
+
+if (result.result.audio) {
+  const audioBuffer = Buffer.from(result.result.audio, 'base64');
+  fs.writeFileSync('output.wav', audioBuffer);
+}
+```
+
+### Realtime Mode
+
+```typescript
+const result = await client.wsGenerateSpeech({
+  text: 'Fast realtime response.',
+  voice: 'paul',
+  realtime: true
+});
+```
+
+### Streaming Generation
+
+```typescript
+await client.wsConnect();
+
+const audioChunks: string[] = [];
+
+client.wsGenerateSpeechStream(
+  {
+    text: 'This is a WebSocket streaming TTS test.',
+    voice: 'alice'
+  },
+  {
+    onChunk: (audio, text, language) => {
+      audioChunks.push(audio);
+      console.log(`Chunk: ${text}`);
+    },
+    onComplete: (response) => {
+      console.log(`Duration: ${response.result.duration}s`);
+      console.log(`Chunks: ${audioChunks.length}`);
+    },
+    onError: (err) => {
+      console.error('Error:', err.message);
+    }
+  }
+);
+```
+
+### WsTtsRequest Options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `text` | `string` | Yes | Text to synthesize (max 500 characters) |
+| `voice` | `string` | Conditional | Voice model: `paul`, `alice` |
+| `referenceAudio` | `string` | No | Base64 reference audio for cloning |
+| `referenceTranscript` | `string` | Conditional | Transcript of reference audio |
+| `language` | `string` | No | Language code |
+| `speed` | `number` | No | Speed 0.25 - 4.0 |
+| `outputFormat` | `string` | No | Output format |
+| `sampleRate` | `number` | No | Sample rate in Hz |
+| `realtime` | `boolean` | No | Enable realtime mode (not compatible with voice cloning) |
+
+---
+
 ## Settings
 
 Access API key settings, usage statistics, and rate limits via WebSocket.
@@ -335,12 +467,16 @@ interface WsSettingsResponse {
       video: { requestsPer15Min: number; requestsPerDay: number };
       llm: { requestsPer15Min: number; requestsPerDay: number; tokensPer15Min?: number; tokensPerDay?: number };
       cdn: { requestsPer15Min: number; requestsPerDay: number };
+      stt: { requestsPer15Min: number; requestsPerDay: number };
+      tts: { requestsPer15Min: number; requestsPerDay: number };
     };
     currentUsage: {
       image: { current: {...}; remaining: {...}; resetAt: {...} };
       video: { current: {...}; remaining: {...}; resetAt: {...} };
       llm: { current: {...}; remaining: {...}; resetAt: {...} };
       cdn: { current: {...}; remaining: {...}; resetAt: {...} };
+      stt: { current: {...}; remaining: {...}; resetAt: {...} };
+      tts: { current: {...}; remaining: {...}; resetAt: {...} };
     };
     lastUsedAt?: string;
   };
@@ -374,14 +510,14 @@ interface WsUsageResponse {
     };
     summary: {
       total: number;                                                   // Total requests
-      byOperation: { image: number; video: number; llm: number; cdn: number };
+      byOperation: { image: number; video: number; llm: number; cdn: number; stt: number; tts: number };
       totalTokens: number;                                             // LLM tokens used
       successRate: number;                                             // Percentage (e.g., 95.24)
     };
     daily: Array<{
-      date: string;        // "2026-01-22"
+      date: string;        // "2026-02-06"
       total: number;
-      byOperation: { image: number; video: number; llm: number; cdn: number };
+      byOperation: { image: number; video: number; llm: number; cdn: number; stt: number; tts: number };
       tokens: number;
     }>;
   };
@@ -405,7 +541,7 @@ for (const limit of response.rateLimits) {
 ```typescript
 interface WsRateLimitsResponse {
   rateLimits: Array<{
-    operation: 'image' | 'video' | 'llm' | 'cdn';
+    operation: 'image' | 'video' | 'llm' | 'cdn' | 'stt' | 'tts';
     allowed: boolean;
     remaining15min: number;
     remainingDaily: number;
@@ -444,6 +580,8 @@ For custom implementations without the SDK.
 | `generate_video` | Image-to-video |
 | `generate_upscale` | AI image upscale |
 | `generate_llm` | LLM text generation |
+| `generate_stt` | Speech-to-text transcription |
+| `generate_tts` | Text-to-speech synthesis |
 | `get_settings` | Get API key settings |
 | `get_usage` | Get usage statistics |
 | `get_rate_limits` | Get rate limit status |
@@ -458,6 +596,8 @@ For custom implementations without the SDK.
 | `progress` | Generation progress (0-100) |
 | `generation_complete` | Generation finished |
 | `llm_chunk` | Streaming text chunk |
+| `stt_chunk` | Streaming transcription chunk |
+| `tts_chunk` | Streaming audio chunk |
 | `settings_response` | Settings/usage/rate limits data |
 | `error` | Error with code and message |
 | `pong` | Keepalive response |
@@ -522,6 +662,62 @@ For custom implementations without the SDK.
   }
 }
 
+// Client → Server: STT transcription
+{
+  "type": "generate_stt",
+  "requestId": "req_stt_1",
+  "data": {
+    "audio": "<base64 encoded audio>",
+    "audioFormat": "wav",
+    "language": "en"
+  }
+}
+
+// Server → Client: STT chunk (streaming)
+{ "type": "stt_chunk", "requestId": "req_stt_1", "data": { "chunk": "Hello, this is", "language": "en" } }
+
+// Server → Client: STT complete
+{
+  "type": "generation_complete",
+  "requestId": "req_stt_1",
+  "data": {
+    "result": {
+      "text": "Hello, this is a test.",
+      "language": "en"
+    }
+  }
+}
+
+// Client → Server: TTS generation
+{
+  "type": "generate_tts",
+  "requestId": "req_tts_1",
+  "data": {
+    "text": "Hello from TTS.",
+    "voice": "paul",
+    "realtime": true
+  }
+}
+
+// Server → Client: TTS chunk (streaming)
+{ "type": "tts_chunk", "requestId": "req_tts_1", "data": { "audio": "<base64 audio chunk>", "text": "Hello from", "language": "en" } }
+
+// Server → Client: TTS complete
+{
+  "type": "generation_complete",
+  "requestId": "req_tts_1",
+  "data": {
+    "result": {
+      "audio": "<base64 encoded audio>",
+      "format": "wav",
+      "duration": 1.2,
+      "sampleRate": 24000,
+      "characterCount": 15,
+      "language": "en"
+    }
+  }
+}
+
 // Server → Client: Error
 {
   "type": "error",
@@ -552,31 +748,43 @@ For custom implementations without the SDK.
     "settings": {
       "status": "active",
       "rateLimits": {
-        "image": { "requestsPer15Min": 15, "requestsPerDay": 360 },
+        "image": { "requestsPer15Min": 15, "requestsPerDay": 100 },
         "video": { "requestsPer15Min": 5, "requestsPerDay": 30 },
-        "llm": { "requestsPer15Min": 75, "requestsPerDay": 1800, "tokensPer15Min": 150000, "tokensPerDay": 3500000, "maxPromptLength": 90000 },
-        "cdn": { "requestsPer15Min": 200, "requestsPerDay": 5000 }
+        "llm": { "requestsPer15Min": 30, "requestsPerDay": 300, "tokensPer15Min": 150000, "tokensPerDay": 1500000, "maxPromptLength": 90000 },
+        "cdn": { "requestsPer15Min": 200, "requestsPerDay": 5000 },
+        "stt": { "requestsPer15Min": 15, "requestsPerDay": 100 },
+        "tts": { "requestsPer15Min": 10, "requestsPerDay": 60 }
       },
       "currentUsage": {
         "image": {
           "current": { "requestsPer15Min": 1, "requestsPerDay": 1, "tokensPer15Min": 0, "tokensPerDay": 0 },
-          "remaining": { "requestsPer15Min": 14, "requestsPerDay": 359 },
-          "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+          "remaining": { "requestsPer15Min": 14, "requestsPerDay": 99 },
+          "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
         },
         "video": {
           "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
           "remaining": { "requestsPer15Min": 5, "requestsPerDay": 30 },
-          "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+          "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
         },
         "llm": {
           "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
-          "remaining": { "requestsPer15Min": 75, "requestsPerDay": 1800 },
-          "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+          "remaining": { "requestsPer15Min": 30, "requestsPerDay": 300 },
+          "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
         },
         "cdn": {
           "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
           "remaining": { "requestsPer15Min": 200, "requestsPerDay": 5000 },
-          "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+          "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
+        },
+        "stt": {
+          "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
+          "remaining": { "requestsPer15Min": 15, "requestsPerDay": 100 },
+          "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
+        },
+        "tts": {
+          "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
+          "remaining": { "requestsPer15Min": 10, "requestsPerDay": 60 },
+          "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
         }
       }
     }
@@ -620,10 +828,10 @@ For custom implementations without the SDK.
         "operation": "image",
         "allowed": true,
         "remaining15min": 14,
-        "remainingDaily": 359,
+        "remainingDaily": 99,
         "current": { "requestsPer15Min": 1, "requestsPerDay": 1, "tokensPer15Min": 0, "tokensPerDay": 0 },
-        "limit": { "requestsPer15Min": 15, "requestsPerDay": 360 },
-        "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+        "limit": { "requestsPer15Min": 15, "requestsPerDay": 100 },
+        "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
       },
       {
         "operation": "video",
@@ -632,16 +840,16 @@ For custom implementations without the SDK.
         "remainingDaily": 30,
         "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
         "limit": { "requestsPer15Min": 5, "requestsPerDay": 30 },
-        "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+        "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
       },
       {
         "operation": "llm",
         "allowed": true,
-        "remaining15min": 75,
-        "remainingDaily": 1800,
+        "remaining15min": 30,
+        "remainingDaily": 300,
         "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
-        "limit": { "requestsPer15Min": 75, "requestsPerDay": 1800, "tokensPer15Min": 150000, "tokensPerDay": 3500000 },
-        "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+        "limit": { "requestsPer15Min": 30, "requestsPerDay": 300, "tokensPer15Min": 150000, "tokensPerDay": 1500000 },
+        "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
       },
       {
         "operation": "cdn",
@@ -650,7 +858,25 @@ For custom implementations without the SDK.
         "remainingDaily": 5000,
         "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
         "limit": { "requestsPer15Min": 200, "requestsPerDay": 5000 },
-        "resetAt": { "window15Min": "2026-01-23T03:15:00.000Z", "daily": "2026-01-23T05:00:00.000Z" }
+        "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
+      },
+      {
+        "operation": "stt",
+        "allowed": true,
+        "remaining15min": 15,
+        "remainingDaily": 100,
+        "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
+        "limit": { "requestsPer15Min": 15, "requestsPerDay": 100 },
+        "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
+      },
+      {
+        "operation": "tts",
+        "allowed": true,
+        "remaining15min": 10,
+        "remainingDaily": 60,
+        "current": { "requestsPer15Min": 0, "requestsPerDay": 0, "tokensPer15Min": 0, "tokensPerDay": 0 },
+        "limit": { "requestsPer15Min": 10, "requestsPerDay": 60 },
+        "resetAt": { "window15Min": "2026-02-06T03:15:00.000Z", "daily": "2026-02-07T05:00:00.000Z" }
       }
     ]
   }

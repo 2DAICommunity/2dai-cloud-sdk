@@ -24,6 +24,8 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 - **LLM Text Generation** - Generate text with context, memory, and JSON support
 - **LLM Streaming** - Real-time token-by-token streaming with SSE and WebSocket
 - **Image Vision** - Analyze images with LLM for structured data extraction
+- **STT Speech-to-Text** - Audio transcription with streaming and multi-language support
+- **TTS Text-to-Speech** - Voice synthesis with voice models, cloning, realtime mode, and streaming
 - **14 Style Presets** - Realistic, anime, manga, watercolor, cinematic, and more
 - **7 Format Presets** - Portrait, landscape, profile, story, post, smartphone, banner
 - **Built-in Watermarking** - Apply custom watermarks to generated content
@@ -83,6 +85,27 @@ const result = await client.editImage('image-1-id', {
   prompt: 'make an image with both subjects'
 });
 console.log('Merged Image ID:', result.imageId);
+
+// Text-to-Speech
+const speech = await client.generateSpeech({
+  text: 'Hello, how can I help you today?',
+  voice: TTS_VOICES.PAUL
+});
+console.log(`Duration: ${speech.duration}s`);
+
+// Text-to-Speech with realtime mode (low-latency)
+const realtimeSpeech = await client.generateSpeech({
+  text: 'Fast response with realtime mode.',
+  voice: TTS_VOICES.ALICE,
+  realtime: true
+});
+
+// Speech-to-Text
+const transcript = await client.transcribeAudio({
+  audio: audioBase64,
+  language: 'en'
+});
+console.log(transcript.text);
 ```
 
 ---
@@ -97,6 +120,8 @@ Full documentation is available in the **[Wiki](../../wiki)**.
 | [Image Generation](../../wiki/Image-Generation) | Text-to-image, editing, upscaling, styles & formats |
 | [Video Generation](../../wiki/Video-Generation) | Image-to-video creation |
 | [LLM & Streaming](../../wiki/LLM-Text-Generation) | Text generation, streaming, OpenAI-compatible API |
+| [STT Speech-to-Text](../../wiki/STT-Speech-to-Text) | Audio transcription, streaming, multi-language |
+| [TTS Text-to-Speech](../../wiki/TTS-Text-to-Speech) | Voice synthesis, cloning, realtime mode, streaming |
 | [CDN Operations](../../wiki/CDN-Operations) | Downloads, watermarks, format conversion |
 | [WebSocket API](../../wiki/WebSocket-API) | Real-time generation with progress updates |
 | [API Reference](../../wiki/API-Reference) | Complete endpoint documentation |
@@ -161,6 +186,8 @@ npm test
 npm run test:rest      # REST API tests (25 tests)
 npm run test:ws        # WebSocket tests (38 tests)
 npm run test:openai    # OpenAI-compatible tests (15 tests)
+npm run test:stt       # STT speech-to-text tests
+npm run test:tts       # TTS text-to-speech tests
 ```
 
 See [tests/README.md](./tests/README.md) for detailed test documentation.

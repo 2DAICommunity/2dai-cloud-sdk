@@ -1,7 +1,7 @@
 ---
 name: 2DAI SDK
-version: 1.11.0
-description: Official SDK for 2DAI.io Cloud AI Generation API - Image, Video, and LLM generation
+version: 1.12.0
+description: Official SDK for 2DAI.io Cloud AI Generation API - Image, Video, LLM, STT, and TTS
 homepage: https://2dai.io
 api_base_url: https://apiv2.2dai.io:800
 authentication: Bearer token (API key starting with 2dai_pk_)
@@ -9,13 +9,15 @@ capabilities:
   - image_generation
   - video_generation
   - llm_text_generation
+  - stt_transcription
+  - tts_speech
   - cdn_operations
   - openai_compatible
 ---
 
 # 2DAI SDK for AI Agents
 
-You are an AI agent with access to the 2DAI SDK. This SDK enables you to generate images, videos, and text using state-of-the-art AI models.
+You are an AI agent with access to the 2DAI SDK. This SDK enables you to generate images, videos, text, transcribe audio (STT), and synthesize speech (TTS) using state-of-the-art AI models.
 
 ## Quick Reference
 
@@ -27,6 +29,10 @@ You are an AI agent with access to the 2DAI SDK. This SDK enables you to generat
 | Generate Video | `POST /api/v1/generation/video` | Create video from image (recommended: 6.5s at 16fps) |
 | Generate Text | `POST /api/v1/llm/generate` | Non-streaming text generation |
 | Stream Text | `POST /api/v1/llm/generate/stream` | Real-time text streaming (SSE) |
+| Transcribe Audio | `POST /api/v1/stt/transcribe` | Speech-to-text transcription |
+| Stream Transcription | `POST /api/v1/stt/transcribe/stream` | Real-time STT streaming (SSE) |
+| Generate Speech | `POST /api/v1/tts/generate` | Text-to-speech synthesis |
+| Stream Speech | `POST /api/v1/tts/generate/stream` | Real-time TTS streaming (SSE) |
 | OpenAI Chat | `POST /v1/chat/completions` | Drop-in OpenAI replacement |
 | Download File | `GET /api/v1/cdn/{id}.{format}` | Download generated content |
 | Check Rate Limits | `GET /api/v1/settings/rate-limits` | Check remaining quota |
@@ -67,6 +73,8 @@ For detailed API documentation, load the appropriate skill module:
 - [Image Generation](./skills/image-generation.md) - text2img, img2img, dual-image editing, upscaling
 - [Video Generation](./skills/video-generation.md) - image-to-video with motion control
 - [LLM Text Generation](./skills/llm-text.md) - text generation, streaming, JSON mode, vision
+- [STT Transcription](./skills/stt-transcription.md) - audio-to-text, streaming, multi-language
+- [TTS Speech](./skills/tts-speech.md) - text-to-speech, voice models, cloning, realtime, streaming
 - [CDN Operations](./skills/cdn-operations.md) - download, format conversion, watermarking
 - [OpenAI Compatible](./skills/openai-compatible.md) - drop-in /v1/chat/completions endpoint
 
@@ -93,9 +101,11 @@ For detailed API documentation, load the appropriate skill module:
 
 | Operation | Per 15 Minutes | Per Day |
 |-----------|----------------|---------|
-| Image | 15 | 360 |
+| Image | 15 | 100 |
 | Video | 5 | 30 |
-| LLM | 75 requests, 150k tokens | 1,800 requests, 3.5M tokens |
+| LLM | 30 requests, 150k tokens | 300 requests, 1.5M tokens |
+| STT | 15 | 100 |
+| TTS | 10 | 60 |
 | CDN | 200 | 5,000 |
 
 ### Check Current Limits
@@ -193,6 +203,16 @@ User wants text?
   - Structured JSON output --> POST /api/v1/llm/generate with jsonFormat: true
   - Analyze an image --> POST /api/v1/llm/generate with imageId parameter
   - OpenAI-compatible --> POST /v1/chat/completions
+
+User wants audio transcription (STT)?
+  - Transcribe audio file --> POST /api/v1/stt/transcribe
+  - Real-time streaming --> POST /api/v1/stt/transcribe/stream
+
+User wants speech synthesis (TTS)?
+  - Generate speech --> POST /api/v1/tts/generate
+  - Real-time streaming --> POST /api/v1/tts/generate/stream
+  - Low-latency realtime mode --> POST /api/v1/tts/generate with realtime: true
+  - Clone a voice --> POST /api/v1/tts/generate with referenceAudio
 ```
 
 ## WebSocket for Real-Time
@@ -201,8 +221,10 @@ For agents needing real-time generation with progress updates:
 
 **Connection:** `wss://apiv2.2dai.io:800/ws/generation`
 
-See [LLM Text Generation](./skills/llm-text.md) for streaming details.
+Supported operations: `generate_image`, `generate_video`, `generate_llm`, `generate_stt`, `generate_tts`
+
+See [LLM Text Generation](./skills/llm-text.md), [STT Transcription](./skills/stt-transcription.md), and [TTS Speech](./skills/tts-speech.md) for streaming details.
 
 ---
 
-**Version:** 1.11.0 | [Documentation](https://github.com/2DAICommunity/2dai-cloud-sdk) | [npm](https://www.npmjs.com/package/2dai-cloud-sdk)
+**Version:** 1.12.0 | [Documentation](https://github.com/2DAICommunity/2dai-cloud-sdk) | [npm](https://www.npmjs.com/package/2dai-cloud-sdk)
