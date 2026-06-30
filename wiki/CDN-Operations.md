@@ -284,6 +284,99 @@ interface CDNDownloadResult {
 
 ---
 
+## 1.14.0 Features — Batch Delete, getFileURL, Max-Side Resize
+
+### Max-side resize — `?s=N` / `maxSide`
+
+Scales the **longest side** of the file to `N` pixels while preserving aspect ratio. Takes precedence over `width` / `height` if both are set. Server cap: **4096 px**. Values outside `(0, 4096]` → HTTP 400.
+
+```bash
+# 256-px thumbnail of an image
+curl -H "Authorization: Bearer $API_KEY" \
+  "https://apiv2.2dai.io:800/api/v1/cdn/abc123.jpg?s=256" \
+  --output thumb.jpg
+```
+
+SDK:
+
+```typescript
+// downloadFromCDN already supported width/height/seek; now also maxSide.
+const { buffer } = await client.downloadFromCDN('abc123', {
+  format: 'jpg',
+  maxSide: 256
+});
+
+// Or build the URL without downloading (see getFileURL below).
+```
+
+### `getFileURL(id, opts?)` — build a CDN URL without downloading
+
+Returns the URL string only — no network round-trip. The caller is responsible for the `Authorization` header when fetching. Useful for `<img>`/`<video>` tags or for handing the URL to a third-party worker.
+
+```typescript
+import type { CDNFileURLOptions } from '2dai-cloud-sdk';
+
+// All options optional
+const opts: CDNFileURLOptions = {
+  format: 'png',       // 'jpg' | 'png' | 'gif' | 'mp4'
+  maxSide: 1024,       // resize longest side
+  width: 800,          // explicit width  (maxSide takes precedence)
+  height: 600,         // explicit height (maxSide takes precedence)
+  watermark: 'wmId',
+  watermarkPosition: 'southeast',
+  seek: 3500           // video frame extraction (ms)
+};
+
+const url = client.getFileURL('abc123', opts);
+// → '/api/v1/cdn/abc123.png?w=800&h=600&watermark=wmId&position=southeast&seek=3500&s=1024'
+```
+
+### `batchDeleteFiles(ids)` — delete up to 1000 files in one round-trip
+
+Endpoint: `POST /api/v1/cdn/batch-delete` with body `{ ids: string[] }`. Up to **1000** ids per call (constant `MAX_BATCH_DELETE_IDS = 1000` exported from the SDK).
+
+**Idempotent semantics** (RFC 7231 §4.3.5): ids that were already absent on the server report `success: true, alreadyDeleted: true`. To find *real* failures: `r => !r.success && !r.alreadyDeleted`.
+
+**Server-side dedup**: `["a","a","b"]` is processed as `["a","b"]` — `response.total === 2`, not 3.
+
+```typescript
+import type { BatchDeleteResponse } from '2dai-cloud-sdk';
+
+const res: BatchDeleteResponse = await client.batchDeleteFiles([
+  'id-1', 'id-2', 'id-3'
+]);
+
+console.log(`Deleted ${res.succeeded}/${res.total}`);
+
+// Distinguish "really deleted" from "was already gone"
+for (const r of res.results) {
+  if (r.success && r.alreadyDeleted) console.log(`Already gone: ${r.id}`);
+  else if (r.success)                 console.log(`Deleted: ${r.id}`);
+  else                                console.warn(`Failed: ${r.id} — ${r.error}`);
+}
+```
+
+**Server fallback**: against a server older than 1.14.0, the SDK throws an `Error` with `.code === 'BATCH_DELETE_NOT_SUPPORTED'`:
+
+```typescript
+try {
+  await client.batchDeleteFiles(ids);
+} catch (e: any) {
+  if (e.code === 'BATCH_DELETE_NOT_SUPPORTED') {
+    // Fall back to per-id deletes
+    for (const id of ids) await singleDeleteFallback(id);
+  } else {
+    throw e;
+  }
+}
+```
+
+### Performance
+
+Single round-trip vs. N×deleteFile: roughly **two orders of magnitude faster** for cleanup batches (one auth + one HTTP request instead of N).
+
+---
+
 ## Next Steps
 
 - [WebSocket API](WebSocket-API) - Real-time generation

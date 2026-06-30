@@ -916,6 +916,81 @@ const client = createClient('2dai_pk_your_api_key', {
 
 ---
 
+## 1.14.0 Fields on WebSocket Payloads
+
+Every WS request shape gained the same optional fields as the REST counterpart. Add them to the `data` object of any `generate_*` message.
+
+### Image / Video / Upscale — `priority`
+
+```typescript
+ws.send(JSON.stringify({
+  type: 'generate_image',
+  requestId: 'req_123',
+  data: {
+    prompt: 'a cinematic mountain landscape',
+    style: 'cine',
+    format: 'landscape',
+    priority: 'urgent'
+  }
+}));
+```
+
+Same field on `generate_video` and `generate_upscale`. Higher priority tiers also route to faster compute on the server.
+
+### LLM — `priority` + `enhancedVision`
+
+```typescript
+ws.send(JSON.stringify({
+  type: 'generate_llm',
+  requestId: 'req_456',
+  data: {
+    prompt: 'Describe this image with bounding boxes',
+    imageId: 'abc123',
+    enhancedVision: true,
+    priority: 'high'
+  }
+}));
+```
+
+Also valid on `generate_llm` with `stream: true` (streaming chunks).
+
+### STT and TTS — `priority`
+
+```typescript
+// STT
+ws.send(JSON.stringify({
+  type: 'generate_stt',
+  requestId: 'req_789',
+  data: {
+    audio: audioBase64,
+    audioFormat: 'wav',
+    priority: 'urgent'
+  }
+}));
+
+// TTS with realtime
+ws.send(JSON.stringify({
+  type: 'generate_tts',
+  requestId: 'req_abc',
+  data: {
+    text: 'Connecting your call now.',
+    voice: 'alice',
+    realtime: true,
+    priority: 'urgent'
+  }
+}));
+```
+
+### SDK shortcuts (same fields)
+
+```typescript
+await client.wsGenerateImage({ prompt: '...', priority: 'high' });
+await client.wsGenerateVideo({ imageId: 'x', priority: 'urgent' });
+await client.wsGenerateLlm({ prompt: '...', priority: 'high', enhancedVision: true, imageId: 'x' });
+await client.wsTranscribeAudio({ audio, audioFormat: 'wav', priority: 'urgent' });
+await client.wsGenerateSpeech({ text: '...', voice: 'paul', priority: 'urgent', realtime: true });
+```
+
 ## Next Steps
 
 - [API Reference](API-Reference) - Full endpoint documentation

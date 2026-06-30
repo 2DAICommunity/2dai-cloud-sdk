@@ -5,6 +5,32 @@ All notable changes to the 2DAI SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-06-30
+
+### Added
+- **Priority Queue Tiers** - `priority?: 'normal' | 'high' | 'urgent' | 'critical'` on every generation
+  method and WebSocket request. Higher tiers jump the server queue (DWRR scheduling); the server
+  also routes higher-priority work to faster compute resources.
+- **Enhanced Vision (LLM)** - `enhancedVision?: boolean` on `generateText()`, `generateTextStream()`,
+  `wsGenerateLlm()`, `wsGenerateLlmStream()`. When `imageId` is set, routes the analysis to a
+  dedicated vision model with automatic fallback to the default LLM if the worker is
+  offline. No effect on text-only requests.
+- **Batch CDN Delete** - `batchDeleteFiles(ids: string[])` deletes up to 1000 files in a single
+  round-trip. Idempotent (`alreadyDeleted: true` for already-absent ids), server-side dedup,
+  partial failures don't abort the batch. Throws `BATCH_DELETE_NOT_SUPPORTED` against older
+  servers so callers can fall back to per-id deletes.
+- **CDN Max-Side Resize** - `maxSide?` on `CDNDownloadOptions` and the new `CDNFileURLOptions`.
+  Scales the longest side to N px while preserving aspect ratio; takes precedence over
+  `width`/`height`. Maps to the server `?s=` query param.
+- **`getFileURL()`** - New helper that builds a signed CDN URL (no download) — useful for handing
+  the URL to a browser `<img>`, `<video>`, or third-party worker.
+- **Types** - `PriorityLevel`, `CDNFileURLOptions`, `BatchDeleteResult`, `BatchDeleteResponse`
+  exported from the root.
+- **Constants** - `PRIORITY_LEVELS`, `MAX_BATCH_DELETE_IDS` exported from the root.
+
+### Notes
+- No breaking changes. All new fields are optional. 1.12.x code keeps working unmodified.
+
 ## [1.12.0] - 2026-02-06
 
 ### Added

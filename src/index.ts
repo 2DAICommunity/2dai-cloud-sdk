@@ -1,6 +1,6 @@
 /**
  * 2DAI SDK - Official TypeScript/JavaScript SDK
- * @version 1.12.0
+ * @version 1.14.0
  * @packageDocumentation
  */
 
@@ -26,6 +26,10 @@ export {
   CDNFileMetadata,
   CDNDownloadOptions,
   CDNDownloadResult,
+  CDNFileURLOptions,
+  BatchDeleteResult,
+  BatchDeleteResponse,
+  PriorityLevel,
   APIError,
   RateLimitInfo,
   APIKeySettings,
@@ -103,5 +107,9 @@ export {
   TTS_LANGUAGES,
   TTS_OUTPUT_FORMATS,
   TTS_SPEED,
-  TTS_MAX_TEXT_LENGTH
+  TTS_MAX_TEXT_LENGTH,
+  // Priority queue tiers (SDK 2.21+)
+  PRIORITY_LEVELS,
+  // Batch delete (SDK 2.24+)
+  MAX_BATCH_DELETE_IDS
 } from './constants';

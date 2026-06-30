@@ -309,6 +309,36 @@ See [CDN Operations](CDN-Operations) for more details.
 
 ---
 
+## Priority Queue (1.14.0)
+
+`generateVideo` and `wsGenerateVideo` accept the same `priority` field as image generation. See [Image Generation → Priority Queue](Image-Generation#priority-queue-1130) for the full reference.
+
+Because video is compute-heavy, use `priority: 'urgent'` (or `'critical'` for 1080p) so the server routes to faster compute.
+
+### Example — premium video
+
+```typescript
+const result = await client.generateVideo({
+  imageId: sourceImageId,
+  prompt: 'the camera pans left, smooth motion',
+  duration: 6.5,
+  fps: 16,
+  priority: 'urgent'
+});
+```
+
+### Example — WebSocket video, default priority
+
+```typescript
+await client.wsConnect();
+const result = await client.wsGenerateVideo({
+  imageId: sourceImageId,
+  prompt: 'zoom in slowly',
+  duration: 5,
+  fps: 16
+});
+```
+
 ## Next Steps
 
 - [CDN Operations](CDN-Operations) - Download and process videos

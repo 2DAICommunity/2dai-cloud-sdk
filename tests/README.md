@@ -2,10 +2,11 @@
 
 Comprehensive test suite for the 2DAI Public SDK covering all REST and WebSocket API endpoints.
 
-**Current Test Status: 78+ tests**
+**Current Test Status: ~93 tests**
 - REST API: 25 tests ✅ (includes streaming)
 - WebSocket: 38 tests ✅ (includes streaming, settings)
 - OpenAI: 15 tests ✅
+- **1.14.0 Features: 15 tests** ✅ (priority, enhancedVision, batchDeleteFiles, maxSide)
 
 ---
 
@@ -106,6 +107,20 @@ This will test the OpenAI-compatible endpoints (`/v1/*`):
 - POST /v1/chat/completions - Non-streaming and streaming
 - Error handling (400, 401, 404 responses)
 - OpenAI client format compatibility
+
+### Run 1.14.0 Feature Tests
+
+```bash
+npm run test:1.13
+```
+
+15 focused tests covering the 1.14.0 surface:
+- **Priority validation** (REST + WebSocket) — invalid tiers rejected, valid tiers accepted
+- **`enhancedVision`** — must be boolean; accepted on text-only requests
+- **`batchDeleteFiles`** — non-array, empty, >1000, non-string entries rejected; idempotent (`alreadyDeleted: true`); dedup (`['a','a','b']` → `total: 2`)
+- **`?s=` maxSide** — values outside `(0, 4096]` rejected, boundary value (4096) accepted
+
+Runtime: ~30 seconds. Most tests are cheap validation paths; only 1 triggers a real generation.
 
 ### Run Minimal Error Tests
 

@@ -485,6 +485,42 @@ Default TTS rate limits:
 
 ---
 
+## Priority Queue (1.14.0)
+
+All TTS methods — `generateSpeech`, `generateSpeechStream`, `wsGenerateSpeech`, `wsGenerateSpeechStream` — accept an optional `priority` field for queue ordering. Pairs well with `realtime: true` for ultra-low-latency voice agents.
+
+| Value | Effect |
+|---|---|
+| `'normal'` (default) | FIFO ordering. |
+| `'high'` | 2× queue weight. |
+| `'urgent'` | 4× queue weight. |
+| `'critical'` | 8× queue weight. |
+
+### Example — high-priority realtime voice
+
+```typescript
+const result = await client.generateSpeech({
+  text: 'Connecting your call now.',
+  voice: 'alice',
+  realtime: true,
+  priority: 'urgent'
+});
+```
+
+### Example — streaming with priority
+
+```typescript
+const controller = client.generateSpeechStream({
+  text: 'Welcome back! How can I help you today?',
+  voice: 'paul',
+  priority: 'high',
+  onChunk: (audio, text) => playAudioChunk(audio),
+  onComplete: (r) => console.log(`Done: ${r.duration}s`)
+});
+```
+
+Use `priority: 'urgent'` + `realtime: true` for IVR / live voice agents; default for content generation (podcasts, audiobooks).
+
 ## Next Steps
 
 - [STT Speech-to-Text](STT-Speech-to-Text) - Audio transcription

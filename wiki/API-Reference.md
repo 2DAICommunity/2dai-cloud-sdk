@@ -33,7 +33,7 @@ Public endpoints that don't require authentication.
 {
   "status": "ok",
   "timestamp": "2026-01-22T22:30:34.801Z",
-  "version": "1.12.0",
+  "version": "1.14.0",
   "environment": "local"
 }
 ```
@@ -49,7 +49,7 @@ Public endpoints that don't require authentication.
 
 ```json
 {
-  "version": "1.12.0",
+  "version": "1.14.0",
   "environment": "local"
 }
 ```
@@ -1591,6 +1591,62 @@ interface RateBasedUsage {
 ```
 
 ---
+
+## 1.14.0 Fields and Endpoints
+
+### New optional fields (REST + WebSocket)
+
+| Endpoint group | Field | Type | Notes |
+|---|---|---|---|
+| Generation (image / video / upscale) | `priority` | `'normal' \| 'high' \| 'urgent' \| 'critical'` | Queue tier; higher priorities also route to faster compute. |
+| LLM (REST + WS, streaming and not) | `priority` | same as above | Queue ordering. |
+| LLM (REST + WS) | `enhancedVision` | `boolean` | When `imageId` is set, route to a dedicated vision model. Auto-fallback on outage. |
+| STT (REST + WS, streaming and not) | `priority` | same as above | Queue ordering. |
+| TTS (REST + WS, streaming and not) | `priority` | same as above | Queue ordering. |
+
+### New endpoint — `POST /api/v1/cdn/batch-delete`
+
+**Body:**
+
+```json
+{ "ids": ["id-1", "id-2", "id-3"] }
+```
+
+**Limits:**
+- `1 ≤ ids.length ≤ 1000`
+- Each entry must be a non-empty string
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "total": 3,
+  "succeeded": 3,
+  "results": [
+    { "id": "id-1", "success": true },
+    { "id": "id-2", "success": true, "alreadyDeleted": true },
+    { "id": "id-3", "success": true }
+  ]
+}
+```
+
+**Semantics:**
+- **Idempotent** — already-absent ids report `success: true, alreadyDeleted: true`.
+- **Deduplicated** server-side — `total` reflects the count after dedup.
+- **Partial failures** don't abort the batch — each id has its own `success` / `error` / `alreadyDeleted` / `diskOrphan`.
+
+**Errors:**
+- `400 ValidationError` — empty array, too many ids, non-string entry, non-array body.
+- `501 BATCH_DELETE_NOT_SUPPORTED` — server older than 1.14.0.
+
+### New query param — `?s=N` on `GET /api/v1/cdn/<id>.<ext>`
+
+Scales the longest side to `N` pixels (1-4096). Takes precedence over `?w=` and `?h=`. Values outside `(0, 4096]` → `400 ValidationError`.
+
+```
+GET /api/v1/cdn/abc123.jpg?s=256
+```
 
 ## Next Steps
 

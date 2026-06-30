@@ -1,6 +1,6 @@
 ---
 name: 2DAI SDK
-version: 1.12.0
+version: 1.14.0
 description: Official SDK for 2DAI.io Cloud AI Generation API - Image, Video, LLM, STT, and TTS
 homepage: https://2dai.io
 api_base_url: https://apiv2.2dai.io:800
@@ -35,6 +35,7 @@ You are an AI agent with access to the 2DAI SDK. This SDK enables you to generat
 | Stream Speech | `POST /api/v1/tts/generate/stream` | Real-time TTS streaming (SSE) |
 | OpenAI Chat | `POST /v1/chat/completions` | Drop-in OpenAI replacement |
 | Download File | `GET /api/v1/cdn/{id}.{format}` | Download generated content |
+| Batch Delete (v1.13) | `POST /api/v1/cdn/batch-delete` | Delete up to 1000 CDN files in one call |
 | Check Rate Limits | `GET /api/v1/settings/rate-limits` | Check remaining quota |
 
 ## Authentication
@@ -65,6 +66,50 @@ Required information:
 - Expected Monthly Usage: Testing / Low (<1k) / Medium (1k-10k) / High (10k+)
 
 API keys are reviewed within 24-48 hours and sent via email once approved.
+
+## What's New in 1.14.0
+
+Four optional capabilities you can layer on existing calls. Every new field is **optional** and **additive** — code written for 1.12 keeps working unmodified.
+
+| Capability | Where to use it | One-line summary |
+|---|---|---|
+| **Priority queue** (`priority`) | image / video / upscale / LLM / STT / TTS (REST + WS) | Jump the SDK queue. `'normal' \| 'high' \| 'urgent' \| 'critical'`. Default `'normal'`. Higher tiers also get routed to faster compute resources on the server. |
+| **Enhanced vision** (`enhancedVision`) | LLM with an `imageId` (REST + WS) | Route image analysis to a dedicated vision model. Boolean. Auto-fallback if the vision worker is offline. |
+| **Batch CDN delete** (`POST /api/v1/cdn/batch-delete`) | CDN cleanup | Delete up to 1000 ids in one round-trip. Idempotent — already-gone ids report `success:true, alreadyDeleted:true`. Server dedupes. |
+| **Max-side resize** (`?s=N` on CDN GET, `maxSide` in SDK opts) | CDN download | Scale longest side to N px (1-4096), preserve aspect ratio. Takes precedence over `width`/`height`. |
+
+**TypeScript example — high-priority generation:**
+```typescript
+import { createClient } from '2dai-cloud-sdk';
+const client = createClient({ apiKey: '2dai_pk_...' });
+
+const result = await client.generateImage({
+  prompt: 'a cinematic mountain landscape',
+  width: 1080,
+  height: 1080,
+  priority: 'urgent'   // queue jump + GPU eligibility unlock
+});
+```
+
+**TypeScript example — batch delete with idempotent semantics:**
+```typescript
+const res = await client.batchDeleteFiles(['id-1', 'id-2', 'id-3']);
+console.log(`${res.succeeded}/${res.total} deleted`);
+const realFailures = res.results.filter(r => !r.success && !r.alreadyDeleted);
+```
+
+**TypeScript example — enhanced vision + max-side resize:**
+```typescript
+const analysis = await client.generateText({
+  prompt: 'Describe the objects in this image with bounding boxes',
+  imageId: 'abc123',
+  enhancedVision: true,
+  jsonFormat: true
+});
+
+// Build a thumbnail URL — longest side 256px
+const thumbUrl = client.getFileURL('abc123', { format: 'png', maxSide: 256 });
+```
 
 ## Skill Modules
 
@@ -227,4 +272,4 @@ See [LLM Text Generation](./skills/llm-text.md), [STT Transcription](./skills/st
 
 ---
 
-**Version:** 1.12.0 | [Documentation](https://github.com/2DAICommunity/2dai-cloud-sdk) | [npm](https://www.npmjs.com/package/2dai-cloud-sdk)
+**Version:** 1.14.0 | [Documentation](https://github.com/2DAICommunity/2dai-cloud-sdk) | [npm](https://www.npmjs.com/package/2dai-cloud-sdk)

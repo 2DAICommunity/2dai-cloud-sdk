@@ -1,7 +1,19 @@
 /**
  * Type definitions for 2DAI SDK
- * @version 1.12.0
+ * @version 1.14.0
  */
+
+/**
+ * Queue priority tier.
+ *
+ * - 'normal' — default FIFO ordering.
+ * - 'high' — 2x queue preference; image/video are also routed to faster compute.
+ * - 'urgent' — 4x queue preference; image/video are also routed to faster compute.
+ * - 'critical' — 8x queue preference; image/video get top-tier compute routing.
+ *
+ * For LLM, STT and TTS only the queue ordering applies.
+ */
+export type PriorityLevel = 'normal' | 'high' | 'urgent' | 'critical';
 
 /**
  * Watermark position options
@@ -65,6 +77,8 @@ export interface ImageGenerationOptions {
   resizePad?: boolean;
   /** Image 2 (secondary) for dual-image mode - merge, blend, or mix two images together */
   imageId2?: string;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -78,6 +92,8 @@ export interface VideoGenerationOptions {
   fps?: number;
   watermark?: string;
   watermarkPosition?: WatermarkPosition;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -97,6 +113,14 @@ export interface TextGenerationOptions {
   useMarkdown?: boolean;
   /** Image ID from CDN for vision/image analysis */
   imageId?: string;
+  /**
+   * Route image analysis to the dedicated vision model when
+   * `imageId` is set. Auto-falls back to the default LLM if the vision worker
+   * is offline. No effect on text-only requests. (SDK 2.16+ on the server.)
+   */
+  enhancedVision?: boolean;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -107,6 +131,8 @@ export interface UpscaleOptions {
   factor?: number;
   /** Seed for reproducible results */
   seed?: number;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -183,6 +209,74 @@ export interface CDNDownloadOptions {
   watermarkPosition?: WatermarkPosition;
   /** Seek timestamp in ms for video frame extraction (optional) */
   seek?: number;
+  /**
+   * Scale the longest side to this many pixels, preserving aspect ratio.
+   * Takes precedence over `width` / `height`. (SDK 2.24+ on the server.)
+   */
+  maxSide?: number;
+}
+
+/**
+ * Options when building a CDN URL (no download).
+ */
+export interface CDNFileURLOptions {
+  /** Output format */
+  format?: 'jpg' | 'png' | 'gif' | 'mp4';
+  /** Width for resize */
+  width?: number;
+  /** Height for resize */
+  height?: number;
+  /** Watermark CDN ID */
+  watermark?: string;
+  /** Watermark position */
+  watermarkPosition?: WatermarkPosition;
+  /** Seek timestamp in ms for video frame extraction */
+  seek?: number;
+  /**
+   * Scale the longest side to this many pixels, preserving aspect ratio.
+   * Takes precedence over `width` / `height`. (SDK 2.24+ on the server.)
+   */
+  maxSide?: number;
+}
+
+/**
+ * Per-id result from a CDN batch delete. (SDK 2.24+ on the server.)
+ */
+export interface BatchDeleteResult {
+  /** File ID this result refers to. */
+  id: string;
+  /** Whether the delete succeeded for this id. */
+  success: boolean;
+  /**
+   * True when the id was already absent on the server (idempotent delete).
+   * `success` is also `true` in that case. Filter for "real failures" with
+   * `r => !r.success && !r.alreadyDeleted`.
+   */
+  alreadyDeleted?: boolean;
+  /** Error message when `success` is false. */
+  error?: string;
+  /**
+   * Present when Mongo metadata was removed but the disk unlink failed (rare).
+   * Ops should sweep these later.
+   */
+  diskOrphan?: { path: string; error: string };
+}
+
+/**
+ * Response from `client.batchDeleteFiles(...)`. (SDK 2.24+ on the server.)
+ *
+ * `total` reflects the count AFTER server-side dedup, NOT the count you passed
+ * in. If you submitted `['a','a','b']`, expect `total === 2`.
+ */
+export interface BatchDeleteResponse {
+  /** Whether the top-level request was processed (per-id status is in `results`). */
+  success: boolean;
+  /** Per-id result list (one entry per unique id). */
+  results: BatchDeleteResult[];
+  /** Number of unique ids the server processed. */
+  total: number;
+  /** Number of ids where `success === true` (includes idempotent already-deleted). */
+  succeeded: number;
 }
 
 /**
@@ -366,6 +460,8 @@ export interface WsImageRequest {
   width?: number;
   /** Custom height (320-1344) - overrides format */
   height?: number;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -404,6 +500,8 @@ export interface WsImg2ImgRequest {
   height?: number;
   /** Enable resize padding (default: false) */
   resizePad?: boolean;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -427,6 +525,8 @@ export interface WsVideoRequest {
   duration?: number;
   /** Frames per second (8-60, default: 16) */
   fps?: number;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -474,6 +574,10 @@ export interface WsLlmRequest {
   useMarkdown?: boolean;
   /** Image ID from CDN for vision/image analysis */
   imageId?: string;
+  /** Route image analysis to the dedicated vision model. */
+  enhancedVision?: boolean;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -494,6 +598,8 @@ export interface WsUpscaleRequest {
   factor?: number;
   /** Seed for reproducible results */
   seed?: number;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -740,6 +846,8 @@ export interface STTOptions {
   language?: string;
   /** Context hint to improve transcription accuracy */
   prompt?: string;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -834,6 +942,8 @@ export interface WsSttRequest {
   language?: string;
   /** Context hint */
   prompt?: string;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -900,6 +1010,8 @@ export interface TTSOptions {
   sampleRate?: number;
   /** Use realtime mode for low-latency generation. Not compatible with voice cloning (referenceAudio). */
   realtime?: boolean;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**
@@ -1032,6 +1144,8 @@ export interface WsTtsRequest {
   sampleRate?: number;
   /** Use realtime mode for low-latency generation. Not compatible with voice cloning (referenceAudio). */
   realtime?: boolean;
+  /** Queue priority tier. Default: 'normal'. See {@link PriorityLevel}. */
+  priority?: PriorityLevel;
 }
 
 /**

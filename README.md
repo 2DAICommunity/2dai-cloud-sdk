@@ -14,6 +14,34 @@ Generate images, videos, and text using state-of-the-art AI models through a sim
 
 ---
 
+## What's New in 1.14.0
+
+Four additive capabilities. Every new field is **optional** — 1.12.x code keeps working unmodified.
+
+- **Priority Queue Tiers** — `priority: 'normal' | 'high' | 'urgent' | 'critical'` on every generation method (image / video / upscale / LLM / STT / TTS, REST + WebSocket). Higher tiers jump the SDK queue and get routed to faster compute on the server.
+- **Enhanced Vision** — `enhancedVision: true` on LLM requests routes image analysis to a dedicated vision model with auto-fallback.
+- **Batch CDN Delete** — `client.batchDeleteFiles(ids)` deletes up to 1000 files in one round-trip. Idempotent (`alreadyDeleted: true` markers) and server-side deduped.
+- **Max-Side Resize + `getFileURL()`** — `?s=N` query param on the CDN GET (also `maxSide` in SDK options). Scales the longest side to N px (≤ 4096). New `client.getFileURL(id, opts)` builds a CDN URL without downloading.
+
+```typescript
+// Premium image gen — higher priority routes to faster compute on the server
+const img = await client.generateImage({
+  prompt: 'a cinematic mountain landscape',
+  format: 'landscape',
+  priority: 'urgent'
+});
+
+// Batch CDN cleanup
+const res = await client.batchDeleteFiles(staleIds);
+
+// Build a thumbnail URL
+const thumb = client.getFileURL(img.imageId, { format: 'png', maxSide: 256 });
+```
+
+See [CHANGELOG](./CHANGELOG.md) for the full list and the wiki for per-feature docs.
+
+---
+
 ## Features
 
 - **Text-to-Image** - Generate stunning images from text prompts

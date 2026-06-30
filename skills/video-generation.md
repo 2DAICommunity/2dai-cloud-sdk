@@ -1,7 +1,7 @@
 ---
 name: 2DAI Video Generation
 capability: video_generation
-version: 1.12.0
+version: 1.14.0
 api_base_url: https://apiv2.2dai.io:800
 recommended_settings:
   duration: 6.5
@@ -241,6 +241,48 @@ Check current limits:
 curl -H "Authorization: Bearer $API_KEY" \
   "https://apiv2.2dai.io:800/api/v1/settings/rate-limits"
 ```
+
+---
+
+## Priority Queue (1.14.0)
+
+Video generation accepts the same `priority` field as image. Because video is compute-heavy, use `priority: 'urgent'` (or `'critical'` for 1080p) so the server routes the job to faster compute.
+
+| Value | Effect |
+|---|---|
+| `'normal'` (default) | FIFO queue. Default routing. |
+| `'high'` | 2× queue weight. Routed to faster compute. |
+| `'urgent'` | 4× queue weight. Routed to faster compute. |
+| `'critical'` | 8× queue weight. Top-tier routing. |
+
+### Example — premium video
+
+```bash
+curl -X POST "https://apiv2.2dai.io:800/api/v1/generation/video" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageId": "abc123",
+    "prompt": "the camera pans left, smooth motion",
+    "duration": 6.5,
+    "fps": 16,
+    "priority": "urgent"
+  }'
+```
+
+### Example — TypeScript SDK
+
+```typescript
+const result = await client.generateVideo({
+  imageId: 'abc123',
+  prompt: 'zoom in slowly',
+  duration: 6.5,
+  fps: 16,
+  priority: 'urgent'
+});
+```
+
+Recommended: `priority: 'urgent'` for 720p video, `'critical'` for 1080p — the server will route to faster compute accordingly.
 
 ---
 

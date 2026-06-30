@@ -1,7 +1,7 @@
 ---
 name: 2DAI CDN Operations
 capability: cdn_operations
-version: 1.12.0
+version: 1.14.0
 api_base_url: https://apiv2.2dai.io:800
 ---
 
@@ -258,6 +258,93 @@ curl -H "Authorization: Bearer $API_KEY" \
 | 401 | Unauthorized | Check API key |
 | 404 | Not Found | Invalid ID or expired content |
 | 429 | Rate Limited | Wait and retry |
+
+---
+
+## 1.14.0 Features — Batch Delete, getFileURL, Max-Side Resize
+
+Three additions to the CDN surface.
+
+### Max-side resize — `?s=N` query param
+
+Scales the longest side of the file to `N` pixels while preserving aspect ratio. Takes precedence over `width`/`height`. Server cap: **4096 px**. Values outside `(0, 4096]` return HTTP 400.
+
+```bash
+# Build a 256-px thumbnail
+curl -H "Authorization: Bearer $API_KEY" \
+  "https://apiv2.2dai.io:800/api/v1/cdn/abc123.jpg?s=256" \
+  --output thumb.jpg
+```
+
+In the SDK:
+
+```typescript
+const { buffer } = await client.downloadFromCDN('abc123', { maxSide: 256, format: 'jpg' });
+```
+
+### `getFileURL()` — build a CDN URL without downloading
+
+Returns the URL string for a CDN file with optional resize / watermark / seek / max-side parameters. Useful for `<img>`/`<video>` tags or for handing the URL to a third-party worker.
+
+```typescript
+// Pass to a browser <img> tag
+const thumb = client.getFileURL('abc123', { format: 'png', maxSide: 1024 });
+// → '/api/v1/cdn/abc123.png?s=1024'
+
+// Frame extraction from a video
+const frame = client.getFileURL(videoId, { format: 'jpg', seek: 3500 });
+```
+
+The string is path-relative to the API base URL. Caller is responsible for the `Authorization` header when fetching.
+
+### `batchDeleteFiles()` — delete up to 1000 files in one round-trip
+
+`POST /api/v1/cdn/batch-delete` body: `{ "ids": [ "...", "..." ] }`. Up to **1000** ids per call.
+
+**Idempotent**: ids that were already absent on the server report `success: true, alreadyDeleted: true`. To find *real* failures, filter `r => !r.success && !r.alreadyDeleted`.
+
+**Deduplicated** server-side: `["a","a","b"]` is processed as `["a","b"]` — `response.total === 2`, NOT 3.
+
+```bash
+curl -X POST "https://apiv2.2dai.io:800/api/v1/cdn/batch-delete" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "ids": ["id-1", "id-2", "id-3"] }'
+```
+
+Response shape:
+
+```json
+{
+  "success": true,
+  "total": 3,
+  "succeeded": 3,
+  "results": [
+    { "id": "id-1", "success": true },
+    { "id": "id-2", "success": true, "alreadyDeleted": true },
+    { "id": "id-3", "success": true }
+  ]
+}
+```
+
+In the SDK:
+
+```typescript
+import type { BatchDeleteResponse } from '2dai-cloud-sdk';
+
+const res: BatchDeleteResponse = await client.batchDeleteFiles(idsToDelete);
+console.log(`Deleted ${res.succeeded}/${res.total}`);
+
+const realFailures = res.results.filter(r => !r.success && !r.alreadyDeleted);
+if (realFailures.length) console.error('Failures:', realFailures);
+```
+
+**Server fallback**: against an older server that doesn't support batch delete, the SDK throws an `Error` whose `.code === 'BATCH_DELETE_NOT_SUPPORTED'` so callers can fall back to a per-id delete loop.
+
+### Constants
+
+- `MAX_BATCH_DELETE_IDS = 1000` — exported from `2dai-cloud-sdk`.
+- `?s=` cap: 4096 px (server-enforced).
 
 ---
 

@@ -302,6 +302,43 @@ Default STT rate limits:
 
 ---
 
+## Priority Queue (1.14.0)
+
+All STT methods — `transcribeAudio`, `transcribeAudioStream`, `wsTranscribeAudio`, `wsTranscribeAudioStream` — accept an optional `priority` field for queue ordering.
+
+| Value | Effect |
+|---|---|
+| `'normal'` (default) | FIFO ordering. |
+| `'high'` | 2× queue weight. |
+| `'urgent'` | 4× queue weight. |
+| `'critical'` | 8× queue weight. |
+
+### Example — high-priority streaming transcription
+
+```typescript
+const controller = client.transcribeAudioStream({
+  audio: audioBase64,
+  audioFormat: 'wav',
+  priority: 'urgent',
+  onChunk: (chunk) => process.stdout.write(chunk),
+  onComplete: (r) => console.log('\n→', r.text)
+});
+```
+
+### Example — REST with high priority
+
+```typescript
+const result = await client.transcribeAudio({
+  audio: audioBase64,
+  audioFormat: 'mp3',
+  language: 'en',
+  priority: 'high'
+});
+console.log(result.text);
+```
+
+Use `priority: 'urgent'` for live voice-to-text in chat or IVR; default for batch/archive jobs.
+
 ## Next Steps
 
 - [TTS Text-to-Speech](TTS-Text-to-Speech) - Voice synthesis

@@ -362,6 +362,56 @@ interface WsLlmResponse {
 
 ---
 
+## Enhanced Vision and Priority (1.14.0)
+
+Two new optional fields on `generateText`, `generateTextStream`, `wsGenerateLlm`, and `wsGenerateLlmStream`.
+
+### `enhancedVision: boolean`
+
+When `true` AND `imageId` is provided, the request is routed to a dedicated vision model tuned for image analysis. Auto-falls back to the default LLM if the vision worker is offline — requests never fail because of vision-worker outages.
+
+No effect on text-only requests (no `imageId`).
+
+### `priority`
+
+Queue tier. `'normal' | 'high' | 'urgent' | 'critical'`. Higher tiers jump the queue.
+
+### Example — enhanced vision + structured output
+
+```typescript
+const r = await client.generateText({
+  prompt: 'List every object with bounding boxes in 0-1 normalized coordinates',
+  imageId: 'abc123',
+  enhancedVision: true,
+  jsonFormat: true,
+  jsonTemplate: {
+    objects: 'array of {label, x_min, y_min, x_max, y_max}'
+  },
+  priority: 'high'
+});
+console.log(r.json);
+```
+
+### Example — high-priority streaming
+
+```typescript
+const controller = client.generateTextStream({
+  prompt: 'Write a haiku about the ocean',
+  priority: 'urgent',
+  onChunk: (chunk) => process.stdout.write(chunk),
+  onComplete: (result) => console.log('\nDone:', result.totalTokens)
+});
+```
+
+### When to use
+
+| Scenario | Recommendation |
+|---|---|
+| Text-only assistant | `priority: 'high'` for interactive UX |
+| Image-grounded answer | `enhancedVision: true` + `imageId` |
+| Real-time chat with paid tier | `priority: 'urgent'` |
+| Background batch summarization | Default (no priority field) |
+
 ## Next Steps
 
 - [OpenAI Compatibility](OpenAI-Compatibility) - Framework integrations (LangChain, Vercel AI, etc.)

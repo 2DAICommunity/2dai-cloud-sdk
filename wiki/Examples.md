@@ -722,6 +722,127 @@ fullWorkflow().catch(console.error);
 
 ---
 
+## 1.14.0 Examples
+
+End-to-end TypeScript examples for the four 1.14.0 capabilities.
+
+### 1. High-priority generation
+
+```typescript
+import { createClient } from '2dai-cloud-sdk';
+
+const client = createClient({ apiKey: '2dai_pk_...' });
+
+// Urgent landscape image — the pool routes to a 'faster'-class worker
+// because priority='urgent' unlocks that eligibility tier.
+const r = await client.generateImage({
+  prompt: 'a cinematic mountain landscape at golden hour',
+  format: 'landscape',
+  priority: 'urgent'
+});
+
+console.log('imageId:', r.imageId);
+```
+
+### 2. Enhanced vision for object detection
+
+```typescript
+const r = await client.generateText({
+  prompt: 'List every object visible with bounding boxes in 0-1 normalized coordinates',
+  imageId: 'abc123',
+  enhancedVision: true,           // routes to the dedicated vision model
+  jsonFormat: true,
+  jsonTemplate: {
+    objects: 'array of {label, x_min, y_min, x_max, y_max, confidence}'
+  }
+});
+
+console.log(r.json);
+// { objects: [{ label: 'cat', x_min: 0.12, ... }, ...] }
+```
+
+### 3. CDN cleanup — batch delete 1000 stale files
+
+```typescript
+import { MAX_BATCH_DELETE_IDS } from '2dai-cloud-sdk';
+
+async function cleanup(allIds: string[]) {
+  let totalDeleted = 0;
+  let totalAlreadyGone = 0;
+
+  // Page through in chunks of MAX_BATCH_DELETE_IDS (1000).
+  for (let i = 0; i < allIds.length; i += MAX_BATCH_DELETE_IDS) {
+    const chunk = allIds.slice(i, i + MAX_BATCH_DELETE_IDS);
+
+    try {
+      const res = await client.batchDeleteFiles(chunk);
+      totalDeleted     += res.results.filter(r => r.success && !r.alreadyDeleted).length;
+      totalAlreadyGone += res.results.filter(r => r.alreadyDeleted).length;
+
+      const failures = res.results.filter(r => !r.success && !r.alreadyDeleted);
+      if (failures.length) console.warn(`${failures.length} real failures in chunk:`, failures);
+    } catch (e: any) {
+      if (e.code === 'BATCH_DELETE_NOT_SUPPORTED') {
+        console.warn('Server too old, falling back to per-id delete');
+        // ... fallback loop ...
+      } else throw e;
+    }
+  }
+
+  console.log(`Deleted ${totalDeleted}, already gone: ${totalAlreadyGone}`);
+}
+```
+
+### 4. Build thumbnails with `getFileURL` + `?s=`
+
+```typescript
+// Thumbnail URLs to inject into <img> tags — no download.
+const thumb256 = client.getFileURL(imageId, { format: 'jpg', maxSide: 256 });
+const thumb512 = client.getFileURL(imageId, { format: 'jpg', maxSide: 512 });
+const full     = client.getFileURL(imageId, { format: 'png' });   // original
+
+// Video frame at 3.5s, max 1024px
+const frame = client.getFileURL(videoId, {
+  format: 'jpg',
+  seek: 3500,
+  maxSide: 1024
+});
+```
+
+### 5. End-to-end realtime voice agent (WS + priority)
+
+```typescript
+import WebSocket from 'ws';
+const client = createClient({ apiKey: '2dai_pk_...' });
+await client.wsConnect();
+
+// 1. Transcribe inbound voice with urgent priority
+const transcript = await client.wsTranscribeAudio({
+  audio: audioBase64,
+  audioFormat: 'wav',
+  priority: 'urgent'
+});
+
+// 2. LLM response, high priority
+const llmResponse = await client.wsGenerateLlm({
+  prompt: transcript.result.text,
+  system: 'You are a phone support agent. Reply in ONE sentence.',
+  priority: 'urgent'
+});
+
+// 3. TTS reply, realtime + urgent — sub-500ms first byte
+const speech = await client.wsGenerateSpeech({
+  text: llmResponse.result.text,
+  voice: 'alice',
+  realtime: true,
+  priority: 'urgent'
+});
+
+playAudio(speech.result.audio);
+```
+
+---
+
 ## Next Steps
 
 - [Troubleshooting](Troubleshooting) - Common issues and solutions

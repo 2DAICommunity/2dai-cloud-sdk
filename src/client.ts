@@ -1,7 +1,7 @@
 /**
  * 2DAI SDK Client
  * Official TypeScript/JavaScript client for 2DAI API
- * @version 1.12.0
+ * @version 1.14.0
  */
 
 import WebSocket from 'ws';
@@ -18,6 +18,9 @@ import {
   UpscaleResult,
   CDNDownloadOptions,
   CDNDownloadResult,
+  CDNFileURLOptions,
+  // SDK 2.24+: batch delete + max-side resize
+  BatchDeleteResponse,
   APIKeySettings,
   RateLimitInfo,
   APIError,
@@ -69,7 +72,8 @@ import {
   DEFAULT_BASE_URL,
   DEFAULT_TIMEOUT,
   WS_DEFAULTS,
-  STREAM_DEFAULTS
+  STREAM_DEFAULTS,
+  MAX_BATCH_DELETE_IDS
 } from './constants';
 
 /**
@@ -186,7 +190,8 @@ export class TwoDAIClient {
         format: typeof options.format === 'string' ? options.format : options.format?.id,
         width: options.width,
         height: options.height,
-        seed: options.seed
+        seed: options.seed,
+        ...(options.priority !== undefined && { priority: options.priority })
       });
 
       return {
@@ -240,7 +245,8 @@ export class TwoDAIClient {
         seed: options.seed,
         width: options.width,
         height: options.height,
-        resizePad: options.resizePad
+        resizePad: options.resizePad,
+        ...(options.priority !== undefined && { priority: options.priority })
       });
 
       return {
@@ -274,7 +280,8 @@ export class TwoDAIClient {
       const response = await this.axios.post('/api/v1/generation/image/upscale', {
         imageId,
         factor: options.factor ?? 2,
-        seed: options.seed
+        seed: options.seed,
+        ...(options.priority !== undefined && { priority: options.priority })
       });
 
       return {
@@ -305,7 +312,8 @@ export class TwoDAIClient {
         imageId: options.imageId,
         prompt: options.prompt,
         duration: options.duration ?? 5,
-        fps: options.fps ?? 16
+        fps: options.fps ?? 16,
+        ...(options.priority !== undefined && { priority: options.priority })
       });
 
       return {
@@ -339,7 +347,9 @@ export class TwoDAIClient {
         useRandomSeed: options.useRandomSeed,
         askKnowledge: options.askKnowledge,
         useMarkdown: options.useMarkdown,
-        imageId: options.imageId
+        imageId: options.imageId,
+        ...(options.enhancedVision !== undefined && { enhancedVision: options.enhancedVision }),
+        ...(options.priority !== undefined && { priority: options.priority })
       });
 
       const llmData = response.data.data || {};
@@ -416,7 +426,9 @@ export class TwoDAIClient {
             memory: options.memory,
             useRandomSeed: options.useRandomSeed,
             useMarkdown: options.useMarkdown,
-            imageId: options.imageId
+            imageId: options.imageId,
+            ...(options.enhancedVision !== undefined && { enhancedVision: options.enhancedVision }),
+            ...(options.priority !== undefined && { priority: options.priority })
             // Note: jsonFormat not supported for streaming
           },
           {
@@ -652,6 +664,8 @@ export class TwoDAIClient {
     if (options?.watermark) params.push(`watermark=${options.watermark}`);
     if (options?.watermarkPosition) params.push(`position=${options.watermarkPosition}`);
     if (options?.seek !== undefined) params.push(`seek=${options.seek}`);
+    // SDK 2.24+: scale longest side to N px; takes precedence over w/h.
+    if (options?.maxSide !== undefined) params.push(`s=${options.maxSide}`);
 
     if (params.length > 0) {
       url += '?' + params.join('&');
@@ -664,7 +678,7 @@ export class TwoDAIClient {
       });
 
       const buffer = Buffer.from(response.data);
-      const mimeType = response.headers['content-type'] || this.getMimeType(format);
+      const mimeType: string = (response.headers['content-type'] as string | undefined) || this.getMimeType(format);
       const size = buffer.length;
 
       this.log('CDN download complete', { size, mimeType });
@@ -673,6 +687,98 @@ export class TwoDAIClient {
     } catch (error: any) {
       this.log('CDN download error', error.message);
       throw new Error(`Failed to download from CDN: ${error.message}`);
+    }
+  }
+
+  /**
+   * Build a CDN URL for a file id, applying optional resize / watermark /
+   * seek / maxSide query parameters. Use this when you need to hand the
+   * URL to another consumer (browser `<img>`, `<video>`, third-party
+   * worker) rather than downloading the bytes yourself.
+   *
+   * The URL is signed with the API key as a `Bearer` token at request
+   * time — this method only assembles the path + query; the caller is
+   * responsible for authentication when fetching.
+   *
+   * SDK 2.24+ adds `maxSide`: scale the longest side to N px while
+   * preserving aspect ratio (takes precedence over width/height).
+   *
+   * @example
+   * const url = client.getFileURL('abc123', { format: 'png', maxSide: 1024 });
+   * // → '/api/v1/cdn/abc123.png?s=1024'
+   */
+  getFileURL(id: string, options?: CDNFileURLOptions): string {
+    const format = options?.format || 'jpg';
+    let url = `/api/v1/cdn/${id}.${format}`;
+    const params: string[] = [];
+    if (options?.width) params.push(`w=${options.width}`);
+    if (options?.height) params.push(`h=${options.height}`);
+    if (options?.watermark) params.push(`watermark=${options.watermark}`);
+    if (options?.watermarkPosition) params.push(`position=${options.watermarkPosition}`);
+    if (options?.seek !== undefined) params.push(`seek=${options.seek}`);
+    // SDK 2.24+: longest-side resize
+    if (options?.maxSide !== undefined) params.push(`s=${options.maxSide}`);
+    if (params.length > 0) url += '?' + params.join('&');
+    return url;
+  }
+
+  /**
+   * Delete up to {@link MAX_BATCH_DELETE_IDS} CDN files in a single
+   * round-trip. (SDK 2.24+ on the server.)
+   *
+   * Semantics:
+   *  - **Idempotent.** An id that is already absent reports
+   *    `success: true, alreadyDeleted: true`. To find "real failures",
+   *    filter `r => !r.success && !r.alreadyDeleted`.
+   *  - **Deduped server-side.** Duplicate ids in `ids` are coalesced;
+   *    `response.total` reflects the count after dedup (not `ids.length`).
+   *  - **Partial failures don't abort the batch.** Each id has its own
+   *    status in `results`.
+   *
+   * Compared to N x `downloadFromCDN`-style deletes this is roughly two
+   * orders of magnitude faster (single auth + single HTTP round-trip).
+   *
+   * @throws Error('BATCH_DELETE_NOT_SUPPORTED') if the server is older than
+   *   1.14.0 — fall back to a per-id delete loop in that case.
+   *
+   * @example
+   * const res = await client.batchDeleteFiles(['id1', 'id2', 'id3']);
+   * console.log(`Deleted ${res.succeeded}/${res.total}`);
+   * res.results.filter(r => !r.success && !r.alreadyDeleted)
+   *   .forEach(r => console.warn(`Failed: ${r.id} — ${r.error}`));
+   */
+  async batchDeleteFiles(ids: string[]): Promise<BatchDeleteResponse> {
+    if (!Array.isArray(ids)) {
+      throw new Error('ids must be a string array');
+    }
+    if (ids.length === 0) {
+      throw new Error('ids array cannot be empty');
+    }
+    if (ids.length > MAX_BATCH_DELETE_IDS) {
+      throw new Error(
+        `Batch size ${ids.length} exceeds maximum of ${MAX_BATCH_DELETE_IDS} per call`
+      );
+    }
+    this.log('Batch delete from CDN', { count: ids.length });
+    try {
+      const response = await this.axios.post('/api/v1/cdn/batch-delete', { ids });
+      const data = response.data || {};
+      return {
+        success: !!data.success,
+        results: data.results || [],
+        total: data.total ?? 0,
+        succeeded: data.succeeded ?? 0
+      };
+    } catch (error: any) {
+      const code = error?.response?.data?.error?.code;
+      if (code === 'BATCH_DELETE_NOT_SUPPORTED' || error?.response?.status === 501) {
+        const err = new Error('BATCH_DELETE_NOT_SUPPORTED: server does not support batch delete; fall back to per-id deletes');
+        (err as any).code = 'BATCH_DELETE_NOT_SUPPORTED';
+        this.log('Batch delete unsupported by server', code);
+        throw err;
+      }
+      this.log('Batch delete error', error.message);
+      throw error;
     }
   }
 
@@ -1204,7 +1310,8 @@ export class TwoDAIClient {
         audio: options.audio,
         audioFormat: options.audioFormat,
         language: options.language,
-        prompt: options.prompt
+        prompt: options.prompt,
+        ...(options.priority !== undefined && { priority: options.priority })
       });
 
       return {
@@ -1252,7 +1359,8 @@ export class TwoDAIClient {
             audio: options.audio,
             audioFormat: options.audioFormat,
             language: options.language,
-            prompt: options.prompt
+            prompt: options.prompt,
+            ...(options.priority !== undefined && { priority: options.priority })
           },
           {
             responseType: 'stream',
@@ -1486,7 +1594,8 @@ export class TwoDAIClient {
         speed: options.speed,
         outputFormat: options.outputFormat,
         sampleRate: options.sampleRate,
-        realtime: options.realtime
+        realtime: options.realtime,
+        ...(options.priority !== undefined && { priority: options.priority })
       });
 
       const data = response.data.data || {};
@@ -1544,7 +1653,8 @@ export class TwoDAIClient {
             speed: options.speed,
             outputFormat: options.outputFormat,
             sampleRate: options.sampleRate,
-            realtime: options.realtime
+            realtime: options.realtime,
+            ...(options.priority !== undefined && { priority: options.priority })
           },
           {
             responseType: 'stream',

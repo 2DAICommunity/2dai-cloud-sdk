@@ -1,7 +1,7 @@
 ---
 name: 2DAI Image Generation
 capability: image_generation
-version: 1.12.0
+version: 1.14.0
 api_base_url: https://apiv2.2dai.io:800
 ---
 
@@ -296,6 +296,49 @@ For real-time progress updates, use WebSocket:
   "data": { "imageId": "...", "width": 1344, "height": 768 }
 }
 ```
+
+---
+
+## Priority Queue (1.14.0)
+
+Every image endpoint (text2img / img2img / imgs2img / img2ximg) accepts an optional `priority` field. Higher tiers jump the SDK queue and are routed to faster compute on the server.
+
+| Value | Effect |
+|---|---|
+| `'normal'` (default) | FIFO queue. Default routing. |
+| `'high'` | 2× queue weight. Routed to faster compute. |
+| `'urgent'` | 4× queue weight. Routed to faster compute. |
+| `'critical'` | 8× queue weight. Top-tier routing. |
+
+### Example — high-priority edit
+
+```bash
+curl -X POST "https://apiv2.2dai.io:800/api/v1/generation/image/edit" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageId": "abc123",
+    "prompt": "make it black and white",
+    "priority": "urgent"
+  }'
+```
+
+### Example — TypeScript SDK
+
+```typescript
+const result = await client.generateImage({
+  prompt: 'a futuristic city at sunset',
+  format: 'landscape',
+  priority: 'critical'
+});
+```
+
+### When to use
+
+- `priority: 'normal'` — default user workloads.
+- `priority: 'high'` — interactive UX where the user is waiting.
+- `priority: 'urgent'` — premium tier / paid plan / time-critical job.
+- `priority: 'critical'` — must-not-fail enterprise SLA; the pool's strongest eligibility class.
 
 ---
 

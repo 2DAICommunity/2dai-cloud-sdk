@@ -1,6 +1,6 @@
 /**
  * Constants and Enums for 2DAI SDK
- * @version 1.12.0
+ * @version 1.14.0
  */
 
 import { StylePreset, FormatPreset } from './types';
@@ -380,3 +380,14 @@ export const TTS_SPEED = {
  * Maximum TTS text length (characters)
  */
 export const TTS_MAX_TEXT_LENGTH = 500;
+
+/**
+ * Queue priority tiers. Higher tiers jump the queue; on image/video, they are
+ * also routed to faster compute on the server.
+ */
+export const PRIORITY_LEVELS = ['normal', 'high', 'urgent', 'critical'] as const;
+
+/**
+ * Maximum number of ids accepted in a single batch delete call (SDK 2.24+).
+ */
+export const MAX_BATCH_DELETE_IDS = 1000;

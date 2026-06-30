@@ -20,17 +20,29 @@ Welcome to the official documentation for **2dai-cloud-sdk** - the TypeScript/Ja
 | [Examples](Examples) | Full code examples |
 | [Troubleshooting](Troubleshooting) | Common issues, debug mode, best practices |
 
+## What's New in 1.14.0
+
+- **Priority Queue Tiers** — `priority: 'normal'|'high'|'urgent'|'critical'` on every generation method. Higher tiers jump the queue (DWRR scheduling on the server).
+- **Enhanced Vision** — `enhancedVision: true` on LLM requests routes image analysis to a dedicated vision model with auto-fallback.
+- **Batch CDN Delete** — `batchDeleteFiles(ids)` deletes up to 1000 files in one round-trip. Idempotent (`alreadyDeleted: true` markers), deduped server-side.
+- **Max-Side Resize** — `?s=N` query param on CDN GET (and `maxSide` on `downloadFromCDN` / `getFileURL`). Scales longest side to N px (cap 4096). Takes precedence over `width`/`height`.
+- **`getFileURL()`** — Build a CDN URL without downloading. Useful for `<img>` / `<video>` tags.
+
+All new fields are **optional and additive**. 1.12.x code keeps working unmodified.
+
 ## Features
 
 - **Text-to-Image** - Generate images from text prompts with 14 style presets
 - **Image-to-Image** - Edit and transform existing images
 - **AI Image Upscale** - Upscale images 2-4x using AI
 - **Image-to-Video** - Create videos from static images
-- **LLM Text Generation** - Generate text with memory, JSON support, and streaming
+- **LLM Text Generation** - Generate text with memory, JSON support, streaming, and enhanced vision
 - **OpenAI-Compatible API** - Drop-in `/v1/chat/completions` endpoint
-- **Image Description (Vision)** - Analyze images with LLM
+- **Image Description (Vision)** - Analyze images with LLM (now with `enhancedVision` flag)
 - **STT Speech-to-Text** - Audio transcription with streaming and multi-language support
 - **TTS Text-to-Speech** - Voice synthesis with voice models, cloning, realtime mode, and streaming
+- **Priority Queue** *(1.14.0)* - Workload prioritization; higher priorities also route to faster compute on the server
+- **CDN Batch Delete** *(1.14.0)* - Idempotent bulk file cleanup
 - **Built-in Watermarking** - Apply custom watermarks to content
 - **WebSocket Support** - Real-time generation with progress updates
 - **Full TypeScript Support** - Comprehensive type definitions
@@ -66,4 +78,4 @@ console.log('Image ID:', image.imageId);
 
 ---
 
-**Version:** 1.12.0 | [View on npm](https://www.npmjs.com/package/2dai-cloud-sdk)
+**Version:** 1.14.0 | [View on npm](https://www.npmjs.com/package/2dai-cloud-sdk)

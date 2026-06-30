@@ -1,7 +1,7 @@
 ---
 name: 2DAI STT Speech-to-Text
 capability: stt_transcription
-version: 1.12.0
+version: 1.14.0
 api_base_url: https://apiv2.2dai.io:800
 ---
 
@@ -250,6 +250,53 @@ curl -H "Authorization: Bearer $API_KEY" \
 - Forget to specify `audioFormat`
 - Send empty or corrupt audio data
 - Ignore rate limits - check before batch operations
+
+---
+
+## Priority Queue (1.14.0)
+
+STT REST + streaming + WebSocket endpoints accept an optional `priority` field.
+
+| Value | Effect |
+|---|---|
+| `'normal'` (default) | FIFO ordering. |
+| `'high'` | 2× queue preference. |
+| `'urgent'` | 4× queue preference. |
+| `'critical'` | 8× queue preference. |
+
+Queue ordering only on STT.
+
+### Example — high-priority transcription
+
+```bash
+curl -X POST "https://apiv2.2dai.io:800/api/v1/stt/transcribe" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "audio": "'"$(base64 -w0 voicemail.wav)"'",
+    "audioFormat": "wav",
+    "language": "en",
+    "priority": "high"
+  }'
+```
+
+### Example — TypeScript SDK (streaming)
+
+```typescript
+const controller = client.transcribeAudioStream({
+  audio: audioBase64,
+  audioFormat: 'wav',
+  priority: 'urgent',
+  onChunk: (chunk) => process.stdout.write(chunk),
+  onComplete: (r) => console.log('\n→', r.text)
+});
+```
+
+### Use cases
+
+- `priority: 'urgent'` — voice-to-text in a chat where the user is waiting.
+- `priority: 'high'` — call-center QA pipeline that must clear during business hours.
+- Default — batch jobs, archives.
 
 ---
 

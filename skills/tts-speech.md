@@ -1,7 +1,7 @@
 ---
 name: 2DAI TTS Text-to-Speech
 capability: tts_speech
-version: 1.12.0
+version: 1.14.0
 api_base_url: https://apiv2.2dai.io:800
 ---
 
@@ -395,6 +395,53 @@ curl -H "Authorization: Bearer $API_KEY" \
 - Forget to provide `referenceTranscript` with voice cloning
 - Ignore rate limits - check before batch operations
 - Use PCM format unless you need raw audio data
+
+---
+
+## Priority Queue (1.14.0)
+
+TTS REST + streaming + WebSocket endpoints accept an optional `priority` field.
+
+| Value | Effect |
+|---|---|
+| `'normal'` (default) | FIFO ordering. |
+| `'high'` | 2× queue preference. |
+| `'urgent'` | 4× queue preference. |
+| `'critical'` | 8× queue preference. |
+
+Queue ordering only on TTS. Pairs well with `realtime: true` for ultra-low-latency voice agents.
+
+### Example — high-priority realtime voice
+
+```bash
+curl -X POST "https://apiv2.2dai.io:800/api/v1/tts/generate" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Connecting your call now.",
+    "voice": "alice",
+    "realtime": true,
+    "priority": "urgent"
+  }'
+```
+
+### Example — TypeScript SDK (streaming)
+
+```typescript
+const controller = client.generateSpeechStream({
+  text: 'Welcome back! How can I help you today?',
+  voice: 'paul',
+  priority: 'high',
+  onChunk: (audio, text) => playAudioChunk(audio),
+  onComplete: (r) => console.log(`Done: ${r.duration}s`)
+});
+```
+
+### Use cases
+
+- `priority: 'urgent'` + `realtime: true` — IVR / call-center voice prompts.
+- `priority: 'high'` — interactive voice assistant.
+- Default — content generation, podcasts, audiobooks.
 
 ---
 

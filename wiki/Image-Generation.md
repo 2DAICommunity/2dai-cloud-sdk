@@ -353,6 +353,54 @@ interface UpscaleResult {
 
 ---
 
+## Priority Queue (1.14.0)
+
+Every image method — `generateImage`, `editImage`, `upscaleImage` — plus their `ws*` counterparts accept an optional `priority` field.
+
+| Value | Effect |
+|---|---|
+| `'normal'` (default) | FIFO ordering. Default routing. |
+| `'high'` | 2× queue weight. Routed to faster compute. |
+| `'urgent'` | 4× queue weight. Routed to faster compute. |
+| `'critical'` | 8× queue weight. Top-tier routing. |
+
+### Example — premium tier
+
+```typescript
+const result = await client.generateImage({
+  prompt: 'a cinematic mountain landscape at golden hour',
+  format: 'landscape',
+  priority: 'urgent'
+});
+```
+
+### Example — img2img edit, high priority
+
+```typescript
+const edited = await client.editImage(sourceImageId, {
+  prompt: 'add dramatic rim lighting',
+  priority: 'high'
+});
+```
+
+### Example — upscale at the top tier
+
+```typescript
+const upscaled = await client.upscaleImage(sourceImageId, {
+  factor: 4,
+  priority: 'critical'
+});
+```
+
+### When to use
+
+| Scenario | Recommended priority |
+|---|---|
+| Default user workload | `'normal'` (no field needed) |
+| Interactive UX (paid plan) | `'high'` |
+| Time-sensitive / SLA-bound | `'urgent'` |
+| Enterprise must-succeed | `'critical'` |
+
 ## Next Steps
 
 - [Video Generation](Video-Generation) - Create videos from images

@@ -1,7 +1,7 @@
 ---
 name: 2DAI LLM Text Generation
 capability: llm_text_generation
-version: 1.12.0
+version: 1.14.0
 api_base_url: https://apiv2.2dai.io:800
 ---
 
@@ -292,6 +292,70 @@ curl -H "Authorization: Bearer $API_KEY" \
 - Ignore token counts - they affect rate limits
 - Forget to handle streaming errors
 - Use vision without an actual imageId
+
+---
+
+## Enhanced Vision and Priority (1.14.0)
+
+LLM requests accept two new optional fields.
+
+### `enhancedVision`
+
+When set to `true` AND `imageId` is provided, the request is routed to a dedicated vision model tuned for image analysis. The server auto-falls back to the default LLM if the vision worker is offline, so requests never fail because of vision-worker outages.
+
+No effect on text-only requests (i.e., no `imageId`).
+
+### `priority`
+
+Queue tier. `'normal' | 'high' | 'urgent' | 'critical'`. Higher tiers jump the queue.
+
+### Example — enhanced vision with structured output
+
+```bash
+curl -X POST "https://apiv2.2dai.io:800/api/v1/llm/generate" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "List every object you see, with bounding boxes in 0-1 normalized coordinates",
+    "imageId": "abc123",
+    "enhancedVision": true,
+    "jsonFormat": true,
+    "jsonTemplate": {
+      "objects": "array of {label, x_min, y_min, x_max, y_max}"
+    },
+    "priority": "high"
+  }'
+```
+
+### Example — TypeScript SDK
+
+```typescript
+const r = await client.generateText({
+  prompt: 'Describe the scene in 3 sentences',
+  imageId: 'abc123',
+  enhancedVision: true,
+  priority: 'high'
+});
+console.log(r.response);
+```
+
+### Example — streaming + priority
+
+```typescript
+const controller = client.generateTextStream({
+  prompt: 'Write a haiku about the ocean',
+  priority: 'urgent',
+  onChunk: (chunk) => process.stdout.write(chunk),
+  onComplete: (result) => console.log('\nDone:', result.totalTokens)
+});
+```
+
+### Use cases
+
+- `enhancedVision: true` — object detection, OCR-ish prompts, image-grounded structured extraction.
+- `priority: 'urgent'` — interactive chat where the user is staring at the cursor.
+- `priority: 'high'` — assistants in production UX (paid plans, dashboards).
+- Plain `generateText({ prompt })` — default. No change from 1.12.
 
 ---
 
