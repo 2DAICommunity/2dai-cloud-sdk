@@ -1,241 +1,162 @@
 # 2dai-cloud-sdk
 
-Official TypeScript/JavaScript SDK for 2DAI.io Cloud AI Generation API
-
-Generate images, videos, and text using state-of-the-art AI models through a simple and intuitive API.
-
-[![npm version](https://img.shields.io/npm/v/2dai-cloud-sdk.svg)](https://www.npmjs.com/package/2dai-cloud-sdk)
-[![npm downloads](https://img.shields.io/npm/dm/2dai-cloud-sdk.svg)](https://www.npmjs.com/package/2dai-cloud-sdk)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
-[![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green)](https://nodejs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-> 🤖 **New** AI agents can now discover and use this SDK automatically via [`skill.md`](./skill.md). See [AI Agent Integration](../../wiki/AI-Agent-Integration).
-
----
-
-## What's New in 1.14.0
-
-Four additive capabilities. Every new field is **optional** — 1.12.x code keeps working unmodified.
-
-- **Priority Queue Tiers** — `priority: 'normal' | 'high' | 'urgent' | 'critical'` on every generation method (image / video / upscale / LLM / STT / TTS, REST + WebSocket). Higher tiers jump the SDK queue and get routed to faster compute on the server.
-- **Enhanced Vision** — `enhancedVision: true` on LLM requests routes image analysis to a dedicated vision model with auto-fallback.
-- **Batch CDN Delete** — `client.batchDeleteFiles(ids)` deletes up to 1000 files in one round-trip. Idempotent (`alreadyDeleted: true` markers) and server-side deduped.
-- **Max-Side Resize + `getFileURL()`** — `?s=N` query param on the CDN GET (also `maxSide` in SDK options). Scales the longest side to N px (≤ 4096). New `client.getFileURL(id, opts)` builds a CDN URL without downloading.
-
-```typescript
-// Premium image gen — higher priority routes to faster compute on the server
-const img = await client.generateImage({
-  prompt: 'a cinematic mountain landscape',
-  format: 'landscape',
-  priority: 'urgent'
-});
-
-// Batch CDN cleanup
-const res = await client.batchDeleteFiles(staleIds);
-
-// Build a thumbnail URL
-const thumb = client.getFileURL(img.imageId, { format: 'png', maxSide: 256 });
-```
-
-See [CHANGELOG](./CHANGELOG.md) for the full list and the wiki for per-feature docs.
-
----
-
-## Features
-
-- **Text-to-Image** - Generate stunning images from text prompts
-- **Image-to-Image** - Edit and transform existing images
-- **Dual-Image Editing** - Face restoration, character consistency, and image merging with two source images
-- **AI Image Upscale** - Upscale images 2-4x using AI
-- **Image-to-Video** - Create videos from static images
-- **LLM Text Generation** - Generate text with context, memory, and JSON support
-- **LLM Streaming** - Real-time token-by-token streaming with SSE and WebSocket
-- **Image Vision** - Analyze images with LLM for structured data extraction
-- **STT Speech-to-Text** - Audio transcription with streaming and multi-language support
-- **TTS Text-to-Speech** - Voice synthesis with voice models, cloning, realtime mode, and streaming
-- **14 Style Presets** - Realistic, anime, manga, watercolor, cinematic, and more
-- **7 Format Presets** - Portrait, landscape, profile, story, post, smartphone, banner
-- **Built-in Watermarking** - Apply custom watermarks to generated content
-- **WebSocket Support** - Real-time generation with progress updates
-- **CDN Operations** - Format conversion, resizing, frame extraction
-- **Full TypeScript Support** - Comprehensive type definitions
-
-🤖 **For AI Agents and Tools:**
-
-- **OpenAI-Compatible API** - Drop-in `/v1/chat/completions` endpoint
-- **AI Agent Integration** - Enable any AI agent (Claude, GPT, etc.) to discover and use the SDK via `skill.md`
-
----
-
-## Installation
+Typed JavaScript/TypeScript client for the [2DAI](https://2dai.io) generation API.
+Generate images and video, upload references, and download results — all with an
+API key. Node 18+ and modern browsers. Zero runtime dependencies.
 
 ```bash
 npm install 2dai-cloud-sdk
 ```
 
----
+## Get a key
 
-## Quick Start
+Sign in at [2dai.io](https://2dai.io) (any active account works — no plan
+required), then in the dashboard open **Integrations → API keys → + New key**.
+Keys look like `2dai_sk_…`, carry scopes (`read`, `generate`, …), and can have
+an optional spend cap. The secret is shown once — store it somewhere safe. API
+generations spend your account credit exactly like the studio. Full walkthrough:
+[Getting Started](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Getting-Started).
 
-```typescript
-import { createClient, STYLES, FORMATS } from '2dai-cloud-sdk';
+## Quickstart
 
-// Initialize client
-const client = createClient('2dai_pk_your_api_key_here');
+```ts
+import { Client } from '2dai-cloud-sdk';
 
-// Generate an image
-const image = await client.generateImage({
-  prompt: 'a futuristic city at sunset with flying cars',
-  style: STYLES.cine.id,
-  format: FORMATS.landscape.id
-});
-console.log('Image ID:', image.imageId);
+const client = new Client({ apiKey: process.env.TWODAI_API_KEY! });
 
-// Generate text
-const text = await client.generateText({
-  prompt: 'Explain quantum computing in simple terms',
-  system: 'You are a helpful science teacher'
-});
-console.log(text.response);
+// Generates, waits for completion, and returns the finished creation.
+const gen = await client.generate.image({ prompt: 'a red origami fox', aspectRatio: '1:1' });
+console.log(gen.creationId, gen.downloadUrl);
 
-// Stream text in real-time
-const controller = client.generateTextStream({
-  prompt: 'Write a short story about AI',
-  onChunk: (chunk) => process.stdout.write(chunk),
-  onComplete: (result) => console.log(`\nTokens: ${result.totalTokens}`)
-});
-await controller.done;
-
-// Dual-image editing (merge, blend, mix two images)
-const result = await client.editImage('image-1-id', {
-  imageId2: 'image-2-id',
-  prompt: 'make an image with both subjects'
-});
-console.log('Merged Image ID:', result.imageId);
-
-// Text-to-Speech
-const speech = await client.generateSpeech({
-  text: 'Hello, how can I help you today?',
-  voice: TTS_VOICES.PAUL
-});
-console.log(`Duration: ${speech.duration}s`);
-
-// Text-to-Speech with realtime mode (low-latency)
-const realtimeSpeech = await client.generateSpeech({
-  text: 'Fast response with realtime mode.',
-  voice: TTS_VOICES.ALICE,
-  realtime: true
-});
-
-// Speech-to-Text
-const transcript = await client.transcribeAudio({
-  audio: audioBase64,
-  language: 'en'
-});
-console.log(transcript.text);
+// Save the actual bytes to disk (Node).
+await client.download(gen, { savePath: './fox' }); // → ./fox.jpg
 ```
 
----
+## Generating
 
-## Documentation
+`generate.*` submits to an async queue. By default it **polls to completion** and
+returns the finished `GenerationResult`. Pass `{ wait: false }` to get the queue
+ticket immediately and poll yourself.
 
-Full documentation is available in the **[Wiki](../../wiki)**.
-
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](../../wiki/Getting-Started) | Installation, API key, initialization |
-| [Image Generation](../../wiki/Image-Generation) | Text-to-image, editing, upscaling, styles & formats |
-| [Video Generation](../../wiki/Video-Generation) | Image-to-video creation |
-| [LLM & Streaming](../../wiki/LLM-Text-Generation) | Text generation, streaming, OpenAI-compatible API |
-| [STT Speech-to-Text](../../wiki/STT-Speech-to-Text) | Audio transcription, streaming, multi-language |
-| [TTS Text-to-Speech](../../wiki/TTS-Text-to-Speech) | Voice synthesis, cloning, realtime mode, streaming |
-| [CDN Operations](../../wiki/CDN-Operations) | Downloads, watermarks, format conversion |
-| [WebSocket API](../../wiki/WebSocket-API) | Real-time generation with progress updates |
-| [API Reference](../../wiki/API-Reference) | Complete endpoint documentation |
-| [Examples](../../wiki/Examples) | Full code examples |
-| [Troubleshooting](../../wiki/Troubleshooting) | Common issues, debug mode, best practices |
-| [AI Agent Integration](../../wiki/AI-Agent-Integration) | Enable AI agents to use the SDK |
-
----
-
-## OpenAI Compatibility
-
-Use with OpenAI client libraries:
-
-```typescript
-import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: '2dai_pk_your_api_key_here',
-  baseURL: 'https://api.2dai.io/v1'
+```ts
+// One-shot (default): resolves when the image is ready.
+const img = await client.generate.image({
+  prompt: 'a neon city street, rain',
+  aspectRatio: '16:9',
+  // style + quality default to 'auto' (the server picks by your tier)
 });
 
-const completion = await client.chat.completions.create({
-  model: 'default',
-  messages: [{ role: 'user', content: 'Hello!' }],
-  stream: true
+// Non-blocking: get a ticket now, poll later.
+const { queueId } = await client.generate.image({ prompt: '…' }, { wait: false });
+const state = await client.queue.waitFor(queueId, { timeoutMs: 300_000 });
+
+// Reference tools (face-ref / character-ref / style-transfer):
+const ref = await client.generate.imageWithRefs({
+  tool: 'face-ref',
+  prompt: 'as an astronaut',
+  refCreationIds: [gen.creationId],
 });
 
-for await (const chunk of completion) {
-  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+// Video from an existing still:
+const vid = await client.generate.video({
+  prompt: 'gentle camera push-in',
+  inputCreationId: gen.creationId,
+  duration: 5,
+});
+```
+
+## Uploading your own media
+
+Bring an image/gif/mp4 into your library so it can be used as a reference or
+animated. The same moderation pass as the studio runs server-side.
+
+```ts
+const up = await client.uploads.image({ path: './portrait.jpg' });      // Node
+const up2 = await client.uploads.image({ data: fileBlob });             // Browser
+await client.generate.imageWithRefs({ tool: 'character-ref', prompt: 'in a suit', refCreationIds: [up.creationId] });
+```
+
+## Downloading
+
+`client.cdn` authenticates with your key, so it works for private creations too.
+Accepts a CDN id, a `Creation`, a `QueueState`, or a generation result.
+
+```ts
+await client.cdn.download(gen, { savePath: './out' });   // Node → './out.jpg' (ext inferred)
+const asset = await client.cdn.fetch(gen);               // { bytes, contentType, ext }
+const blob = await client.cdn.toBlob(gen);               // Browser
+const dataUrl = await client.cdn.toDataUrl(gen);         // <img src={dataUrl} />
+```
+
+## Cloud drive
+
+Organise your library from code — folders, moving, trash, publishing (scopes:
+`manage` for organising, `publish` for the public feed).
+
+```ts
+const folder = await client.folders.create({ title: 'Brand assets' });
+await client.creations.move(gen, folder.folderId);   // or move(gen, 'root')
+await client.creations.publish(gen);                 // generated work only
+await client.creations.trash(gen);                   // reversible
+await client.creations.restore(gen);
+await client.creations.trash(gen); await client.creations.delete(gen); // permanent (trash first)
+await client.folders.delete(folder.folderId, { trashContents: true });
+```
+
+Browse it: `creations.list({ folderId })`, `{ folderId: 'root' }`, or
+`{ trashed: true }` — paginate with `nextBeforeDate` (limit 1..100).
+
+## Account & history
+
+```ts
+const me = await client.me();
+console.log(me.creditUsd, me.tier, me.key.scopes);
+
+const page = await client.creations.list({ limit: 20 });
+const one = await client.creations.get(page.creations[0].creationId);
+
+const state = await client.queue.get(queueId);       // one-shot status read
+const url = client.cdn.url(one);                      // raw CDN url (public creations)
+```
+
+## Error handling
+
+Every failure throws a typed error you can branch on:
+
+```ts
+import { InsufficientCreditError, SpendLimitError, NsfwRejectedError, ApiError } from '2dai-cloud-sdk';
+
+try {
+  await client.generate.image({ prompt: '…' });
+} catch (err) {
+  if (err instanceof InsufficientCreditError) console.log('Top up:', err.deficitUsd);
+  else if (err instanceof SpendLimitError) console.log('Key cap hit at', err.spendLimitUsd);
+  else if (err instanceof NsfwRejectedError) console.log('Blocked by moderation');
+  else if (err instanceof ApiError) console.log(err.code, err.httpStatus);
+  else throw err;
 }
 ```
 
----
+Other errors: `AuthError`, `ScopeError`, `TierError`, `QueueLimitError`,
+`RateLimitError`, `ValidationError`, `NotFoundError`, `GenerationFailedError`,
+`TimeoutError`. All extend `ApiError` (`.code`, `.httpStatus`, `.details`).
 
-## Available Styles
+## Configuration
 
-| Style | Description |
-|-------|-------------|
-| `raw` | Unprocessed, natural look |
-| `realistic` | Photo-realistic |
-| `cine` | Cinematic, film-like |
-| `portrait` | Optimized for portraits |
-| `anime` | Japanese anime style |
-| `manga` | Japanese manga style |
-| `watercolor` | Watercolor painting |
-| `paint` | Oil/acrylic painting |
-| `comicbook` | Western comic style |
-
-See [Image Generation](../../wiki/Image-Generation#styles-reference) for all 14 styles.
-
----
-
-## Testing
-
-The SDK includes comprehensive test suites covering REST, WebSocket, and OpenAI-compatible endpoints.
-
-```bash
-# Run all tests
-npm test
-
-# Run specific test suites
-npm run test:rest      # REST API tests (25 tests)
-npm run test:ws        # WebSocket tests (38 tests)
-npm run test:openai    # OpenAI-compatible tests (15 tests)
-npm run test:stt       # STT speech-to-text tests
-npm run test:tts       # TTS text-to-speech tests
+```ts
+new Client({
+  apiKey: '2dai_sk_…',   // required
+  baseUrl,               // default 'https://dapp.2dai.io:444'
+  timeoutMs,             // per-request network timeout, default 60000
+  maxRetries,            // idempotent GET retries on 429/5xx, default 2
+  fetch,                 // inject a custom fetch
+});
 ```
 
-See [tests/README.md](./tests/README.md) for detailed test documentation.
-
----
-
-## Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for version history and release notes.
-
----
+Generation submits are never auto-retried (they may charge); the SDK attaches an
+idempotency token so your own retry of an identical call within a few seconds is
+de-duplicated server-side.
 
 ## License
 
-MIT License - see [LICENSE](./LICENSE) for details.
-
----
-
-## Support
-
-- **Documentation**: [Wiki](../../wiki)
-- **Issues**: [GitHub Issues](https://github.com/2DAICommunity/2dai-cloud-sdk/issues)
-- **Email**: [support@2dai.io](mailto:support@2dai.io)
+MIT

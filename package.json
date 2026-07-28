@@ -1,69 +1,55 @@
 {
   "name": "2dai-cloud-sdk",
-  "version": "1.14.0",
-  "description": "Official 2DAI SDK - Multimodal AI for autonomous image/video generation, vision analysis, agentic LLM workflows, STT speech-to-text, and TTS text-to-speech",
+  "version": "2.0.0",
+  "description": "Typed JavaScript/TypeScript client for the 2DAI generation API — generate images & video, upload references, and download results with an API key.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
   "keywords": [
     "2dai",
     "ai",
-    "multimodal",
-    "agentic",
-    "autonomous",
     "image-generation",
     "video-generation",
-    "vision",
-    "llm"
+    "generative-ai",
+    "sdk",
+    "api-client"
   ],
-  "author": "2DAI",
   "license": "MIT",
+  "author": "2DAI",
+  "homepage": "https://2dai.io",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/2DAICommunity/2dai-cloud-sdk.git"
   },
-  "homepage": "https://github.com/2DAICommunity/2dai-cloud-sdk#readme",
   "bugs": {
     "url": "https://github.com/2DAICommunity/2dai-cloud-sdk/issues"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist/**/*",
-    "skill.md",
-    "skills/**/*",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
-    "test": "jest",
-    "test:rest": "jest tests/rest.test.ts --forceExit",
-    "test:ws": "jest tests/websocket.test.ts --forceExit",
-    "test:openai": "jest tests/openai.test.ts --forceExit",
-    "test:stt": "jest tests/stt.test.ts --forceExit",
-    "test:tts": "jest tests/tts.test.ts --forceExit",
-    "test:1.13": "jest tests/1.13.0-features.test.ts --forceExit",
-    "test:coverage": "jest --coverage"
-  },
-  "dependencies": {
-    "axios": "^1.12.2",
-    "ws": "^8.18.1"
-  },
   "devDependencies": {
-    "@types/jest": "^29.5.14",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "~22.1.0",
-    "@types/ws": "^8.18.1",
-    "dotenv": "^17.2.3",
-    "image-size": "^2.0.2",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
-  },
-  "overrides": {
-    "uuid": "^11.0.4"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "@types/node": "^20.14.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.5.0"
   }
 }

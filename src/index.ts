@@ -1,115 +1,58 @@
-/**
- * 2DAI SDK - Official TypeScript/JavaScript SDK
- * @version 1.14.0
- * @packageDocumentation
- */
+// 2dai-cloud-sdk — a typed client for the 2DAI generation API.
+// Get a key at https://2dai.io → dashboard → Integrations → API keys.
 
-// Export main client
-export { TwoDAIClient, createClient } from './client';
-export { default } from './client';
+export { Client } from './client';
 
-// Export types
-export {
+export type {
   ClientOptions,
-  ImageGenerationOptions,
-  VideoGenerationOptions,
-  TextGenerationOptions,
-  UpscaleOptions,
-  ImageGenerationResult,
-  VideoGenerationResult,
-  TextGenerationResult,
-  UpscaleResult,
-  StylePreset,
-  FormatPreset,
-  WatermarkOptions,
-  WatermarkPosition,
-  CDNFileMetadata,
-  CDNDownloadOptions,
-  CDNDownloadResult,
-  CDNFileURLOptions,
-  BatchDeleteResult,
-  BatchDeleteResponse,
-  PriorityLevel,
-  APIError,
-  RateLimitInfo,
-  APIKeySettings,
-  // WebSocket request/response types
-  WsImageRequest,
-  WsImg2ImgRequest,
-  WsVideoRequest,
-  WsLlmRequest,
-  WsUpscaleRequest,
-  WsImageResponse,
-  WsVideoResponse,
-  WsLlmResponse,
-  WsUpscaleResponse,
-  WsRequestData,
-  WsResponseData,
-  // Streaming types
-  TextStreamOptions,
-  TextStreamChunk,
-  TextStreamResult,
-  TextStreamController,
-  WsLlmStreamRequest,
-  WsStreamCallbacks,
-  WsStreamController,
-  // Settings types
-  WsUsageRequest,
-  WsSettingsResponse,
-  WsUsageResponse,
-  WsRateLimitsResponse,
-  // STT types
-  STTAudioFormat,
-  STTOptions,
-  STTResult,
-  STTStreamOptions,
-  STTStreamChunk,
-  STTStreamResult,
-  STTStreamController,
-  WsSttRequest,
-  WsSttResponse,
-  WsSttStreamCallbacks,
-  // TTS types
-  TTSOutputFormat,
-  TTSLanguage,
-  TTSOptions,
-  TTSResult,
-  TTSStreamOptions,
-  TTSStreamChunk,
-  TTSStreamResult,
-  TTSStreamController,
-  WsTtsRequest,
-  WsTtsResponse,
-  WsTtsStreamCallbacks
+  Account,
+  KeyContext,
+  Scope,
+  QueueStatus,
+  QueueTicket,
+  QueueState,
+  Creation,
+  CreationPage,
+  CreationRef,
+  Folder,
+  FolderInput,
+  FolderPatch,
+  MoveTarget,
+  GenerationResult,
+  AspectRatio,
+  ImageParams,
+  RefParams,
+  RefTool,
+  VideoParams,
+  SubmitOptions,
+  WaitOptions,
+  ListOptions,
+  DeleteFolderOptions,
+  UploadInput,
+  CdnAsset,
+  CdnRef,
 } from './types';
 
-// Export constants
+export type { GenerateNamespace } from './generate';
+export type { CreationsNamespace } from './creations';
+export type { FoldersNamespace } from './folders';
+export type { UploadsNamespace } from './uploads';
+export type { QueueNamespace } from './queue';
+export type { CdnNamespace, DownloadOptions } from './cdn';
+
 export {
-  STYLES,
-  FORMATS,
-  VALID_STYLE_IDS,
-  VALID_FORMAT_IDS,
-  VIDEO_FPS,
-  VIDEO_DURATION,
-  IMAGE_DIMENSIONS,
-  SEED,
-  UPSCALE_FACTOR,
-  WS_DEFAULTS,
-  WS_TYPES,
-  // Streaming constants
-  STREAM_DEFAULTS,
-  WS_STREAM_TYPES,
-  // STT constants
-  STT_FORMATS,
-  STT_MAX_AUDIO_SIZE_BYTES,
-  // TTS constants
-  TTS_VOICES,
-  TTS_LANGUAGES,
-  TTS_OUTPUT_FORMATS,
-  TTS_SPEED,
-  TTS_MAX_TEXT_LENGTH,
-  // Priority queue tiers (SDK 2.21+)
-  PRIORITY_LEVELS,
-  // Batch delete (SDK 2.24+)
-  MAX_BATCH_DELETE_IDS
-} from './constants';
+  ApiError,
+  AuthError,
+  ScopeError,
+  InsufficientCreditError,
+  SpendLimitError,
+  TierError,
+  NsfwRejectedError,
+  QueueLimitError,
+  NotFoundError,
+  RateLimitError,
+  ValidationError,
+  GenerationFailedError,
+  TimeoutError,
+} from './errors';
+export type { ApiErrorBody } from './errors';
