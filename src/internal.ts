@@ -130,6 +130,7 @@ export function normalizeCreation(raw: any, baseUrl: string): Creation {
     width: num(raw?.width) ?? num(raw?.outputWidth),
     height: num(raw?.height) ?? num(raw?.outputHeight),
     isUploaded: raw?.isUploaded === true,
+    source: typeof raw?.source === 'string' ? raw.source : undefined,
     nsfwRate: num(raw?.nsfwRate),
     creationDate: raw?.creationDate,
     raw,

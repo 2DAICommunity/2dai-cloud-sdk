@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1
+
+### Added
+- `Creation.source` — origin of a creation (`'web'` studio, `'sdk'`,
+  `'mcp'`, `'api'` raw REST). Mirrors the dashboard's SDK / MCP cloud
+  collections; stamped server-side from the request User-Agent.
+
 ## 2.0.0
 
 Complete rewrite for the 2DAI v2 platform. **Breaking** — v2 is a new API and

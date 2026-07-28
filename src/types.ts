@@ -60,6 +60,9 @@ export interface Creation {
   width?: number;
   height?: number;
   isUploaded?: boolean;
+  /** Origin of the creation: 'web' (studio), 'sdk', 'mcp' or 'api' (raw
+   *  REST). Powers the dashboard's SDK / MCP cloud collections. */
+  source?: string;
   nsfwRate?: number;
   creationDate?: string;
   /** The untouched server payload, for fields not surfaced above. */
