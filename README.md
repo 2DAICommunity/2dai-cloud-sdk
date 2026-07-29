@@ -4,6 +4,9 @@ Typed JavaScript/TypeScript client for the [2DAI](https://2dai.io) generation AP
 Generate images and video, upload references, and download results — all with an
 API key. Node 18+ and modern browsers. Zero runtime dependencies.
 
+Not on JavaScript? The same platform is a plain REST API — jump to
+[Use the REST API](#not-on-javascript-use-the-rest-api).
+
 ```bash
 npm install 2dai-cloud-sdk
 ```
@@ -140,6 +143,43 @@ try {
 Other errors: `AuthError`, `ScopeError`, `TierError`, `QueueLimitError`,
 `RateLimitError`, `ValidationError`, `NotFoundError`, `GenerationFailedError`,
 `TimeoutError`. All extend `ApiError` (`.code`, `.httpStatus`, `.details`).
+
+## Not on JavaScript? Use the REST API
+
+Everything below is plain HTTP — the SDK is a convenience layer, not a gate.
+Base URL `https://dapp.2dai.io:444/v1`, bearer auth, JSON in and out.
+Generation is asynchronous: submit, then poll.
+
+```bash
+# 1 · submit → returns a queueId
+curl -X POST https://dapp.2dai.io:444/v1/generate/image \
+  -H "Authorization: Bearer $TWODAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"a lighthouse at dusk"}'
+
+# 2 · poll until status is completed, then fetch downloadUrl with the same bearer
+curl https://dapp.2dai.io:444/v1/queue/$QUEUE_ID \
+  -H "Authorization: Bearer $TWODAI_API_KEY"
+```
+
+| Method | Endpoint | Scope | What |
+|---|---|---|---|
+| GET | `/v1/me` | `read` | Account, credit, key scopes |
+| POST | `/v1/generate/image` | `generate` | Text → image |
+| POST | `/v1/generate/image-with-refs` | `generate` | Face / character ref, style transfer |
+| POST | `/v1/generate/video` | `generate` | Still → video |
+| POST | `/v1/uploads` | `generate` | Upload media (multipart) |
+| GET | `/v1/queue/:queueId` | `read` | Poll a generation |
+| GET | `/v1/creations` | `read` | List your drive (paginated) |
+| GET | `/v1/creations/:id` | `read` | One creation, full detail |
+| POST | `/v1/creations/:id/move` \| `/trash` \| `/restore` | `manage` | Organise |
+| DELETE | `/v1/creations/:id` | `manage` | Permanent delete (trash first) |
+| POST | `/v1/creations/:id/publish` \| `/unpublish` | `publish` | Public feed |
+| GET/POST/PATCH/DELETE | `/v1/folders` | `read` / `manage` | Folders |
+| GET | `/cdn/file/:cdnId` | `read` | Download bytes (`?w=512` for a preview) |
+
+Full request/response shapes, every error code and the limits are documented in
+the **[REST API reference](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/REST-API)**.
 
 ## Configuration
 

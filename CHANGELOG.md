@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.2
+
+### Documentation
+- README now documents the **raw REST API** — base URL, bearer auth, the
+  submit/poll flow with curl, and an endpoint table with required scopes —
+  so non-JavaScript users have a first-class path. Full request/response
+  shapes live in the new REST API wiki page.
+
 ## 2.0.1
 
 ### Added
