@@ -163,5 +163,8 @@ export function normalizeFolder(raw: any): Folder {
   };
 }
 
-export const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'dismissed', 'timeout']);
+// Must mirror the server's terminal set (genQueue.ts) — a status missing here
+// makes waitFor poll a finished job until its own deadline, then report
+// TimeoutError for something the server settled long before.
+export const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'dismissed', 'timeout', 'expired']);
 export const SUCCESS_STATUSES = new Set(['completed']);

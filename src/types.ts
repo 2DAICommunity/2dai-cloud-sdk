@@ -24,7 +24,7 @@ export interface Account {
 
 export type QueueStatus =
   | 'pending' | 'pendingCharge' | 'processing' | 'inProgress'
-  | 'completed' | 'failed' | 'cancelled' | 'dismissed' | 'timeout';
+  | 'completed' | 'failed' | 'cancelled' | 'dismissed' | 'timeout' | 'expired';
 
 /** What a non-blocking `generate.*({ wait: false })` returns immediately. */
 export interface QueueTicket {
@@ -90,6 +90,12 @@ export interface Folder {
   raw?: Record<string, unknown>;
 }
 
+export interface FolderPage {
+  folders: Folder[];
+  /** Pass as `beforeDate` to fetch the next page; absent when the list is exhausted. */
+  nextBeforeDate?: string;
+}
+
 export interface FolderInput {
   title: string;
   description?: string;
@@ -126,6 +132,24 @@ export interface ImageParams {
   width?: number;
   height?: number;
   negativePrompt?: string;
+  /** Rewrite the prompt with **TIXI**, the 2DAI prompt agent, before it reaches
+   *  the image model (default `false`).
+   *
+   *  TIXI is an LLM that turns a short brief into a full image-gen prompt:
+   *  it fills in camera, lens and lighting, sets composition and framing,
+   *  anchors the style, and groups related details together (scattering them
+   *  is what produces anatomy errors). `"a warrior"` becomes a paragraph.
+   *
+   *  Costs ~2 s of extra latency and nothing in credit. Best for short or
+   *  vague briefs; leave it off when you have already written a precise prompt
+   *  and want it honoured verbatim.
+   *
+   *  Your text is never discarded — the returned `Creation.prompt` is still what
+   *  you sent, and TIXI's rewrite is in `raw.finalPrompt`.
+   *
+   *  Not a free-for-all switch across the API: face-ref, character-ref and
+   *  wallpaper-resize always run TIXI (their directives depend on it), while
+   *  `generate.video` has no `enhanced` option at all. */
   enhanced?: boolean;
   allowNSFW?: boolean;
   /** Up to 3 soft-conditioning reference creations. */
@@ -192,6 +216,31 @@ export interface ListOptions {
   signal?: AbortSignal;
 }
 
+/** Ordering for `folders.list`. Same vocabulary the studio uses; `index` is the
+ *  drag-reorder order shown in the sidebar. */
+export type FolderSort = 'index' | 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'update-desc';
+
+/** Pagination for `folders.list` — the same cursor contract as `ListOptions`,
+ *  minus the creation filters, which have no meaning on a folder list. */
+export interface FolderListOptions {
+  /** 1..100 (default 20). */
+  limit?: number;
+  /** ISO date — return folders strictly older than this (pagination cursor).
+   *  Only meaningful for the default and `date-desc` orderings; see `sort`. */
+  beforeDate?: string;
+  /** Ordering (default: newest first). Note the interaction with the cursor:
+   *  `beforeDate` filters on the creation date, so it can only walk a
+   *  date-descending sequence without skipping or repeating rows. Ask for any
+   *  other ordering and you get it, but `nextBeforeDate` comes back undefined —
+   *  raise `limit` instead, which at 100 covers any realistic drive. */
+  sort?: FolderSort;
+  signal?: AbortSignal;
+}
+
+/** `folders.list` took a bare `AbortSignal` before it was paginated; both forms
+ *  still work. */
+export type FolderListArg = AbortSignal | FolderListOptions;
+
 export interface DeleteFolderOptions {
   /** Also send the folder's creations to trash (default: detach them to root). */
   trashContents?: boolean;
@@ -231,6 +280,26 @@ export interface ClientOptions {
   timeoutMs?: number;
   /** Retry cap for idempotent GETs on 429/5xx (default 2). */
   maxRetries?: number;
-  /** Extra User-Agent suffix. */
-  userAgent?: string;
+  /** Which official 2DAI integration this client runs inside (default `'sdk'`).
+   *
+   *  This is a closed set, not a free-form User-Agent: the server derives each
+   *  creation's `source` from the client token, and `source` drives the
+   *  dashboard's SDK / MCP collections and the origin pills. An open string
+   *  invited both typos and spoofing of a label the platform treats as data.
+   *
+   *  Set `'mcp'` only from the official MCP server. Everything else — your own
+   *  app, a script, a backend job — leaves this alone and lands as `sdk`. */
+  integration?: Integration;
+  /** Version of that integration, appended to the User-Agent for diagnostics
+   *  (e.g. the MCP server's own version). Must look like `1.2.3`, optionally
+   *  with a prerelease/build suffix. A malformed value is replaced by `0.0.0`
+   *  rather than omitted — the token must match `name/x.y.z` for the server to
+   *  recognise the integration at all, so an honest placeholder beats silently
+   *  losing the attribution. */
+  integrationVersion?: string;
 }
+
+/** Official integrations that may identify themselves to the API. Extending
+ *  this means teaching `machineSourceFromUserAgent` about the new token too —
+ *  the two live and die together. */
+export type Integration = 'sdk' | 'mcp';

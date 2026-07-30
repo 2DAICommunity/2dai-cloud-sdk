@@ -2,11 +2,21 @@
 
 import { normalizeFolder } from './internal';
 import type { Http } from './http';
-import type { DeleteFolderOptions, Folder, FolderInput, FolderPatch } from './types';
+import type {
+  DeleteFolderOptions,
+  Folder,
+  FolderInput,
+  FolderListArg,
+  FolderListOptions,
+  FolderPage,
+  FolderPatch,
+} from './types';
 
 export interface FoldersNamespace {
-  /** All your folders (collections). */
-  list(signal?: AbortSignal): Promise<Folder[]>;
+  /** A page of your folders (collections), newest first unless you pass `sort`;
+   *  paginate with `nextBeforeDate`. Also accepts a bare `AbortSignal` — the
+   *  signature this method had before it was paginated. */
+  list(arg?: FolderListArg): Promise<FolderPage>;
   /** Create a folder. */
   create(input: FolderInput, signal?: AbortSignal): Promise<Folder>;
   /** Rename / re-describe a folder. */
@@ -16,11 +26,28 @@ export interface FoldersNamespace {
   delete(folderId: string, opts?: DeleteFolderOptions): Promise<{ folderId: string; deleted: boolean }>;
 }
 
+/** Accepts either calling convention without making callers care. */
+function splitListArg(arg?: FolderListArg): FolderListOptions {
+  if (!arg) return {};
+  // An AbortSignal is identified structurally rather than with `instanceof`:
+  // polyfilled and cross-realm signals fail the prototype check.
+  if (typeof (arg as AbortSignal).aborted === 'boolean') return { signal: arg as AbortSignal };
+  return arg as FolderListOptions;
+}
+
 export function createFolders(http: Http): FoldersNamespace {
   return {
-    async list(signal?: AbortSignal): Promise<Folder[]> {
-      const raw = await http.request<any>('GET', '/v1/folders', { idempotent: true, signal });
-      return Array.isArray(raw?.folders) ? raw.folders.map(normalizeFolder) : [];
+    async list(arg?: FolderListArg): Promise<FolderPage> {
+      const opts = splitListArg(arg);
+      const raw = await http.request<any>('GET', '/v1/folders', {
+        idempotent: true,
+        signal: opts.signal,
+        query: { limit: opts.limit, beforeDate: opts.beforeDate, sort: opts.sort },
+      });
+      return {
+        folders: Array.isArray(raw?.folders) ? raw.folders.map(normalizeFolder) : [],
+        nextBeforeDate: raw?.nextBeforeDate || undefined,
+      };
     },
 
     async create(input: FolderInput, signal?: AbortSignal): Promise<Folder> {

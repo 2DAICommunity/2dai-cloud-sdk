@@ -1,5 +1,96 @@
 # Changelog
 
+## 2.1.0
+
+> **Read the Breaking section even though this is a minor release.** Two
+> published behaviours changed. A `^2.0.x` range resolves to this version
+> automatically, so pin `2.0.2` if you need the old surface while you migrate.
+
+### Breaking
+- **`ClientOptions.userAgent` is removed.** It was a free-form string, but the
+  server derives each creation's `source` from the User-Agent, and `source`
+  drives the dashboard's SDK / MCP collections and the origin pills — an open
+  string invited both typos and spoofing of a value the platform stores as data.
+  Replaced by a closed set:
+
+  ```ts
+  new Client({ apiKey, integration: 'mcp', integrationVersion: '1.0.0' })
+  ```
+
+  `integration` is `'sdk'` (default) or `'mcp'`. `integrationVersion` must be a
+  real `x.y.z`; a malformed value is replaced by `0.0.0` rather than omitted,
+  because the token has to match `name/x.y.z` for the integration to be
+  recognised at all. Normal consumers set neither and land as `sdk`, exactly as
+  before. If you were passing `userAgent` to label your own traffic there is no
+  replacement, by design: `source` records which official integration made the
+  call, not who wrote the caller.
+
+- **`folders.list` returns a page, not an array.** It was the one navigation
+  surface with no bound at all — a drive with hundreds of collections returned
+  every one of them in a single response.
+
+  ```ts
+  // before
+  const folders = await client.folders.list();
+  // after
+  let page = await client.folders.list({ limit: 50 });
+  while (page.nextBeforeDate) {
+    page = await client.folders.list({ limit: 50, beforeDate: page.nextBeforeDate });
+  }
+  ```
+
+  The cursor contract matches `creations.list`. The bare-`AbortSignal` call form
+  (`folders.list(signal)`) still works; only the return type changed. Server-side,
+  `GET /v1/folders` now defaults to 20 rows (max 100) where it used to return
+  everything — a real change for a raw REST caller that sent no `limit`, **and
+  for `2dai-cloud-sdk@2.0.x`**, whose `folders.list()` sends no params: against
+  the updated API it returns the 20 newest folders (date order) instead of the
+  full set. Upgrade to 2.1.0 for the cursor; the 2.0.x line is deprecated on npm.
+
+### Added
+- **CDN server-side resize** on `cdn.fetch`, `cdn.download`, `cdn.toBlob`,
+  `cdn.toDataUrl` and `cdn.url`: `maxSide` (longest edge, aspect ratio
+  preserved), plus `width` / `height` for a specific axis. The CDN does the work,
+  so nothing is decoded client-side and a thumbnail costs a fraction of the
+  transfer — measured against production, a 1164 kB asset returns at 132 kB with
+  `maxSide: 512` and 47 kB at 256.
+
+  ```ts
+  const preview = await client.cdn.toDataUrl(gen, { maxSide: 512 });
+  await client.cdn.download(gen, { maxSide: 256, savePath: './thumb' });
+  ```
+
+  `fetch` / `toBlob` / `toDataUrl` still accept a bare `AbortSignal` as their
+  second argument, so existing calls are untouched. Non-finite or non-positive
+  values now throw `ApiError('INVALID_TRANSFORM')` client-side rather than
+  reaching the CDN as `?w=NaN`.
+
+- `folders.list` accepts `sort` — `index`, `date-desc`, `date-asc`, `name-asc`,
+  `name-desc`, `update-desc`, the same vocabulary the studio uses. Note the
+  interaction with the cursor: `beforeDate` filters on the creation date, so it
+  can only walk a date-descending sequence without skipping or repeating rows.
+  Any other ordering is honoured but returns no `nextBeforeDate` — raise `limit`
+  instead. Emitting a cursor that silently corrupts the sequence would be worse
+  than withholding one.
+
+### Fixed
+- `expired` is now a terminal `QueueStatus`. The server marks stale pending jobs
+  `expired`, but the SDK's terminal set omitted it, so `queue.waitFor` (and every
+  `wait: true` generate call) kept polling a job the server had already settled,
+  then threw `TimeoutError` instead of returning the state.
+- The User-Agent reported `2dai-cloud-sdk/2.0.0` from every 2.0.x release — the
+  version was hardcoded and had drifted from `package.json`. Corrected, and
+  `npm run check:version` now fails the publish if the two ever diverge again.
+
+### Documentation
+- `enhanced` is documented properly: it routes your prompt through **TIXI**, the
+  2DAI prompt agent, which expands a short brief into a full image-gen prompt
+  (camera, lighting, composition, style anchoring) before the image model sees
+  it. Costs ~2 s and no extra credit. Your text stays in `Creation.prompt`; TIXI's
+  rewrite is in `raw.finalPrompt`. Also documented: face-ref, character-ref and
+  wallpaper-resize always run TIXI regardless of the flag, and `generate.video`
+  has no `enhanced` option at all.
+
 ## 2.0.2
 
 ### Documentation

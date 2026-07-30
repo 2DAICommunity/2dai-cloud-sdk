@@ -49,6 +49,12 @@ const img = await client.generate.image({
   // style + quality default to 'auto' (the server picks by your tier)
 });
 
+// `enhanced` rewrites your prompt with TIXI, the 2DAI prompt agent, before it
+// reaches the image model — it fills in camera, lighting, composition and style
+// from a short brief. ~2s extra, no extra credit. Your text stays in `.prompt`;
+// TIXI's version is in `.raw.finalPrompt`.
+const rich = await client.generate.image({ prompt: 'a warrior', enhanced: true });
+
 // Non-blocking: get a ticket now, poll later.
 const { queueId } = await client.generate.image({ prompt: '…' }, { wait: false });
 const state = await client.queue.waitFor(queueId, { timeoutMs: 300_000 });
@@ -89,7 +95,16 @@ await client.cdn.download(gen, { savePath: './out' });   // Node → './out.jpg'
 const asset = await client.cdn.fetch(gen);               // { bytes, contentType, ext }
 const blob = await client.cdn.toBlob(gen);               // Browser
 const dataUrl = await client.cdn.toDataUrl(gen);         // <img src={dataUrl} />
+
+// The CDN can resize before it sends: `maxSide` scales the longest edge and
+// keeps the aspect ratio, so one call covers portrait and landscape.
+const preview = await client.cdn.toDataUrl(gen, { maxSide: 512 });   // 1164 kB → 132 kB
+await client.cdn.download(gen, { maxSide: 256, savePath: './thumb' }); // composes with savePath
 ```
+
+`maxSide` is what you want for previews and thumbnails; `width` / `height` target
+one axis specifically and may crop. Details:
+[Downloading](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Downloading).
 
 ## Cloud drive
 
@@ -176,7 +191,7 @@ curl https://dapp.2dai.io:444/v1/queue/$QUEUE_ID \
 | DELETE | `/v1/creations/:id` | `manage` | Permanent delete (trash first) |
 | POST | `/v1/creations/:id/publish` \| `/unpublish` | `publish` | Public feed |
 | GET/POST/PATCH/DELETE | `/v1/folders` | `read` / `manage` | Folders |
-| GET | `/cdn/file/:cdnId` | `read` | Download bytes (`?w=512` for a preview) |
+| GET | `/cdn/file/:cdnId` | `read` | Download bytes (`?s=512` for a preview) |
 
 Full request/response shapes, every error code and the limits are documented in
 the **[REST API reference](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/REST-API)**.
@@ -190,8 +205,17 @@ new Client({
   timeoutMs,             // per-request network timeout, default 60000
   maxRetries,            // idempotent GET retries on 429/5xx, default 2
   fetch,                 // inject a custom fetch
+  integration,           // 'sdk' (default) | 'mcp' — official 2DAI integrations
+  integrationVersion,    // that integration's own semver, e.g. '1.4.0'
 });
 ```
+
+`integration` is a closed set rather than a free-form User-Agent, and you should
+leave it alone: the server stamps each creation's `source` from it, and the
+dashboard reads `source` to fill its SDK / MCP collections and label where a row
+came from. `'mcp'` is reserved for the official 2DAI MCP server; anything you
+build reports as `sdk`. `integrationVersion` must be a real `1.2.3`; a malformed
+value is replaced by `0.0.0` rather than omitted, so the token still attributes.
 
 Generation submits are never auto-retried (they may charge); the SDK attaches an
 idempotency token so your own retry of an identical call within a few seconds is

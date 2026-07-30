@@ -15,8 +15,12 @@ export type {
   CreationPage,
   CreationRef,
   Folder,
+  FolderPage,
   FolderInput,
   FolderPatch,
+  FolderListOptions,
+  FolderListArg,
+  FolderSort,
   MoveTarget,
   GenerationResult,
   AspectRatio,
@@ -38,7 +42,8 @@ export type { CreationsNamespace } from './creations';
 export type { FoldersNamespace } from './folders';
 export type { UploadsNamespace } from './uploads';
 export type { QueueNamespace } from './queue';
-export type { CdnNamespace, DownloadOptions } from './cdn';
+export type { CdnNamespace, DownloadOptions, CdnTransform, CdnFetchOptions, CdnFetchArg } from './cdn';
+export type { Integration } from './types';
 
 export {
   ApiError,

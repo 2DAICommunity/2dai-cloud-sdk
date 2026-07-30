@@ -3,10 +3,41 @@
 // exported from the package root.
 
 import { ApiError } from './errors';
-import type { ClientOptions } from './types';
+import type { ClientOptions, Integration } from './types';
 
 const DEFAULT_BASE_URL = 'https://dapp.2dai.io:444';
-const SDK_VERSION = '2.0.0';
+/** Must equal `package.json`'s version — the User-Agent is how the server
+ *  identifies the client, and a stale value here silently reports the wrong one
+ *  (it read 2.0.0 while every 2.0.x shipped). `scripts/check-version.mjs` runs on
+ *  `prepublishOnly` and fails the publish if this and `package.json` diverge —
+ *  importing package.json instead would leak a JSON module into the dual
+ *  ESM/CJS build. */
+export const SDK_VERSION = '2.1.0';
+
+/** The exact token each integration announces. Closed on purpose: the server's
+ *  `machineSourceFromUserAgent` matches these as whole `name/semver` words to
+ *  derive a creation's `source`, so an arbitrary string here would either be
+ *  ignored or — worse — mislabel someone's work. */
+const INTEGRATION_TOKEN: Record<Exclude<Integration, 'sdk'>, string> = {
+  mcp: '2dai-mcp-server',
+};
+
+/** Only a real semver reaches the wire. The server requires `x.y.z` (with an
+ *  optional prerelease/build suffix) and ignores anything else, so a malformed
+ *  version would produce a token that looks official but attributes nothing.
+ *  Substitute `0.0.0` rather than omitting the version: the token still has to
+ *  match `name/x.y.z` for the integration to be recognised at all, so an honest
+ *  placeholder beats losing the attribution. */
+const SEMVER = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+
+export function buildUserAgent(integration?: Integration, integrationVersion?: string): string {
+  const base = `2dai-cloud-sdk/${SDK_VERSION}`;
+  if (!integration || integration === 'sdk') return base;
+  const name = INTEGRATION_TOKEN[integration];
+  if (!name) return base;
+  const version = integrationVersion && SEMVER.test(integrationVersion) ? integrationVersion : '0.0.0';
+  return `${base} ${name}/${version}`;
+}
 
 interface RequestOptions {
   json?: unknown;
@@ -40,7 +71,7 @@ export class Http {
     this.fetchImpl = f;
     this.timeoutMs = opts.timeoutMs ?? 60_000;
     this.maxRetries = Math.max(0, opts.maxRetries ?? 2);
-    this.ua = `2dai-cloud-sdk/${SDK_VERSION}${opts.userAgent ? ' ' + opts.userAgent : ''}`;
+    this.ua = buildUserAgent(opts.integration, opts.integrationVersion);
   }
 
   /** JSON request → parsed T. Throws a typed ApiError on any non-2xx. */
