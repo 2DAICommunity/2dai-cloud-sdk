@@ -2,11 +2,12 @@
 // polls to completion and returns the finished creation. Pass `{ wait: false }`
 // to get the queue ticket immediately and poll yourself.
 
-import { GenerationFailedError } from './errors';
-import { mintClientToken, normalizeCreation, resolveDims } from './internal';
+import { ApiError, GenerationFailedError } from './errors';
+import { extractCreationId, mintClientToken, normalizeCreation, resolveDims } from './internal';
 import { pollQueue } from './queue';
 import type { Http } from './http';
 import type {
+  CreationRef,
   GenerationResult,
   ImageParams,
   QueueTicket,
@@ -22,6 +23,14 @@ export interface GenerateNamespace {
   imageWithRefs(params: RefParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   video(params: VideoParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
   video(params: VideoParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
+  /** Re-run a stored creation ("Generate Similar"): the SERVER re-derives the
+   *  original tool's parameters from the stored row — prompt, style, quality,
+   *  dimensions, references — and submits a fresh generation at the usual
+   *  price. Works for image, ref-tool, edit and video rows; wallpaper-resize
+   *  rows and raw uploads can't be re-derived and reject with a 400
+   *  `ValidationError` (`REGEN_UNSUPPORTED_TOOL`). */
+  similar(ref: CreationRef, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
+  similar(ref: CreationRef, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
 }
 
 export function createGenerate(http: Http): GenerateNamespace {
@@ -67,6 +76,16 @@ export function createGenerate(http: Http): GenerateNamespace {
         clientToken: params.clientToken,
       }, opts) as any;
     },
+    similar: (ref: CreationRef, opts?: SubmitOptions) => {
+      const creationId = extractCreationId(ref);
+      if (!creationId) {
+        return Promise.reject(new ApiError('NO_CREATION_ID', 0, 'Could not resolve a creation id from the argument.')) as any;
+      }
+      // No clientToken here: the server rebuilds the submit body from the
+      // stored row, so a token in THIS body would be discarded. Rapid repeats
+      // still dedup — identical derived bodies hit the server's 5s window.
+      return submitTicket(http, '/v1/generate/similar', { creationId }, opts ?? {}) as any;
+    },
   };
 }
 
@@ -80,8 +99,18 @@ async function submit(
   // server dedups identical bodies for 5s). The submit itself is never
   // auto-retried by the transport.
   if (!body.clientToken) body.clientToken = mintClientToken();
-  const clean = pruneUndefined(body);
-  const ticket = await http.request<QueueTicket>('POST', path, { json: clean, idempotent: false, signal: opts.signal });
+  return submitTicket(http, path, pruneUndefined(body), opts);
+}
+
+/** POST a submit body, then either return the ticket (`wait: false`) or poll
+ *  the queue to a terminal state and enrich into a GenerationResult. */
+async function submitTicket(
+  http: Http,
+  path: string,
+  body: Record<string, unknown>,
+  opts: SubmitOptions,
+): Promise<GenerationResult | QueueTicket> {
+  const ticket = await http.request<QueueTicket>('POST', path, { json: body, idempotent: false, signal: opts.signal });
 
   if (opts.wait === false) return ticket;
 

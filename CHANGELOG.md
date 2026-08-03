@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.2.0
+
+Additive release — no breaking changes. Requires the server wave shipped with
+platform v20096 (older servers 404 the two new endpoints).
+
+### Added
+- **`generate.similar(ref, opts?)`** — re-run a stored creation ("Generate
+  Similar"). The server re-derives the original tool's parameters (prompt,
+  style, quality, dimensions, references) from the stored row and submits a
+  fresh generation at the usual price, with the same `wait` / ticket contract
+  as the other generate methods. Wallpaper-resize rows and raw uploads can't
+  be re-derived and reject with a 400 `ValidationError`
+  (`REGEN_UNSUPPORTED_TOOL`).
+- **`creations.clone(ref)`** — byte-identical duplicate (images only). The
+  copy gets its own CDN file, inherits the original's description, tags and
+  moderation verdict, lands private in the same folder as the original
+  (`move` it afterwards to relocate), and costs no credit. Clone chains are
+  flattened server-side: cloning a clone points at the original. Requires
+  the `manage` scope.
+- **`creations.list({ usedRef })`** — filter to creations BUILT FROM a given
+  creation: any reference slot (image refs, face/character refs, style
+  sources) or lineage parent (retry, crop, erase, clone, edit) counts, with
+  the same clone-family expansion as the studio's filter-by-reference lens.
+- **`Creation.isCloned` / `Creation.clonedFromCreationId`** — typed on
+  single-creation fetches (list rows stay curated and omit them).
+
+### Fixed
+- Old queue ids no longer go dark: the server now archives settled queue rows
+  past the newest 200 per account, and `queue.get()` transparently resolves
+  archived rows too, so a stored `queueId` keeps answering with its terminal
+  status and `creationId` indefinitely. (Server-side change — no SDK code
+  involved, documented here because 2.1.0 consumers could observe a 404
+  `NotFoundError` on ids older than ~a day during the rollout window.)
+
 ## 2.1.0
 
 > **Read the Breaking section even though this is a minor release.** Two

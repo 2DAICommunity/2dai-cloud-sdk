@@ -7,11 +7,18 @@ import type { Http } from './http';
 import type { Creation, CreationPage, CreationRef, ListOptions, MoveTarget } from './types';
 
 export interface CreationsNamespace {
-  /** Newest-first page of your creations. Filter by `folderId` (or `'root'`) and
-   *  `trashed`; paginate with `nextBeforeDate`. */
+  /** Newest-first page of your creations. Filter by `folderId` (or `'root'`),
+   *  `trashed` and `usedRef`; paginate with `nextBeforeDate`. */
   list(opts?: ListOptions): Promise<CreationPage>;
   /** Fetch a single creation you own. */
   get(ref: CreationRef, signal?: AbortSignal): Promise<Creation>;
+  /** Byte-identical duplicate of a creation (images only). The copy gets its
+   *  own CDN file, inherits the original's description/tags/moderation verdict
+   *  (same bytes — nothing is re-scored), and lands private in the SAME
+   *  folder as the original (`move` it afterwards if you want it elsewhere).
+   *  Costs no credit; rides the upload tier + storage-quota gates.
+   *  Clone chains are flattened: cloning a clone points at the ORIGINAL. */
+  clone(ref: CreationRef, signal?: AbortSignal): Promise<Creation>;
 
   /** Move a creation into a folder, or to the drive root (`null` / `'root'`). */
   move(ref: CreationRef, target: MoveTarget, signal?: AbortSignal): Promise<{ creationId: string; folderId: string | null }>;
@@ -45,6 +52,7 @@ export function createCreations(http: Http): CreationsNamespace {
           beforeDate: opts.beforeDate,
           folderId: opts.folderId === 'root' ? '__root__' : opts.folderId,
           trashed: opts.trashed ? '1' : undefined,
+          usedRef: opts.usedRef !== undefined ? idOf(opts.usedRef) : undefined,
         },
       });
       return {
@@ -55,6 +63,11 @@ export function createCreations(http: Http): CreationsNamespace {
 
     async get(ref: CreationRef, signal?: AbortSignal): Promise<Creation> {
       const raw = await http.request<{ creation: any }>('GET', `/v1/creations/${enc(ref)}`, { idempotent: true, signal });
+      return normalizeCreation(raw.creation, http.baseUrl);
+    },
+
+    async clone(ref: CreationRef, signal?: AbortSignal): Promise<Creation> {
+      const raw = await http.request<{ creation: any }>('POST', `/v1/creations/${enc(ref)}/clone`, { idempotent: false, signal });
       return normalizeCreation(raw.creation, http.baseUrl);
     },
 

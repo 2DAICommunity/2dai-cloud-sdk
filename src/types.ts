@@ -63,6 +63,12 @@ export interface Creation {
   /** Origin of the creation: 'web' (studio), 'sdk', 'mcp' or 'api' (raw
    *  REST). Powers the dashboard's SDK / MCP cloud collections. */
   source?: string;
+  /** True for byte-identical duplicates made with `creations.clone`. Only set
+   *  when the server actually sent the flag (single-creation fetches). */
+  isCloned?: boolean;
+  /** The ORIGIN of a clone — chains are flattened server-side, so a
+   *  clone-of-a-clone still points at the original creation. */
+  clonedFromCreationId?: string;
   nsfwRate?: number;
   creationDate?: string;
   /** The untouched server payload, for fields not surfaced above. */
@@ -213,6 +219,10 @@ export interface ListOptions {
   folderId?: string;
   /** List the trash instead of the active library. */
   trashed?: boolean;
+  /** Only creations BUILT FROM this creation — any reference slot or lineage
+   *  parent (retry, crop, erase, clone, edit) counts, and the server expands
+   *  clone families exactly like the studio's filter-by-reference lens. */
+  usedRef?: CreationRef;
   signal?: AbortSignal;
 }
 

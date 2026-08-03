@@ -12,7 +12,7 @@ const DEFAULT_BASE_URL = 'https://dapp.2dai.io:444';
  *  `prepublishOnly` and fails the publish if this and `package.json` diverge —
  *  importing package.json instead would leak a JSON module into the dual
  *  ESM/CJS build. */
-export const SDK_VERSION = '2.1.0';
+export const SDK_VERSION = '2.2.0';
 
 /** The exact token each integration announces. Closed on purpose: the server's
  *  `machineSourceFromUserAgent` matches these as whole `name/semver` words to

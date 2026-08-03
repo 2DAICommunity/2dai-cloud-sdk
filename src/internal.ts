@@ -131,6 +131,10 @@ export function normalizeCreation(raw: any, baseUrl: string): Creation {
     height: num(raw?.height) ?? num(raw?.outputHeight),
     isUploaded: raw?.isUploaded === true,
     source: typeof raw?.source === 'string' ? raw.source : undefined,
+    // Only when the payload carries them — list rows are curated and omit the
+    // clone fields, and `undefined` must stay distinct from "not a clone".
+    isCloned: raw?.isCloned === true || undefined,
+    clonedFromCreationId: typeof raw?.clonedFromCreationId === 'string' ? raw.clonedFromCreationId : undefined,
     nsfwRate: num(raw?.nsfwRate),
     creationDate: raw?.creationDate,
     raw,
