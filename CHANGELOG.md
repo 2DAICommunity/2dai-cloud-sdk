@@ -61,6 +61,8 @@ ignore the new listing params).
   `creditSources({ days? })`. `tokenPrice()` and `tiers()` only need `read`.
   `Scope` gains `'finance'`.
 
+## 2.2.0
+
 Additive release — no breaking changes. Requires the server wave shipped with
 platform v20096 (older servers 404 the two new endpoints).
 

@@ -1,8 +1,9 @@
 # 2dai-cloud-sdk
 
 Typed JavaScript/TypeScript client for the [2DAI](https://2dai.io) generation API.
-Generate images and video, upload references, and download results — all with an
-API key. Node 18+ and modern browsers. Zero runtime dependencies.
+Generate images and video, upload references, browse and organise your cloud
+drive, and download results — all with an API key. Node 18+ and modern browsers.
+Zero runtime dependencies.
 
 Not on JavaScript? The same platform is a plain REST API — jump to
 [Use the REST API](#not-on-javascript-use-the-rest-api).
@@ -59,10 +60,17 @@ const rich = await client.generate.image({ prompt: 'a warrior', enhanced: true }
 const { queueId } = await client.generate.image({ prompt: '…' }, { wait: false });
 const state = await client.queue.waitFor(queueId, { timeoutMs: 300_000 });
 
-// Reference tools (face-ref / character-ref / style-transfer):
+// Reference tools (face-ref / character-ref / style-transfer / smart-edit):
 const ref = await client.generate.imageWithRefs({
   tool: 'face-ref',
   prompt: 'as an astronaut',
+  refCreationIds: [gen.creationId],
+});
+
+// Smart edit: refs[0] is the image to EDIT, the prompt is the instruction.
+const edited = await client.generate.imageWithRefs({
+  tool: 'smart-edit',
+  prompt: 'replace the background with a rainy neon street',
   refCreationIds: [gen.creationId],
 });
 
@@ -72,7 +80,20 @@ const vid = await client.generate.video({
   inputCreationId: gen.creationId,
   duration: 5,
 });
+
+// Wallpaper-resize: expand a creation into a wallpaper dimension.
+// Quality is always Ultra; the dimension drives the price.
+const wall = await client.generate.wallpaper({
+  inputCreationId: gen.creationId,
+  dimension: 'widescreen',   // 'standard' | 'photo' | 'widescreen' | 'ultrawide'
+});
 ```
+
+Each tool caps its references (3 image · 6 face/character · 3 style-transfer ·
+4 smart-edit · 3 wallpaper) — exceeding a cap rejects with `TOO_MANY_REFS`
+before anything is charged. A ticket that is still **pending** can be stopped
+with `client.queue.cancel(queueId)`; the charge is refunded. Details:
+[Generating](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Generating).
 
 ## Uploading your own media
 
@@ -83,7 +104,18 @@ animated. The same moderation pass as the studio runs server-side.
 const up = await client.uploads.image({ path: './portrait.jpg' });      // Node
 const up2 = await client.uploads.image({ data: fileBlob });             // Browser
 await client.generate.imageWithRefs({ tool: 'character-ref', prompt: 'in a suit', refCreationIds: [up.creationId] });
+
+// File it straight into a folder, and skip re-uploads with the md5 pre-flight:
+const probe = await client.uploads.checkDuplicate(md5Hex, folder.folderId);
+if (!probe.duplicate) {
+  await client.uploads.image({ path: './portrait.jpg', targetFolderId: folder.folderId });
+}
 ```
+
+`targetFolderId` files the upload into a folder you can write to (403
+`INVALID_FOLDER` otherwise). `croppedFromCreationId` / `erasedFromCreationId`
+record the upload as a crop or erase edit of a creation you own. Details:
+[Uploads](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Uploads).
 
 ## Downloading
 
@@ -121,8 +153,50 @@ await client.creations.trash(gen); await client.creations.delete(gen); // perman
 await client.folders.delete(folder.folderId, { trashContents: true });
 ```
 
-Browse it: `creations.list({ folderId })`, `{ folderId: 'root' }`, or
-`{ trashed: true }` — paginate with `nextBeforeDate` (limit 1..100).
+## Browsing your library
+
+`creations.list` speaks the same lenses and filters as the studio's cloud
+drive — one *mode* per call (a folder, an activity view, a smart collection,
+or a folder shared with you), plus filters that compose with any of them.
+
+```ts
+await client.creations.list({ folderId: folder.folderId });   // or 'root', or { trashed: true }
+await client.creations.list({ activity: 'uploaded' });        // all|history|uploaded|likes|public|trash|sdk|mcp|portfolio
+await client.creations.list({ smart: 'faces' });              // faces|videos|crop|alpha|favorites
+
+// Filters compose with any lens: whole-word search (trailing * = prefix),
+// sort, aspect-ratio buckets, date range…
+await client.creations.list({ search: 'red fox*', sort: 'size-desc', ratioFilter: 'portrait' });
+
+// ONE uniformly-random creation from any lens:
+const surprise = await client.creations.random({ smart: 'favorites' });
+
+// The cross-user public feed:
+const feed = await client.creations.feed({ limit: 48 });
+```
+
+Paginate with `nextBeforeDate` (limit 1..100) or 1-based `page`. Rows carry
+`description`, `folderId`, `inTrash`, `isPublicShared`, `likes`, `isLiked`
+and more. Details:
+[Cloud Drive](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Cloud-Drive).
+
+## Organising
+
+```ts
+await client.creations.like(gen, true);              // idempotent SET, retry-safe
+await client.creations.batch('trash', ids);          // bulk trash/untrash/delete, ≤1000 ids
+await client.creations.reorder([id1, id2, id3]);     // stamp drag-reorder order
+
+// Sidebar folder groups + folder metadata:
+const group = await client.folders.groups.create('Client work');
+await client.folders.update(folder.folderId, {
+  groupId: group.groupId,            // null detaches
+  posterCreationId: gen.creationId,  // null clears
+  isFavorite: true,
+});
+```
+
+Deleting a group only detaches its folders — nothing else is deleted.
 
 ## Account & history
 
@@ -136,6 +210,32 @@ const one = await client.creations.get(page.creations[0].creationId);
 const state = await client.queue.get(queueId);       // one-shot status read
 const url = client.cdn.url(one);                      // raw CDN url (public creations)
 ```
+
+## Stats
+
+Read-only account analytics (scope `read`):
+
+```ts
+const o = await client.stats.overview();               // storage, counters, streak, per-tool recents
+const g = await client.stats.generations({ days: 30 }); // volume + spend by day / tool / source
+const t = await client.stats.top();                    // most-used refs (with suggested config), styles, keywords
+```
+
+## Wallet data (read-only)
+
+The `finance` namespace reads your wallet: balance, tier, staking lock,
+transactions, balance/credit history. It needs a key minted **with the opt-in
+`finance` scope** (off by default) — and it is strictly read-only: no deposit,
+withdraw, swap or lock operation exists on the API-key surface, so a `finance`
+key can see numbers but can never move funds.
+
+```ts
+const w = await client.finance.wallet();          // tokens, creditUsd, tier, pending flags
+const tx = await client.finance.transactions({ limit: 20 });
+const price = await client.finance.tokenPrice();  // cached $2DAI quote — only needs `read`
+```
+
+Depth: [Stats & Wallet](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Stats-and-Wallet).
 
 ## Error handling
 
@@ -181,16 +281,25 @@ curl https://dapp.2dai.io:444/v1/queue/$QUEUE_ID \
 |---|---|---|---|
 | GET | `/v1/me` | `read` | Account, credit, key scopes |
 | POST | `/v1/generate/image` | `generate` | Text → image |
-| POST | `/v1/generate/image-with-refs` | `generate` | Face / character ref, style transfer |
+| POST | `/v1/generate/image-with-refs` | `generate` | Face / character ref, style transfer, smart edit |
+| POST | `/v1/generate/wallpaper` | `generate` | Wallpaper-resize (priced by dimension) |
 | POST | `/v1/generate/video` | `generate` | Still → video |
 | POST | `/v1/uploads` | `generate` | Upload media (multipart) |
+| GET | `/v1/uploads/check-duplicate` | `read` | md5 pre-flight dedup probe |
 | GET | `/v1/queue/:queueId` | `read` | Poll a generation |
-| GET | `/v1/creations` | `read` | List your drive (paginated) |
+| POST | `/v1/queue/:queueId/cancel` | `generate` | Cancel a pending generation (refunds) |
+| GET | `/v1/creations` | `read` | List / search your drive (lenses + filters) |
 | GET | `/v1/creations/:id` | `read` | One creation, full detail |
-| POST | `/v1/creations/:id/move` \| `/trash` \| `/restore` | `manage` | Organise |
+| GET | `/v1/feed` | `read` | The cross-user public feed |
+| POST | `/v1/creations/:id/move` \| `/trash` \| `/restore` \| `/like` | `manage` | Organise |
+| POST | `/v1/creations/reorder` \| `/batch` | `manage` | Reorder / bulk actions |
 | DELETE | `/v1/creations/:id` | `manage` | Permanent delete (trash first) |
 | POST | `/v1/creations/:id/publish` \| `/unpublish` | `publish` | Public feed |
 | GET/POST/PATCH/DELETE | `/v1/folders` | `read` / `manage` | Folders |
+| GET/POST/PATCH/DELETE | `/v1/folder-groups` | `read` / `manage` | Sidebar folder groups |
+| GET | `/v1/stats/overview` \| `/generations` \| `/top` | `read` | Account analytics |
+| GET | `/v1/wallet*`, `/v1/account/tier` | `finance` | Read-only wallet data |
+| GET | `/v1/tiers`, `/v1/token/price` | `read` | Tier catalogue, cached token quote |
 | GET | `/cdn/file/:cdnId` | `read` | Download bytes (`?s=512` for a preview) |
 
 Full request/response shapes, every error code and the limits are documented in
