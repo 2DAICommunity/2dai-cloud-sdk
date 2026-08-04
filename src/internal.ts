@@ -135,10 +135,25 @@ export function normalizeCreation(raw: any, baseUrl: string): Creation {
     // clone fields, and `undefined` must stay distinct from "not a clone".
     isCloned: raw?.isCloned === true || undefined,
     clonedFromCreationId: typeof raw?.clonedFromCreationId === 'string' ? raw.clonedFromCreationId : undefined,
+    description: raw?.description ?? raw?.finalShortDescription ?? raw?.finalDescription ?? undefined,
+    folderId: typeof raw?.folderId === 'string' ? raw.folderId : (raw?.folderId === null ? null : undefined),
+    inTrash: bool(raw?.inTrash),
+    isPublicShared: bool(raw?.isPublicShared),
+    likes: num(raw?.likes) ?? num(raw?.likeCount),
+    isLiked: bool(raw?.isLiked),
+    isOwner: bool(raw?.isOwner),
+    nsfwFlagged: bool(raw?.nsfwFlagged),
     nsfwRate: num(raw?.nsfwRate),
+    username: typeof raw?.username === 'string' ? raw.username : (typeof raw?.user?.username === 'string' ? raw.user.username : undefined),
     creationDate: raw?.creationDate,
     raw,
   };
+}
+
+/** Booleans only when the payload actually carries one — a partial response
+ *  must not invent `false` for state it doesn't know. */
+function bool(v: unknown): boolean | undefined {
+  return typeof v === 'boolean' ? v : undefined;
 }
 
 /** Pull a creation id out of a raw id or any object that carries one. */
@@ -161,6 +176,8 @@ export function normalizeFolder(raw: any): Folder {
     isPublicShared: typeof raw?.isPublicShared === 'boolean' ? raw.isPublicShared : undefined,
     isShared: typeof raw?.isShared === 'boolean' ? raw.isShared : undefined,
     posterCreationId: raw?.posterCreationId ?? undefined,
+    groupId: typeof raw?.groupId === 'string' ? raw.groupId : undefined,
+    isFavorite: typeof raw?.isFavorite === 'boolean' ? raw.isFavorite : undefined,
     createdAt: raw?.createdAt ?? raw?.date,
     updatedAt: raw?.updatedAt ?? raw?.updateDate,
     raw,

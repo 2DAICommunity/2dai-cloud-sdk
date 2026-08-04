@@ -14,10 +14,24 @@ export type {
   Creation,
   CreationPage,
   CreationRef,
+  CreationActivity,
+  CreationSort,
+  CreationFilterOptions,
+  RandomOptions,
+  RatioBucket,
+  FeedOptions,
+  FeedPage,
+  LikeResult,
+  NsfwFlagResult,
+  NsfwExplanation,
+  RefScore,
+  BatchAction,
+  BatchResult,
   Folder,
   FolderPage,
   FolderInput,
   FolderPatch,
+  FolderGroup,
   FolderListOptions,
   FolderListArg,
   FolderSort,
@@ -28,21 +42,41 @@ export type {
   RefParams,
   RefTool,
   VideoParams,
+  WallpaperParams,
   SubmitOptions,
   WaitOptions,
   ListOptions,
   DeleteFolderOptions,
   UploadInput,
+  DuplicateCheck,
   CdnAsset,
   CdnRef,
+  StatsCacheInfo,
+  StatsOverview,
+  StatsGenerations,
+  StatsTop,
+  TopRef,
+  FinanceWallet,
+  AccountTier,
+  WalletLockStatus,
+  WalletTransaction,
+  TransactionPage,
+  BalancePoint,
+  BalanceHistory,
+  CreditHistory,
+  CreditSources,
+  TokenPrice,
+  TierInfo,
 } from './types';
 
 export type { GenerateNamespace } from './generate';
 export type { CreationsNamespace } from './creations';
-export type { FoldersNamespace } from './folders';
+export type { FoldersNamespace, FolderGroupsNamespace } from './folders';
 export type { UploadsNamespace } from './uploads';
 export type { QueueNamespace } from './queue';
 export type { CdnNamespace, DownloadOptions, CdnTransform, CdnFetchOptions, CdnFetchArg } from './cdn';
+export type { StatsNamespace, StatsGenerationsOptions } from './stats';
+export type { FinanceNamespace } from './finance';
 export type { Integration } from './types';
 
 export {

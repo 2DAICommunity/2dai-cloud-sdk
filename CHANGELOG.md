@@ -1,6 +1,65 @@
 # Changelog
 
-## 2.2.0
+## 2.3.0
+
+Additive release — no breaking changes. Requires the server wave shipped with
+the 2026-08-04 /v1 parity update (older servers 404 the new endpoints and
+ignore the new listing params).
+
+### Added
+- **The full listing engine on `creations.list`** — the same lenses and
+  filters the studio's cloud drive uses. Modes (mutually exclusive, 400
+  `CONFLICTING_FILTERS` otherwise): the default flat listing (unchanged),
+  `activity` (`all`/`history`/`uploaded`/`likes`/`public`/`trash`/`sdk`/
+  `mcp`/`portfolio`), `smart` (`faces`, `videos`, `crop`, `alpha`,
+  `favorites`), and `sharedFolderId` (folders shared WITH you). Cross-cutting:
+  `search` (tags + descriptions, trailing-`*` prefix tokens), `sort`
+  (`newest`/`oldest`/`updated`/`size-*`/`type-*`), `ratioFilter`
+  (`square`/`landscape`/`portrait`), `from`/`to` date range, `hideFiled`,
+  and 1-based `page` offset paging alongside the `beforeDate` cursor. The
+  page now also echoes `page`/`limit`/`count`.
+- **`creations.random(filters)`** — ONE uniformly-sampled creation from the
+  filtered collection (or `null`). Same filters as `list`, no paging;
+  `list({ random })` is rejected client-side so the two contracts stay clean.
+- **`creations.feed({ limit?, page?, includeNsfw? })`** — the cross-user
+  public feed, newest-published first. Non-owner rows hide prompts.
+- **Row enrichment** — `Creation` gains `description`, `folderId`, `inTrash`,
+  `isPublicShared`, `likes`, `isLiked`, `isOwner`, `nsfwFlagged`, `username`.
+- **`creations.like(ref, liked)`** — IDEMPOTENT like set (never a toggle, so
+  retries are safe) → `{ liked, likeCount, changed }`.
+- **NSFW + ref tooling**: `creations.flagNsfw` (manual safe→NSFW escalation,
+  owner-only), `creations.explainNsfw` (vision-LLM "why was this flagged",
+  cached on the row), `creations.scoreFaceRef` / `scoreCharacterRef`
+  (ref-quality scores, cached). The uncached calls burn an LLM pass and need
+  the `generate` scope.
+- **`creations.reorder(creationIds)`** — stamp drag-reorder order (≤1000).
+- **`creations.batch(action, ids)`** — bulk trash / untrash / delete in one
+  request (≤1000 ids) → `{ action, requested, processed, skipped }`.
+- **`queue.cancel(queueId)`** — stop a PENDING generation; refund + slot
+  release included. 409 `NOT_PENDING` once a worker picked it up.
+- **`generate.wallpaper({ inputCreationId, dimension, … })`** — wallpaper-
+  resize; `dimension` drives pricing (fail-closed), quality forced Ultra.
+- **`'smart-edit'`** joins `generate.imageWithRefs` — refs[0] is the image to
+  EDIT (≤4 refs), `prompt` is the edit instruction.
+- **Upload lineage + targeting** — `uploads.image` accepts
+  `croppedFromCreationId` / `erasedFromCreationId` (mutually exclusive) and
+  `targetFolderId`; plus **`uploads.checkDuplicate(md5, folderId?)`** for an
+  advisory pre-flight dedup probe.
+- **Folder groups + richer folders** — `folders.groups.list/create/rename/
+  remove` (sidebar groups; removing a group only detaches its folders);
+  `Folder` gains `groupId` / `isFavorite`; `folders.create` takes `groupId`;
+  `folders.update` takes `groupId: string | null`, `posterCreationId:
+  string | null`, and `isFavorite`.
+- **`stats` namespace** (scope `read`): `overview()` (storage / counters /
+  streak / smart counts / per-tool recents), `generations({ days: 30 | 90 })`
+  (volume + spend by day / tool / source), `top()` (most-used refs with
+  suggested configs, styles, keywords). Cache-backed where noted.
+- **`finance` namespace** — READ-ONLY money data, named 1:1 with the new
+  opt-in `finance` key scope (money mutations stay dashboard-only):
+  `wallet()`, `tier()`, `lock()`, `transactions({ limit?, page? })`,
+  `balanceHistory({ limit? })`, `creditHistory({ limit? })`,
+  `creditSources({ days? })`. `tokenPrice()` and `tiers()` only need `read`.
+  `Scope` gains `'finance'`.
 
 Additive release — no breaking changes. Requires the server wave shipped with
 platform v20096 (older servers 404 the two new endpoints).

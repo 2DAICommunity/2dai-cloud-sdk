@@ -14,6 +14,7 @@ import type {
   RefParams,
   SubmitOptions,
   VideoParams,
+  WallpaperParams,
 } from './types';
 
 export interface GenerateNamespace {
@@ -23,6 +24,11 @@ export interface GenerateNamespace {
   imageWithRefs(params: RefParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   video(params: VideoParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
   video(params: VideoParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
+  /** Wallpaper-resize: expand a stored creation into a target `dimension`
+   *  (which drives pricing; unknown values are rejected fail-closed).
+   *  Quality is forced to Ultra server-side, same as the studio's tool. */
+  wallpaper(params: WallpaperParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
+  wallpaper(params: WallpaperParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   /** Re-run a stored creation ("Generate Similar"): the SERVER re-derives the
    *  original tool's parameters from the stored row — prompt, style, quality,
    *  dimensions, references — and submits a fresh generation at the usual
@@ -61,6 +67,16 @@ export function createGenerate(http: Http): GenerateNamespace {
         height,
         allowNSFW: params.allowNSFW,
         extractionDirective: params.extractionDirective,
+        clientToken: params.clientToken,
+      }, opts) as any;
+    },
+    wallpaper: (params: WallpaperParams, opts?: SubmitOptions) => {
+      return submit(http, '/v1/generate/wallpaper', {
+        inputCreationId: params.inputCreationId,
+        dimension: params.dimension,
+        refCreationIds: params.refCreationIds,
+        prompt: params.prompt,
+        allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,
       }, opts) as any;
     },

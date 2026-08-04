@@ -11,12 +11,19 @@ export interface QueueNamespace {
   /** Poll until the item reaches a terminal state (or the deadline). Resolves
    *  on ANY terminal status — inspect `.status`; it does not throw on failure. */
   waitFor(queueId: string, opts?: WaitOptions): Promise<QueueState>;
+  /** Cancel a PENDING item — the charge is refunded and the queue slot
+   *  released. Only works before a worker picks the job up: once it is
+   *  processing there is no abort hook and the server answers 409
+   *  `NOT_PENDING` (with the current status in `details.status`). */
+  cancel(queueId: string, signal?: AbortSignal): Promise<{ queueId: string; status: 'cancelled' }>;
 }
 
 export function createQueue(http: Http): QueueNamespace {
   return {
     get: (queueId, signal) => getQueue(http, queueId, signal),
     waitFor: (queueId, opts) => pollQueue(http, queueId, opts),
+    cancel: (queueId, signal) =>
+      http.request('POST', `/v1/queue/${encodeURIComponent(queueId)}/cancel`, { idempotent: false, signal }),
   };
 }
 
