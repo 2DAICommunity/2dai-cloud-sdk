@@ -1,6 +1,6 @@
 {
   "name": "2dai-cloud-sdk",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Typed JavaScript/TypeScript client for the 2DAI generation API — generate images & video, upload references, and download results with an API key.",
   "type": "module",
   "main": "./dist/index.cjs",

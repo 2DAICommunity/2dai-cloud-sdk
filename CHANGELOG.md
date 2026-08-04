@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1
+
+Docs-only release: the README shipped in the 2.3.0 tarball predated the 2.3.0
+feature set — this republishes with the full 2.3.0 documentation (browsing,
+organising, stats, read-only wallet data) plus the npm badge. No code changes.
+
 ## 2.3.0
 
 Additive release — no breaking changes. Requires the server wave shipped with

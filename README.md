@@ -1,5 +1,7 @@
 # 2dai-cloud-sdk
 
+[![npm](https://img.shields.io/npm/v/2dai-cloud-sdk)](https://www.npmjs.com/package/2dai-cloud-sdk)
+
 Typed JavaScript/TypeScript client for the [2DAI](https://2dai.io) generation API.
 Generate images and video, upload references, browse and organise your cloud
 drive, and download results — all with an API key. Node 18+ and modern browsers.
