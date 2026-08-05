@@ -261,6 +261,19 @@ Other errors: `AuthError`, `ScopeError`, `TierError`, `QueueLimitError`,
 `RateLimitError`, `ValidationError`, `NotFoundError`, `GenerationFailedError`,
 `TimeoutError`. All extend `ApiError` (`.code`, `.httpStatus`, `.details`).
 
+## The 2DAI stack
+
+We currently use our **Gen 7.1** model, and unlike others, we don't resell
+model access. All our models originate from the open-source community or our
+own R&D — we then disassemble, modify, fine-tune and optimize them to align
+with our legacy and **2DAI❤️ART** lines. They also run on our own private
+cloud network.
+
+The prompt rewriter (the "TIXI" pass that expands short prompts before
+generation) is our own in-house LLM — same rule: not re-sold third-party
+model access. Depth:
+[About the Models](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/About-the-Models).
+
 ## Not on JavaScript? Use the REST API
 
 Everything below is plain HTTP — the SDK is a convenience layer, not a gate.

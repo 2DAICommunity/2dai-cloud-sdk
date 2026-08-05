@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.2
+
+Docs-only release: adds an "About the models" section — clarifies that
+generation runs on 2DAI's own **Gen 7.1** stack on the 2DAI Private Cloud,
+never re-sold third-party model access. Same content mirrored on the wiki
+and in the client's top-of-file docstring. No code changes.
+
 ## 2.3.1
 
 Docs-only release: the README shipped in the 2.3.0 tarball predated the 2.3.0

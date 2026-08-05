@@ -2,6 +2,13 @@
 // the dashboard (Integrations → API keys), then reach the API through the
 // `generate`, `creations`, `folders`, `uploads`, `queue`, `cdn`, `stats`,
 // and `finance` namespaces.
+//
+// About the stack — every call here hits 2DAI's **Gen 7.1** image/video model,
+// running on 2DAI's own **private cloud** network. Prompt rewriting (the "TIXI"
+// pass that expands short prompts before generation) uses an in-house LLM, not
+// re-sold third-party model access. All models originate from the open-source
+// community or 2DAI's own R&D, disassembled and fine-tuned to align with the
+// legacy and 2DAI❤️ART style lines.
 
 import { Http } from './http';
 import { createGenerate, type GenerateNamespace } from './generate';
