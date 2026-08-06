@@ -23,6 +23,11 @@ export interface CdnTransform {
   height?: number;
   /** Longest side in px, aspect ratio preserved (`?s`). */
   maxSide?: number;
+  /** Overlay the account's default 2DAI watermark on the returned bytes
+   *  (bottom-right). Applies to images and to video frames alike. Only
+   *  the boolean form is exposed here — the server expands `?watermark=1`
+   *  to the current default watermark CDN id. */
+  watermark?: boolean;
 }
 
 export interface CdnFetchOptions extends CdnTransform {
@@ -83,6 +88,10 @@ function transformQuery(transform: CdnTransform): string {
   add('w', transform.width);
   add('h', transform.height);
   add('s', transform.maxSide);
+  // Watermark is a server-expanded sentinel: `?watermark=1` on the API
+  // proxy is rewritten to the account's default watermark CDN id + a
+  // sensible position, so the client stays ignorant of the actual id.
+  if (transform.watermark === true) parts.push('watermark=1');
   return parts.length ? `?${parts.join('&')}` : '';
 }
 
