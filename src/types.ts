@@ -174,8 +174,10 @@ export interface ImageParams {
   style?: string;
   /** Quality id, or `'auto'` (default) to let the server pick by tier. */
   quality?: string;
-  /** Sugar → width/height at ~1MP. Ignored if width/height are given. */
-  aspectRatio?: AspectRatio;
+  /** Preset → width/height at ~1MP, or `'auto'` to let the 2DAI prompt
+   *  agent pick the best-fitting ratio server-side (portrait for standing
+   *  characters, wide for landscapes…). Ignored if width/height are given. */
+  aspectRatio?: AspectRatio | 'auto';
   width?: number;
   height?: number;
   negativePrompt?: string;
@@ -203,6 +205,8 @@ export interface ImageParams {
   refCreationIds?: string[];
   /** Idempotency token; auto-minted if omitted. */
   clientToken?: string;
+  /** Official bot integrations only — see {@link TelegramAuthor}. */
+  telegramUser?: TelegramAuthor;
 }
 
 export type RefTool = 'face-ref' | 'character-ref' | 'style-transfer' | 'smart-edit';
@@ -215,7 +219,8 @@ export interface RefParams {
   refCreationIds: string[];
   prompt?: string;
   quality?: string;
-  aspectRatio?: AspectRatio;
+  /** Same contract as {@link ImageParams.aspectRatio} — `'auto'` = server pick. */
+  aspectRatio?: AspectRatio | 'auto';
   width?: number;
   height?: number;
   allowNSFW?: boolean;
@@ -248,6 +253,8 @@ export interface VideoParams {
   frameInterpolation?: boolean;
   allowNSFW?: boolean;
   clientToken?: string;
+  /** Official bot integrations only — see {@link TelegramAuthor}. */
+  telegramUser?: TelegramAuthor;
 }
 
 export interface SubmitOptions {
@@ -430,7 +437,19 @@ export interface DeleteFolderOptions {
 }
 
 /** An uploadable source. Node accepts `path`; both runtimes accept `data`/`base64`. */
+/** External display-author for OFFICIAL bot integrations only. Requires an
+ *  API key minted with `acceptExternalAuthor` (superadmin bot keys); any other
+ *  key gets 403 EXTERNAL_AUTHOR_FORBIDDEN. Display-only — ownership stays on
+ *  the key's account. */
+export interface TelegramAuthor {
+  id: number;
+  username?: string;
+  first_name?: string;
+}
+
 export interface UploadInput {
+  /** Official bot integrations only — see {@link TelegramAuthor}. */
+  telegramUser?: TelegramAuthor;
   path?: string;
   data?: Uint8Array | ArrayBuffer | Blob;
   base64?: string;
@@ -671,8 +690,9 @@ export interface ClientOptions {
    *  dashboard's SDK / MCP collections and the origin pills. An open string
    *  invited both typos and spoofing of a label the platform treats as data.
    *
-   *  Set `'mcp'` only from the official MCP server. Everything else — your own
-   *  app, a script, a backend job — leaves this alone and lands as `sdk`. */
+   *  Set `'mcp'` only from the official MCP server and `'telegram'` only from
+   *  the official Telegram bot. Everything else — your own app, a script, a
+   *  backend job — leaves this alone and lands as `sdk`. */
   integration?: Integration;
   /** Version of that integration, appended to the User-Agent for diagnostics
    *  (e.g. the MCP server's own version). Must look like `1.2.3`, optionally
@@ -686,4 +706,4 @@ export interface ClientOptions {
 /** Official integrations that may identify themselves to the API. Extending
  *  this means teaching `machineSourceFromUserAgent` about the new token too —
  *  the two live and die together. */
-export type Integration = 'sdk' | 'mcp';
+export type Integration = 'sdk' | 'mcp' | 'telegram';

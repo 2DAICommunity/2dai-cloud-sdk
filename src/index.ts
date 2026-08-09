@@ -5,6 +5,7 @@ export { Client } from './client';
 
 export type {
   ClientOptions,
+  TelegramAuthor,
   Account,
   KeyContext,
   Scope,

@@ -21,16 +21,20 @@ export function dimsForAspect(ratio?: AspectRatio): { width?: number; height?: n
 
 /** Resolve width/height from explicit dims (win) or the aspectRatio sugar.
  *  A LONE width or height is forwarded as-is (the server defaults the other
- *  side) — silently dropping a user-supplied dimension would be worse. */
-export function resolveDims(p: { width?: number; height?: number; aspectRatio?: AspectRatio }): {
+ *  side) — silently dropping a user-supplied dimension would be worse.
+ *  `aspectRatio:'auto'` is NOT resolved client-side: the sentinel is passed
+ *  through and the server's LLM pass picks the ratio from the prompt. */
+export function resolveDims(p: { width?: number; height?: number; aspectRatio?: AspectRatio | 'auto' }): {
   width?: number;
   height?: number;
+  aspectRatio?: 'auto';
 } {
   const hasW = typeof p.width === 'number';
   const hasH = typeof p.height === 'number';
   if (hasW || hasH) {
     return { width: hasW ? p.width : undefined, height: hasH ? p.height : undefined };
   }
+  if (p.aspectRatio === 'auto') return { aspectRatio: 'auto' };
   return dimsForAspect(p.aspectRatio);
 }
 

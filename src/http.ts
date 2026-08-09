@@ -20,6 +20,7 @@ export const SDK_VERSION = '2.3.3';
  *  ignored or — worse — mislabel someone's work. */
 const INTEGRATION_TOKEN: Record<Exclude<Integration, 'sdk'>, string> = {
   mcp: '2dai-mcp-server',
+  telegram: '2dai-telegram-bot',
 };
 
 /** Only a real semver reaches the wire. The server requires `x.y.z` (with an

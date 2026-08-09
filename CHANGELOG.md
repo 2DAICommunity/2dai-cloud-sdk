@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.4.0 (unreleased)
+
+- `aspectRatio: 'auto'` on `generate.image` / `generate.imageWithRefs`: the
+  sentinel is passed through to the server, where the 2DAI prompt agent picks
+  the best-fitting ratio from your prompt (portrait for standing characters,
+  wide for landscapes, square when nothing clearly leans either way). Explicit
+  `width`/`height` still win; concrete presets still resolve client-side.
+- `integration: 'telegram'` + `telegramUser` author attribution on
+  image/video/similar/uploads — official 2DAI bot integrations only (the key
+  must carry a bot policy with `acceptExternalAuthor`).
+
 ## 2.3.2
 
 Docs-only release: adds an "About the models" section — clarifies that

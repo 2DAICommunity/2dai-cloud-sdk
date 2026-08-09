@@ -48,7 +48,7 @@ ticket immediately and poll yourself.
 // One-shot (default): resolves when the image is ready.
 const img = await client.generate.image({
   prompt: 'a neon city street, rain',
-  aspectRatio: '16:9',
+  aspectRatio: '16:9', // or 'auto' — the server picks the best ratio from the prompt
   // style + quality default to 'auto' (the server picks by your tier)
 });
 

@@ -35,29 +35,31 @@ export interface GenerateNamespace {
    *  price. Works for image, ref-tool, edit and video rows; wallpaper-resize
    *  rows and raw uploads can't be re-derived and reject with a 400
    *  `ValidationError` (`REGEN_UNSUPPORTED_TOOL`). */
-  similar(ref: CreationRef, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
-  similar(ref: CreationRef, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
+  similar(ref: CreationRef, opts?: SubmitOptions & { wait?: true, telegramUser?: import('./types').TelegramAuthor }): Promise<GenerationResult>;
+  similar(ref: CreationRef, opts: SubmitOptions & { wait: false, telegramUser?: import('./types').TelegramAuthor }): Promise<QueueTicket>;
 }
 
 export function createGenerate(http: Http): GenerateNamespace {
   return {
     image: (params: ImageParams, opts?: SubmitOptions) => {
-      const { width, height } = resolveDims(params);
+      const { width, height, aspectRatio } = resolveDims(params);
       return submit(http, '/v1/generate/image', {
         prompt: params.prompt,
         style: params.style,
         quality: params.quality,
         width,
         height,
+        aspectRatio,
         negativePrompt: params.negativePrompt,
         enhanced: params.enhanced,
         allowNSFW: params.allowNSFW,
         refCreationIds: params.refCreationIds,
         clientToken: params.clientToken,
+        telegramUser: params.telegramUser,
       }, opts) as any;
     },
     imageWithRefs: (params: RefParams, opts?: SubmitOptions) => {
-      const { width, height } = resolveDims(params);
+      const { width, height, aspectRatio } = resolveDims(params);
       return submit(http, '/v1/generate/image-with-refs', {
         tool: params.tool,
         prompt: params.prompt,
@@ -65,6 +67,7 @@ export function createGenerate(http: Http): GenerateNamespace {
         quality: params.quality,
         width,
         height,
+        aspectRatio,
         allowNSFW: params.allowNSFW,
         extractionDirective: params.extractionDirective,
         clientToken: params.clientToken,
@@ -90,9 +93,10 @@ export function createGenerate(http: Http): GenerateNamespace {
         frameInterpolation: params.frameInterpolation,
         allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,
+        telegramUser: params.telegramUser,
       }, opts) as any;
     },
-    similar: (ref: CreationRef, opts?: SubmitOptions) => {
+    similar: (ref: CreationRef, opts?: SubmitOptions & { telegramUser?: import('./types').TelegramAuthor }) => {
       const creationId = extractCreationId(ref);
       if (!creationId) {
         return Promise.reject(new ApiError('NO_CREATION_ID', 0, 'Could not resolve a creation id from the argument.')) as any;
@@ -100,7 +104,7 @@ export function createGenerate(http: Http): GenerateNamespace {
       // No clientToken here: the server rebuilds the submit body from the
       // stored row, so a token in THIS body would be discarded. Rapid repeats
       // still dedup — identical derived bodies hit the server's 5s window.
-      return submitTicket(http, '/v1/generate/similar', { creationId }, opts ?? {}) as any;
+      return submitTicket(http, '/v1/generate/similar', { creationId, telegramUser: opts?.telegramUser }, opts ?? {}) as any;
     },
   };
 }
