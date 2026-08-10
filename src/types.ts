@@ -19,6 +19,9 @@ export interface Account {
   username?: string;
   creditUsd: number;
   tier: string;
+  /** Whether the account's tier (Holder+/tier2+) may turn OFF the 2DAI
+   *  watermark on downloads/deliveries. Below the gate it is forced on. */
+  canDisableWatermark?: boolean;
   key: KeyContext;
 }
 
