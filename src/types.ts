@@ -222,7 +222,9 @@ export interface RefParams {
   refCreationIds: string[];
   prompt?: string;
   quality?: string;
-  /** Same contract as {@link ImageParams.aspectRatio} — `'auto'` = server pick. */
+  /** Output shape. `'auto'` (server picks the best-fitting ratio) applies to
+   *  `face-ref` / `character-ref` only — `smart-edit` and `style-transfer`
+   *  derive their dims from the source ref, so `'auto'` there is ignored. */
   aspectRatio?: AspectRatio | 'auto';
   width?: number;
   height?: number;
