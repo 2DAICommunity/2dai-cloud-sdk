@@ -29,6 +29,7 @@ export function createUploads(http: Http): UploadsNamespace {
       if (input.erasedFromCreationId) form.append('erasedFromCreationId', input.erasedFromCreationId);
       if (input.targetFolderId) form.append('targetFolderId', input.targetFolderId);
       if (input.telegramUser) form.append('telegramUser', JSON.stringify(input.telegramUser));
+      if (input.sceneDescription === true) form.append('sceneDescription', 'true');
       // Uploads carry the file AND wait for the server-side moderation pass —
       // give them a 3-minute floor so a large mp4 on a slow uplink doesn't
       // trip the default 60s budget and orphan a server-side creation.

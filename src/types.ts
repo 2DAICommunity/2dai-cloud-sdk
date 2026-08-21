@@ -218,8 +218,10 @@ export interface RefParams {
   tool: RefTool;
   /** face/character-ref: identity refs (≤6). style-transfer: style-source
    *  refs (≤3). smart-edit: refs[0] = the image to EDIT (+ up to 3 support
-   *  refs, ≤4 total); `prompt` is the edit instruction. */
-  refCreationIds: string[];
+   *  refs, ≤4 total); `prompt` is the edit instruction. Optional ONLY for
+   *  `character-ref` through a registered meme-bot key — the server resolves
+   *  the identity refs from its registry; every other tool requires refs. */
+  refCreationIds?: string[];
   prompt?: string;
   quality?: string;
   /** Output shape. `'auto'` (server picks the best-fitting ratio) applies to
@@ -232,6 +234,8 @@ export interface RefParams {
   /** style-transfer only — what to extract (default `'style'`). */
   extractionDirective?: string;
   clientToken?: string;
+  /** Official bot integrations only — see {@link TelegramAuthor}. */
+  telegramUser?: TelegramAuthor;
 }
 
 export interface WallpaperParams {
@@ -245,6 +249,8 @@ export interface WallpaperParams {
   prompt?: string;
   allowNSFW?: boolean;
   clientToken?: string;
+  /** Official bot integrations only — see {@link TelegramAuthor}. */
+  telegramUser?: TelegramAuthor;
 }
 
 export interface VideoParams {
@@ -469,6 +475,10 @@ export interface UploadInput {
   erasedFromCreationId?: string;
   /** Land the upload directly inside this folder instead of the drive root. */
   targetFolderId?: string;
+  /** Caption mode: the upload's generated caption focuses on the scene,
+   *  outfit and pose instead of describing the pictured subject. Useful
+   *  when the upload provides context for a character-ref generation. */
+  sceneDescription?: boolean;
   signal?: AbortSignal;
 }
 

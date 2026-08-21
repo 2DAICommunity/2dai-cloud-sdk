@@ -71,6 +71,7 @@ export function createGenerate(http: Http): GenerateNamespace {
         allowNSFW: params.allowNSFW,
         extractionDirective: params.extractionDirective,
         clientToken: params.clientToken,
+        telegramUser: params.telegramUser,
       }, opts) as any;
     },
     wallpaper: (params: WallpaperParams, opts?: SubmitOptions) => {
@@ -81,6 +82,7 @@ export function createGenerate(http: Http): GenerateNamespace {
         prompt: params.prompt,
         allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,
+        telegramUser: params.telegramUser,
       }, opts) as any;
     },
     video: (params: VideoParams, opts?: SubmitOptions) => {

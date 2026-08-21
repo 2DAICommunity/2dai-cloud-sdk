@@ -1,6 +1,19 @@
 # Changelog
 
-## 2.4.0 (unreleased)
+## 2.4.1 (2026-08-21)
+
+- `telegramUser` author attribution extended to `generate.imageWithRefs` and
+  `generate.wallpaper` (was image/video/similar/uploads only) — official 2DAI
+  bot integrations only, same key-policy rules as 2.4.0.
+- `RefParams.refCreationIds` is now optional for `character-ref` submits
+  on community-enabled keys: the platform supplies the community character's
+  reference images automatically and caller refs are ignored. All other
+  tools still require refs (`REFS_REQUIRED` / 400).
+- `UploadInput.sceneDescription` (opt-in): the upload's generated caption
+  focuses on the scene, outfit and pose instead of describing the pictured
+  subject. Omitted = unchanged default caption.
+
+## 2.4.0 (2026-08-11)
 
 - `aspectRatio: 'auto'` on `generate.image` / `generate.imageWithRefs`: the
   sentinel is passed through to the server, where the 2DAI prompt agent picks
