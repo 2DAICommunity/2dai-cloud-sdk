@@ -263,7 +263,7 @@ Other errors: `AuthError`, `ScopeError`, `TierError`, `QueueLimitError`,
 
 ## The 2DAI stack
 
-We currently use our **Gen 7.1** model, and unlike others, we don't resell
+We currently use our **Gen 7.2** model, and unlike others, we don't resell
 model access. All our models originate from the open-source community or our
 own R&D — we then disassemble, modify, fine-tune and optimize them to align
 with our legacy and **2DAI❤️ART** lines. They also run on our own private
