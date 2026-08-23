@@ -36,11 +36,17 @@
     "video-generation",
     "generative-ai",
     "sdk",
-    "api-client"
+    "api-client",
+    "typescript",
+    "text-to-image",
+    "image-to-video",
+    "mcp",
+    "agents",
+    "claude"
   ],
   "license": "MIT",
   "author": "2DAI",
-  "homepage": "https://2dai.io",
+  "homepage": "https://www.2dai.io",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/2DAICommunity/2dai-cloud-sdk.git"
