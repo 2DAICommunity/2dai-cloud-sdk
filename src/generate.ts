@@ -7,6 +7,7 @@ import { extractCreationId, mintClientToken, normalizeCreation, resolveDims } fr
 import { pollQueue } from './queue';
 import type { Http } from './http';
 import type {
+  ArtisticStyleParams,
   CreationRef,
   GenerationResult,
   ImageParams,
@@ -24,6 +25,13 @@ export interface GenerateNamespace {
   imageWithRefs(params: RefParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   video(params: VideoParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
   video(params: VideoParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
+  /** Artist Painter: paint your subject as a new work in a curated
+   *  artistic style. The server samples the style's reference works,
+   *  extracts its visual language with the TIXI agent and renders your prompt (and up
+   *  to 3 optional subject refs) in it; `artisticStyleId` comes from
+   *  `artisticStyles.list()` or stays `'auto'`. Billed like style-transfer. */
+  artisticStyle(params: ArtisticStyleParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
+  artisticStyle(params: ArtisticStyleParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   /** Wallpaper-resize: expand a stored creation into a target `dimension`
    *  (which drives pricing; unknown values are rejected fail-closed).
    *  Quality is forced to Ultra server-side, same as the studio's tool. */
@@ -93,6 +101,21 @@ export function createGenerate(http: Http): GenerateNamespace {
         quality: params.quality,
         style: params.style,
         frameInterpolation: params.frameInterpolation,
+        allowNSFW: params.allowNSFW,
+        clientToken: params.clientToken,
+        telegramUser: params.telegramUser,
+      }, opts) as any;
+    },
+    artisticStyle: (params: ArtisticStyleParams, opts?: SubmitOptions) => {
+      const { width, height, aspectRatio } = resolveDims(params);
+      return submit(http, '/v1/generate/artistic-style', {
+        prompt: params.prompt,
+        artisticStyleId: params.artisticStyleId ?? 'auto',
+        refCreationIds: params.refCreationIds,
+        quality: params.quality,
+        width,
+        height,
+        aspectRatio,
         allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,
         telegramUser: params.telegramUser,

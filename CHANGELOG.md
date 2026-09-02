@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.5.0 (2026-09-01)
+
+- New **Artist Painter** tool: `generate.artisticStyle({ prompt, artisticStyleId?, refCreationIds? })`
+  paints your subject as a new work in a curated artistic style — the
+  server samples the style's reference works, the TIXI agent extracts the
+  style (or composition, per style), and your prompt is rendered in it.
+  `artisticStyleId` comes from the new `artisticStyles.list()` (read scope), or stays
+  `'auto'` to let the server pick the best-matching artistic style. Up to 3 optional
+  subject refs. Billed like style-transfer. The finished creation carries
+  `artisticStyleName`.
+
 ## 2.4.1 (2026-08-21)
 
 - `telegramUser` author attribution extended to `generate.imageWithRefs` and

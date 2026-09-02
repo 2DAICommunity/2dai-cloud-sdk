@@ -6,6 +6,8 @@ export { Client } from './client';
 export type {
   ClientOptions,
   TelegramAuthor,
+  ArtisticStyle,
+  ArtisticStyleParams,
   Account,
   KeyContext,
   Scope,
@@ -73,6 +75,7 @@ export type {
 export type { GenerateNamespace } from './generate';
 export type { CreationsNamespace } from './creations';
 export type { FoldersNamespace, FolderGroupsNamespace } from './folders';
+export type { ArtisticStylesNamespace } from './artistic-styles';
 export type { UploadsNamespace } from './uploads';
 export type { QueueNamespace } from './queue';
 export type { CdnNamespace, DownloadOptions, CdnTransform, CdnFetchOptions, CdnFetchArg } from './cdn';

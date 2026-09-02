@@ -1,6 +1,6 @@
 // The 2DAI client — the single entry point. Construct it with an API key from
 // the dashboard (Integrations → API keys), then reach the API through the
-// `generate`, `creations`, `folders`, `uploads`, `queue`, `cdn`, `stats`,
+// `generate`, `creations`, `folders`, `artisticStyles`, `uploads`, `queue`, `cdn`, `stats`,
 // and `finance` namespaces.
 //
 // About the stack — every call here hits 2DAI's **Gen 7.2** image/video model,
@@ -14,6 +14,7 @@ import { Http } from './http';
 import { createGenerate, type GenerateNamespace } from './generate';
 import { createCreations, type CreationsNamespace } from './creations';
 import { createFolders, type FoldersNamespace } from './folders';
+import { createArtisticStyles, type ArtisticStylesNamespace } from './artistic-styles';
 import { createUploads, type UploadsNamespace } from './uploads';
 import { createQueue, type QueueNamespace } from './queue';
 import { createCdn, type CdnNamespace, type DownloadOptions } from './cdn';
@@ -28,6 +29,8 @@ export class Client {
   readonly creations: CreationsNamespace;
   /** List + CRUD your folders (collections) and sidebar groups. */
   readonly folders: FoldersNamespace;
+  /** The curated artistic styles available to `generate.artisticStyle` (read-only). */
+  readonly artisticStyles: ArtisticStylesNamespace;
   /** Upload local media into your library. */
   readonly uploads: UploadsNamespace;
   /** Inspect / wait on / cancel generation queue items. */
@@ -47,6 +50,7 @@ export class Client {
     this.generate = createGenerate(this.http);
     this.creations = createCreations(this.http);
     this.folders = createFolders(this.http);
+    this.artisticStyles = createArtisticStyles(this.http);
     this.uploads = createUploads(this.http);
     this.queue = createQueue(this.http);
     this.cdn = createCdn(this.http);

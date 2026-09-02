@@ -76,6 +76,15 @@ const edited = await client.generate.imageWithRefs({
   refCreationIds: [gen.creationId],
 });
 
+// Artist Painter: paint your subject as a new work in a curated
+// artistic style. `artisticStyles.list()` gives the ids; omit `artisticStyleId` for 'auto'.
+const styles = await client.artisticStyles.list();
+const painting = await client.generate.artisticStyle({
+  prompt: 'a lighthouse on a stormy coast',
+  artisticStyleId: styles[0]?.artisticStyleId,          // or 'auto'
+  refCreationIds: [gen.creationId],        // optional subject images (≤3)
+});
+
 // Video from an existing still:
 const vid = await client.generate.video({
   prompt: 'gentle camera push-in',

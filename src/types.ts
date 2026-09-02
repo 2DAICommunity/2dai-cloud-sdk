@@ -57,6 +57,8 @@ export interface Creation {
   /** Vision-derived description (owner rows carry the short form when set). */
   description?: string;
   toolKind?: string;
+  /** Artist Painter — the curated artistic style the work was painted in. */
+  artisticStyleName?: string;
   style?: string | null;
   quality?: string;
   aiModel?: string;
@@ -233,6 +235,39 @@ export interface RefParams {
   allowNSFW?: boolean;
   /** style-transfer only — what to extract (default `'style'`). */
   extractionDirective?: string;
+  clientToken?: string;
+  /** Official bot integrations only — see {@link TelegramAuthor}. */
+  telegramUser?: TelegramAuthor;
+}
+
+/** A curated artistic style available to `generate.artisticStyle` (from `artisticStyles.list()`). */
+export interface ArtisticStyle {
+  artisticStyleId: string;
+  title: string;
+  /** Vignette file id — fetch its bytes with `cdn.fetch` / `cdn.url`. */
+  thumbnailCdnId?: string;
+  thumbnailCdnExt?: string;
+  /** What the server extracts from the style's reference works: `'style'`,
+   *  `'composition'` or `'styleAndComposition'` (set by the curators). */
+  directive?: string;
+  raw?: Record<string, unknown>;
+}
+
+export interface ArtisticStyleParams {
+  /** Your subject. Optional when at least one subject ref is given. */
+  prompt?: string;
+  /** An `artisticStyleId` from `artisticStyles.list()`, or `'auto'` (default) to let the
+   *  server pick the best-matching artistic style for the prompt. */
+  artisticStyleId?: string;
+  /** Optional subject images (≤ 3) to place into the artistic style. */
+  refCreationIds?: string[];
+  /** Quality id, or `'auto'` (default) to let the server pick by tier. */
+  quality?: string;
+  /** Output shape preset (no `'auto'` here — the style pass owns the framing). */
+  aspectRatio?: AspectRatio;
+  width?: number;
+  height?: number;
+  allowNSFW?: boolean;
   clientToken?: string;
   /** Official bot integrations only — see {@link TelegramAuthor}. */
   telegramUser?: TelegramAuthor;

@@ -126,6 +126,7 @@ export function normalizeCreation(raw: any, baseUrl: string): Creation {
     // is actually populated.
     prompt: raw?.prompt ?? raw?.originalPrompt ?? raw?.finalPrompt,
     toolKind: raw?.toolKind,
+    artisticStyleName: raw?.artisticStyleName ?? undefined,
     style: raw?.style ?? undefined,
     quality: raw?.quality,
     aiModel: raw?.aiModel,
