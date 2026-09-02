@@ -23,6 +23,7 @@ function normalizeArtisticStyle(raw: any): ArtisticStyle {
   return {
     artisticStyleId: raw?.id ?? raw?.artisticStyleId,
     title: raw?.title ?? '',
+    blurb: raw?.blurb ?? undefined,
     thumbnailCdnId: raw?.thumbnailCdnId ?? undefined,
     thumbnailCdnExt: raw?.thumbnailCdnExt ?? undefined,
     directive: raw?.directive ?? undefined,

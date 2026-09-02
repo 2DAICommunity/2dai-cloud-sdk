@@ -244,6 +244,8 @@ export interface RefParams {
 export interface ArtisticStyle {
   artisticStyleId: string;
   title: string;
+  /** Short public line shown under the style in the studio's picker. */
+  blurb?: string;
   /** Vignette file id — fetch its bytes with `cdn.fetch` / `cdn.url`. */
   thumbnailCdnId?: string;
   thumbnailCdnExt?: string;

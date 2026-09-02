@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.1 (2026-09-02)
+
+- `ArtisticStyle.blurb` — the short public description shown under each style
+  in the studio's picker, now returned by `artisticStyles.list()`.
+
 ## 2.5.0 (2026-09-01)
 
 - New **Artist Painter** tool: `generate.artisticStyle({ prompt, artisticStyleId?, refCreationIds? })`
