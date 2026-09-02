@@ -337,7 +337,7 @@ export type RatioBucket = 'square' | 'landscape' | 'portrait';
 
 /** The cross-cutting listing filters shared by `creations.list` and
  *  `creations.random`. The MODES are mutually exclusive — combining
- *  `activity`, `smart`, `sharedFolderId` or a `folderId` mode rejects with
+ *  `activity`, `smart`, `sharedFolderId`, `groupId` or a `folderId` mode rejects with
  *  400 `CONFLICTING_FILTERS`, as does `trashed` with anything but the
  *  default listing. */
 export interface CreationFilterOptions {
@@ -352,6 +352,9 @@ export interface CreationFilterOptions {
   smart?: string;
   /** A folder SHARED WITH you (view access) — read-only collaborator lens. */
   sharedFolderId?: string;
+  /** A folder group (the studio's sidebar groups) — one listing across every
+   *  folder filed in it. Your own groups only: groups are never shared. */
+  groupId?: string;
   /** Free-text search over descriptions + tags. Whole-word AND across
    *  tokens; a trailing `*` makes a token a prefix (`cur*`). Capped at
    *  128 chars / 8 tokens. */

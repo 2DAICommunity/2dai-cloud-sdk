@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.3 (2026-09-02)
+
+- `groupId` on `creations.list()` / `creations.random()` — one lens across
+  every folder filed in a folder group (the studio's sidebar groups). A mode
+  like `folderId` or `sharedFolderId`: exclusive with the other modes, composes
+  with every cross-cutting filter. Your own groups only.
+
 ## 2.5.2 (2026-09-02)
 
 - `ArtisticStyle.directive` removed — an internal curation setting that was

@@ -102,6 +102,7 @@ export function createCreations(http: Http): CreationsNamespace {
     activity: opts.activity,
     smart: opts.smart,
     sharedFolderId: opts.sharedFolderId,
+    groupId: opts.groupId,
     search: opts.search,
     sort: opts.sort,
     ratioFilter: opts.ratioFilter,
