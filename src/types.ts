@@ -249,9 +249,6 @@ export interface ArtisticStyle {
   /** Vignette file id — fetch its bytes with `cdn.fetch` / `cdn.url`. */
   thumbnailCdnId?: string;
   thumbnailCdnExt?: string;
-  /** What the server extracts from the style's reference works: `'style'`,
-   *  `'composition'` or `'styleAndComposition'` (set by the curators). */
-  directive?: string;
   raw?: Record<string, unknown>;
 }
 

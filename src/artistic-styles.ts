@@ -4,7 +4,7 @@ import type { Http } from './http';
 import type { ArtisticStyle } from './types';
 
 export interface ArtisticStylesNamespace {
-  /** Every artistic style currently enabled by the 2DAI curators, with a vignette.
+  /** Every artistic style currently available, with a vignette and a short blurb.
    *  Pass an `artisticStyleId` to `generate.artisticStyle`, or omit it for `'auto'`. */
   list(signal?: AbortSignal): Promise<ArtisticStyle[]>;
 }
@@ -26,7 +26,6 @@ function normalizeArtisticStyle(raw: any): ArtisticStyle {
     blurb: raw?.blurb ?? undefined,
     thumbnailCdnId: raw?.thumbnailCdnId ?? undefined,
     thumbnailCdnExt: raw?.thumbnailCdnExt ?? undefined,
-    directive: raw?.directive ?? undefined,
     raw,
   };
 }

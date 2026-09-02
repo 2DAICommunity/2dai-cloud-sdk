@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.2 (2026-09-02)
+
+- `ArtisticStyle.directive` removed — an internal curation setting that was
+  never meant for the public surface. Nothing else changes.
+
 ## 2.5.1 (2026-09-02)
 
 - `ArtisticStyle.blurb` — the short public description shown under each style
@@ -8,9 +13,7 @@
 ## 2.5.0 (2026-09-01)
 
 - New **Artist Painter** tool: `generate.artisticStyle({ prompt, artisticStyleId?, refCreationIds? })`
-  paints your subject as a new work in a curated artistic style — the
-  server samples the style's reference works, the TIXI agent extracts the
-  style (or composition, per style), and your prompt is rendered in it.
+  paints your subject as a new work in a curated artistic style.
   `artisticStyleId` comes from the new `artisticStyles.list()` (read scope), or stays
   `'auto'` to let the server pick the best-matching artistic style. Up to 3 optional
   subject refs. Billed like style-transfer. The finished creation carries

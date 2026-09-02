@@ -26,10 +26,10 @@ export interface GenerateNamespace {
   video(params: VideoParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
   video(params: VideoParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   /** Artist Painter: paint your subject as a new work in a curated
-   *  artistic style. The server samples the style's reference works,
-   *  extracts its visual language with the TIXI agent and renders your prompt (and up
-   *  to 3 optional subject refs) in it; `artisticStyleId` comes from
-   *  `artisticStyles.list()` or stays `'auto'`. Billed like style-transfer. */
+   *  artistic style — your prompt and up to 3 optional subject refs are
+   *  rendered in the chosen style; `artisticStyleId` comes from
+   *  `artisticStyles.list()` or stays `'auto'` to let the server pick the
+   *  best match. Billed like style-transfer. */
   artisticStyle(params: ArtisticStyleParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
   artisticStyle(params: ArtisticStyleParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   /** Wallpaper-resize: expand a stored creation into a target `dimension`
