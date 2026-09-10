@@ -105,6 +105,7 @@ export function normalizeQueue(raw: any, baseUrl: string): QueueState {
   return {
     queueId: raw?.queueId,
     status: raw?.status,
+    quality: typeof raw.quality === 'string' ? raw.quality : undefined,
     costUsd: num(raw?.costUsd),
     creationId: raw?.creationId || undefined,
     cdnId: raw?.outputCdnId || undefined,

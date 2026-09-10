@@ -55,6 +55,9 @@ export interface QueueTicket {
   status: QueueStatus;
   /** Present only when a non-zero charge was applied at submit time. */
   costUsd?: number;
+  /** The preset the server resolved at submit — what `auto` chose, and what
+   *  `costUsd` was priced on (server ≥ 2.2.25). */
+  quality?: string;
 }
 
 /** `GET /v1/queue/:id` — the live state of a generation. */
@@ -62,6 +65,8 @@ export interface QueueState {
   queueId: string;
   status: QueueStatus;
   costUsd?: number;
+  /** Resolved preset of the job (server ≥ 2.2.25). */
+  quality?: string;
   creationId?: string;
   cdnId?: string;
   downloadUrl?: string;

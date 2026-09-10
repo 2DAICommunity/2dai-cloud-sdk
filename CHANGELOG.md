@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.5 (2026-09-10)
+
+- `QueueTicket.quality` / `QueueState.quality` — the preset the server resolved
+  at submit (what `auto` chose and what `costUsd` was priced on); `GenerationResult`
+  carries it too.
+- Server side in the same wave: a submit whose `inputCreationId` / `refCreationIds`
+  / extraction refs name a creation that does not exist is refused up front with
+  `404 CREATION_NOT_FOUND { missingCreationIds }` — before any charge, instead of
+  failing minutes later on the worker.
+
 ## 2.5.4 (2026-09-10)
 
 - `Account` (`client.me()`) gains `qualities` — every preset per generation

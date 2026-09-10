@@ -177,6 +177,7 @@ async function enrich(http: Http, ticket: QueueTicket, terminal: { creationId?: 
   const base = {
     queueId: ticket.queueId,
     costUsd: ticket.costUsd,
+    quality: ticket.quality,
     creationId: terminal.creationId || '',
     cdnId: terminal.cdnId,
     downloadUrl: terminal.downloadUrl,
