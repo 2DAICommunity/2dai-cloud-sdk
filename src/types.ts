@@ -22,7 +22,27 @@ export interface Account {
   /** Whether the account's tier (Holder+/tier2+) may turn OFF the 2DAI
    *  watermark on downloads/deliveries. Below the gate it is forced on. */
   canDisableWatermark?: boolean;
+  /** Tier-gated quality caps: which of the ultra / ultimate presets this account may use. */
+  quality?: { ultraImage: boolean; ultraVideo: boolean; ultimateImage: boolean; ultimateVideo: boolean };
+  /** Every quality preset per generation type, with the account's access and the
+   *  platform recommendation (image: max; video: ultra at 5 s; ultimate = highest resolution). */
+  qualities?: { image: QualityPreset[]; video: QualityPreset[] };
+  /** Video durations in seconds with the tier lock resolved for this account. */
+  videoDurations?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
+  /** Duration used when a video request omits `duration`. */
+  defaultVideoDuration?: number;
   key: KeyContext;
+}
+
+/** One quality preset as returned by `GET /v1/me` — same ladder for every tool. */
+export interface QualityPreset {
+  id: string;
+  name: string;
+  description: string;
+  /** false when the account's tier cannot use this preset (submit would 403). */
+  allowed: boolean;
+  /** The platform's recommended everyday pick for this generation type. */
+  recommended: boolean;
 }
 
 export type QueueStatus =

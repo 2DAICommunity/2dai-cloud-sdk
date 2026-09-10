@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.4 (2026-09-10)
+
+- `Account` (`client.me()`) gains `qualities` — every preset per generation
+  type with `allowed` (tier lock resolved for the account) and `recommended`
+  (image: `max`; video: `ultra`), `videoDurations` with `locked` /
+  `recommended`, `defaultVideoDuration` (now 5 s), and the `quality` flags
+  (`ultraImage`, `ultraVideo`, `ultimateImage`, `ultimateVideo`).
+- Server-side in the same wave: prompts and `negativePrompt` accept up to
+  2,500 characters; a video request without `duration` renders 5 s.
+
 ## 2.5.3 (2026-09-02)
 
 - `groupId` on `creations.list()` / `creations.random()` — one lens across

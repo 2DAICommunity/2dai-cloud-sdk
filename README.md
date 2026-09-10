@@ -49,7 +49,8 @@ ticket immediately and poll yourself.
 const img = await client.generate.image({
   prompt: 'a neon city street, rain',
   aspectRatio: '16:9', // or 'auto' — the server picks the best ratio from the prompt
-  // style + quality default to 'auto' (the server picks by your tier)
+  // style + quality default to 'auto' (the server picks by your tier);
+  // recommended: quality 'max' for images, 'ultra' at 5 s for video, 'ultimate' = highest resolution
 });
 
 // `enhanced` rewrites your prompt with TIXI, the 2DAI prompt agent, before it
