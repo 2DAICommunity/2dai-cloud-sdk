@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.5.6 (2026-09-18)
+
+- `QueueState.errorCode` / `QueueState.errorMessage` — a failed, timed-out or expired
+  job now carries a machine-readable code (`CAPACITY_FULL`, `EXPIRED`,
+  `GENERATION_TIMEOUT`, `NSFW_MAX_EXCEEDED`, `QUALITY_UNAVAILABLE`, …) to branch on, and
+  a human-readable message to show a person ("No capacity left right now. You weren't
+  charged — try again soon."). `error` keeps the raw outcome string, unchanged.
+- `GenerationFailedError` exposes the same `errorCode` / `errorMessage` getters; its
+  `message` is unchanged.
+- Server side in the same wave: a generation that finds no free render capacity waits
+  in the 2DAI queue instead of failing (sent again up to twice, never past the queue
+  deadline), and long renders get up to 90 minutes.
+
 ## 2.5.5 (2026-09-10)
 
 - `QueueTicket.quality` / `QueueState.quality` — the preset the server resolved

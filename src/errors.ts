@@ -116,11 +116,19 @@ export class ValidationError extends ApiError {}
 
 /** The generation reached a terminal non-success state (`failed`/`cancelled`/`timeout`). */
 export class GenerationFailedError extends ApiError {
-  constructor(status: string, detail?: string, queueId?: string) {
-    super('GENERATION_' + status.toUpperCase(), 0, detail || `Generation ${status}`, { status, queueId });
+  /** `detail` stays the server's internal outcome string (`CODE: detail`), as before; `outcome`
+   *  adds its machine code and a human-readable message when the server sends them. */
+  constructor(status: string, detail?: string, queueId?: string, outcome?: { errorCode?: string; errorMessage?: string }) {
+    super('GENERATION_' + status.toUpperCase(), 0, detail || `Generation ${status}`, {
+      status, queueId, errorCode: outcome?.errorCode, errorMessage: outcome?.errorMessage,
+    });
   }
   get status(): string { return this.details.status as string; }
   get queueId(): string | undefined { return this.details.queueId as string | undefined; }
+  /** Machine-readable outcome code (e.g. `NSFW_MAX_EXCEEDED`, `CAPACITY_FULL`) — branch on this. */
+  get errorCode(): string | undefined { return this.details.errorCode as string | undefined; }
+  /** Human-readable outcome to show a person. */
+  get errorMessage(): string | undefined { return this.details.errorMessage as string | undefined; }
 }
 
 /** The client-side `waitFor` deadline elapsed before the queue reached a terminal state. */

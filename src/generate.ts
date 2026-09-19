@@ -165,7 +165,9 @@ async function submitTicket(
     signal: opts.signal,
   });
   if (terminal.status !== 'completed') {
-    throw new GenerationFailedError(terminal.status, terminal.error, ticket.queueId);
+    throw new GenerationFailedError(terminal.status, terminal.error, ticket.queueId, {
+      errorCode: terminal.errorCode, errorMessage: terminal.errorMessage,
+    });
   }
   return enrich(http, ticket, terminal);
 }

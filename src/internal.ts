@@ -111,6 +111,8 @@ export function normalizeQueue(raw: any, baseUrl: string): QueueState {
     cdnId: raw?.outputCdnId || undefined,
     downloadUrl: absoluteUrl(baseUrl, raw?.downloadUrl),
     error: raw?.error || undefined,
+    errorCode: typeof raw?.errorCode === 'string' && raw.errorCode ? raw.errorCode : undefined,
+    errorMessage: typeof raw?.errorMessage === 'string' && raw.errorMessage ? raw.errorMessage : undefined,
     createdAt: raw?.createdAt || undefined,
     completedAt: raw?.completedAt || undefined,
   };

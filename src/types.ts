@@ -70,7 +70,14 @@ export interface QueueState {
   creationId?: string;
   cdnId?: string;
   downloadUrl?: string;
+  /** Internal outcome string of a failed job (`CODE: detail`), kept for compatibility. */
   error?: string;
+  /** Machine-readable outcome code (e.g. `CAPACITY_FULL`, `EXPIRED`, `GENERATION_TIMEOUT`,
+   *  `NSFW_MAX_EXCEEDED`, `QUALITY_UNAVAILABLE`) — branch on this in code. */
+  errorCode?: string;
+  /** Human-readable outcome to show a person, e.g. "No capacity left right now. You weren't
+   *  charged — try again soon." */
+  errorMessage?: string;
   createdAt?: string;
   completedAt?: string;
 }

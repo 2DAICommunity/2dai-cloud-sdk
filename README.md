@@ -270,6 +270,9 @@ try {
 Other errors: `AuthError`, `ScopeError`, `TierError`, `QueueLimitError`,
 `RateLimitError`, `ValidationError`, `NotFoundError`, `GenerationFailedError`,
 `TimeoutError`. All extend `ApiError` (`.code`, `.httpStatus`, `.details`).
+A `GenerationFailedError` (and a failed `QueueState`) also carries `errorCode` to
+branch on (`CAPACITY_FULL`, `EXPIRED`, `GENERATION_TIMEOUT`, …) and `errorMessage`,
+a readable sentence you can show as is.
 
 ## The 2DAI stack
 
