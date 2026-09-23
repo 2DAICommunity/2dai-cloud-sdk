@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.5.7 (2026-09-23)
+
+- Docs only, no API change: a **content-rated** result is not an error. A creation with
+  `nsfwFlagged: true` (`nsfwRate` 0.8 or 0.99) completed and was charged; it stays masked in
+  the owner's drive, is left out of public feeds and cannot be published
+  (`NSFW_NOT_PUBLISHABLE`). Point users to `viewUrl` to review it instead of retrying. Only
+  `NSFW_MAX_EXCEEDED` discards the output. README + wiki (Generating → Content rating, Errors).
+- Server side in the same wave: the classifier's caption-based "uncertainty floor" is gone —
+  a 0 verdict is no longer raised to 0.8 because the caption contained words like "blank" or
+  "indistinct" — and featureless nude figures (mannequins, dolls, statues) are rated 0.8.
+
 ## 2.5.6 (2026-09-18)
 
 - `QueueState.errorCode` / `QueueState.errorMessage` — a failed, timed-out or expired
