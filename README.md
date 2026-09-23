@@ -274,6 +274,13 @@ A `GenerationFailedError` (and a failed `QueueState`) also carries `errorCode` t
 branch on (`CAPACITY_FULL`, `EXPIRED`, `GENERATION_TIMEOUT`, …) and `errorMessage`,
 a readable sentence you can show as is.
 
+A **content-rated** result is not an error: a creation with `nsfwFlagged: true`
+(`nsfwRate` 0.8 or 0.99) completed and was charged, but it stays masked in the
+owner's drive, is left out of public feeds and cannot be published
+(`NSFW_NOT_PUBLISHABLE`). Hand your user the `viewUrl` to review it rather than
+retrying. Only `NSFW_MAX_EXCEEDED` (platform ceiling) discards the output — nothing is
+charged, reword the prompt. Details: [Content rating](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Generating#content-rating).
+
 ## The 2DAI stack
 
 We currently use our **Gen 7.2** model, and unlike others, we don't resell
