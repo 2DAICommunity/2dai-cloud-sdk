@@ -31,6 +31,8 @@ export interface Account {
   videoDurations?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
   /** Duration used when a video request omits `duration`. */
   defaultVideoDuration?: number;
+  /** Longest prompt (and negative prompt) the generate calls accept, in characters. */
+  promptMaxChars?: number;
   key: KeyContext;
 }
 

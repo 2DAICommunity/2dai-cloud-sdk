@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.8 (2026-09-26)
+
+- `Account.promptMaxChars` — `client.me()` now reports the longest `prompt` / `negativePrompt`
+  the generate calls accept, in characters. The cap is raised to **4,000** characters server
+  side in the same wave; read it from `me()` instead of hard-coding it. Additive, no breaking
+  change.
+
 ## 2.5.7 (2026-09-23)
 
 - Docs only, no API change: a **content-rated** result is not an error. A creation with
