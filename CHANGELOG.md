@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5.9 (2026-09-27)
+
+- Prompt caps now follow the account's tier (1,500 characters as a Guest, up to 8,000 from
+  Supporter). `Account.promptMaxChars` is the cap for the calling account and the new
+  `Account.promptMaxCharsNext` names the first tier that raises it. A longer `prompt` is refused with
+  `ValidationError` code `PROMPT_TOO_LONG` (details: `max`, `got`, `tier`, `next`) before any charge; a
+  longer `negativePrompt` is truncated to the cap; an empty prompt stays `INVALID_PROMPT`. Additive, no
+  breaking change.
+
 ## 2.5.8 (2026-09-26)
 
 - `Account.promptMaxChars` — `client.me()` now reports the longest `prompt` / `negativePrompt`
