@@ -86,11 +86,23 @@ const painting = await client.generate.artisticStyle({
   refCreationIds: [gen.creationId],        // optional subject images (≤3)
 });
 
-// Video from an existing still:
+// Video from an existing still (silent, 5, 6 or 7 s — 7 s needs Supporter+):
 const vid = await client.generate.video({
   prompt: 'gentle camera push-in',
   inputCreationId: gen.creationId,
   duration: 5,
+});
+
+// Video Next preview (clips WITH sound): a first frame plus up to 6 references,
+// 1, 5, 8 (Believer+), 10 (Supporter+), 12, 15 or 20 s (Founder). Fast quality
+// below Founder. Long clips render for minutes: the SDK waits up to 20 min here.
+const next = await client.generate.video({
+  videoModel: 'next',
+  prompt: 'the kite surfer lands, waves at the camera, the crowd cheers',
+  inputCreationId: gen.creationId,          // first frame
+  refCreationIds: [characterId, placeId],   // optional, ≤6 (each adds a surcharge)
+  duration: 20,
+  aspectRatio: '16:9',                      // 'auto' = the first frame's ratio
 });
 
 // Wallpaper-resize: expand a creation into a wallpaper dimension.
@@ -102,7 +114,7 @@ const wall = await client.generate.wallpaper({
 ```
 
 Each tool caps its references (3 image · 6 face/character · 3 style-transfer ·
-4 smart-edit · 3 wallpaper) — exceeding a cap rejects with `TOO_MANY_REFS`
+4 smart-edit · 3 wallpaper · 7 Video Next pictures) — exceeding a cap rejects with `TOO_MANY_REFS`
 before anything is charged. A ticket that is still **pending** can be stopped
 with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 [Generating](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Generating).
@@ -215,7 +227,7 @@ Deleting a group only detaches its folders — nothing else is deleted.
 ```ts
 const me = await client.me();
 console.log(me.creditUsd, me.tier, me.key.scopes);
-console.log(me.promptMaxChars, me.promptMaxCharsNext); // prompt cap for this tier (1,500 → 8,000), and the tier that raises it
+console.log(me.promptMaxChars, me.promptMaxCharsNext); // prompt cap for this tier (1,500 → 10,000), and the tier that raises it
 
 const page = await client.creations.list({ limit: 20 });
 const one = await client.creations.get(page.creations[0].creationId);

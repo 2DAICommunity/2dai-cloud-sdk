@@ -11,6 +11,9 @@ export interface KeyContext {
   /** null = uncapped (the account's main credit is the only limit). */
   spendLimitUsd: number | null;
   spentUsd: number;
+  /** Model channels this key may submit to. A key without a policy reaches every channel;
+   *  a bot-policy key reaches `default` only unless its policy lists `next`. */
+  modelChannels?: Array<'default' | 'next'>;
 }
 
 /** `GET /v1/me` — identity, balance, tier, and the calling key's context. */
@@ -26,11 +29,20 @@ export interface Account {
   quality?: { ultraImage: boolean; ultraVideo: boolean; ultimateImage: boolean; ultimateVideo: boolean };
   /** Every quality preset per generation type, with the account's access and the
    *  platform recommendation (image: max; video: ultra at 5 s; ultimate = highest resolution). */
-  qualities?: { image: QualityPreset[]; video: QualityPreset[] };
+  qualities?: { image: QualityPreset[]; video: QualityPreset[]; videoNext?: QualityPreset[] };
   /** Video durations in seconds with the tier lock resolved for this account. */
   videoDurations?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
   /** Duration used when a video request omits `duration`. */
   defaultVideoDuration?: number;
+  /** Whether this account may generate video at all (Holder+/tier2+). When false every video
+   *  duration is locked and every video quality is not allowed. */
+  canUseVideo?: boolean;
+  /** Duration used when a Video Next request omits `duration`. */
+  defaultVideoDurationNext?: number;
+  /** Video Next durations in seconds with the tier lock resolved for this account (1 to 20 s). */
+  videoDurationsNext?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
+  /** Engine behind each model channel (`null` = channel not available on this server). */
+  modelChannels?: { video: { default: string | null; next: string | null }; image: { default: string | null; next: string | null } };
   /** Longest prompt (and negative prompt) the generate calls accept for this account, in characters — it follows the tier. */
   promptMaxChars?: number;
   /** The first tier that raises `promptMaxChars`, when there is one. */
@@ -71,6 +83,8 @@ export interface QueueState {
   costUsd?: number;
   /** Resolved preset of the job (server ≥ 2.2.25). */
   quality?: string;
+  /** Video jobs: the model channel that rendered it (`'next'` = Video Next). */
+  videoModel?: 'default' | 'next';
   creationId?: string;
   cdnId?: string;
   downloadUrl?: string;
@@ -325,10 +339,20 @@ export interface WallpaperParams {
 
 export interface VideoParams {
   prompt: string;
-  /** The still creation to animate. */
+  /** The first frame: the creation the clip starts from. */
   inputCreationId: string;
-  /** Seconds; tier-gated (7s needs Supporter+). */
+  /** Which video model: `'default'` (Video — silent clips of 5, 6 or 7 s) or `'next'` (Video Next preview —
+   *  clips WITH sound from 1 to 20 s, a first frame plus up to 6 references). Default `'default'`. */
+  videoModel?: 'default' | 'next';
+  /** Video Next only: up to 6 more reference creations (characters, props, places) after the first frame,
+   *  7 pictures in all. Each one past the first frame adds a surcharge to the price. */
+  refCreationIds?: string[];
+  /** Clip length in seconds. Video: 5, 6 or 7 (7 needs Supporter+), as the studio shows them.
+   *  Video Next: 1, 5, 8 (Believer+), 10 (Supporter+), 12, 15 or 20 (Founder). Default 5 on both. */
   duration?: number;
+  /** Video Next only: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. */
+  aspectRatio?: string;
+  /** Quality preset id or `'auto'`. Video Next renders in `fast` below Founder. */
   quality?: string;
   style?: string;
   frameInterpolation?: boolean;

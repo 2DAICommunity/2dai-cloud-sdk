@@ -94,9 +94,15 @@ export function createGenerate(http: Http): GenerateNamespace {
       }, opts) as any;
     },
     video: (params: VideoParams, opts?: SubmitOptions) => {
+      const isNext = params.videoModel === 'next';
+      const refs = isNext && Array.isArray(params.refCreationIds) ? params.refCreationIds.filter(Boolean) : [];
+      // Long Video Next clips render for minutes: wait up to 20 min unless the caller set a deadline.
+      const waitOpts = isNext && opts?.timeoutMs === undefined ? { ...(opts ?? {}), timeoutMs: 1_200_000 } : opts;
       return submit(http, '/v1/generate/video', {
         prompt: params.prompt,
-        inputCreationId: params.inputCreationId,
+        ...(refs.length ? { inputCreationIds: [params.inputCreationId, ...refs] } : { inputCreationId: params.inputCreationId }),
+        videoModel: params.videoModel,
+        aspectRatio: isNext ? params.aspectRatio : undefined,
         duration: params.duration,
         quality: params.quality,
         style: params.style,
@@ -104,7 +110,7 @@ export function createGenerate(http: Http): GenerateNamespace {
         allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,
         telegramUser: params.telegramUser,
-      }, opts) as any;
+      }, waitOpts) as any;
     },
     artisticStyle: (params: ArtisticStyleParams, opts?: SubmitOptions) => {
       const { width, height, aspectRatio } = resolveDims(params);
