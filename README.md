@@ -227,7 +227,7 @@ Deleting a group only detaches its folders — nothing else is deleted.
 ```ts
 const me = await client.me();
 console.log(me.creditUsd, me.tier, me.key.scopes);
-console.log(me.promptMaxChars, me.promptMaxCharsNext); // prompt cap for this tier (1,500 → 10,000), and the tier that raises it
+console.log(me.promptMaxChars, me.promptMaxCharsNext); // prompt cap for this tier (1,500 → 20,000), and the tier that raises it
 
 const page = await client.creations.list({ limit: 20 });
 const one = await client.creations.get(page.creations[0].creationId);
