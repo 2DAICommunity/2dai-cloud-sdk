@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.6.0 (unreleased)
+## 2.6.0 (2026-10-06)
 
 - **Gen8 Flash (Preview)** — `generate.video({ videoModel: 'next' })` runs the preview of 2DAI's next video
   engine: clips with sound, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds`, optional
