@@ -95,11 +95,14 @@ const painting = await client.generate.artisticStyle({
   refCreationIds: [gen.creationId],        // optional subject images (≤3)
 });
 
-// Video from an existing still (silent, 5, 6 or 7 s — 7 s needs Supporter+):
+// Video from an existing still (silent, 5, 6 or 7 s — 7 s needs Supporter+).
+// Every video style except 'raw' runs TIXI on your prompt (the style's guidance
+// only exists through that rewrite); 'raw' sends it verbatim unless enhanced: true.
 const vid = await client.generate.video({
   prompt: 'gentle camera push-in',
   inputCreationId: gen.creationId,
   duration: 5,
+  style: 'raw',        // verbatim — add `enhanced: true` to let TIXI write the scenario
 });
 
 // Gen8 Flash, the new video engine (clips WITH sound): a first frame plus up to 6
@@ -112,6 +115,7 @@ const next = await client.generate.video({
   refCreationIds: [characterId, placeId],   // optional, ≤6 (each adds a surcharge)
   duration: 10,                             // one of me().videoDurationsNext
   aspectRatio: '16:9',                      // 'auto' = the first frame's ratio
+  style: 'raw', enhanced: true,             // your idea → TIXI writes the Gen8 Flash brief (shots, pictures, sound)
 });
 
 // Wallpaper-resize: expand a creation into a wallpaper dimension.

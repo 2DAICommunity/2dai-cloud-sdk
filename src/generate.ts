@@ -106,6 +106,7 @@ export function createGenerate(http: Http): GenerateNamespace {
         duration: params.duration,
         quality: params.quality,
         style: params.style,
+        enhanced: params.enhanced,
         frameInterpolation: params.frameInterpolation,
         allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,

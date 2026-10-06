@@ -252,8 +252,9 @@ export interface ImageParams {
    *  you sent, and TIXI's rewrite is in `raw.finalPrompt`.
    *
    *  Not a free-for-all switch across the API: face-ref, character-ref and
-   *  wallpaper-resize always run TIXI (their directives depend on it), while
-   *  `generate.video` has no `enhanced` option at all. */
+   *  wallpaper-resize always run TIXI (their directives depend on it), and on
+   *  `generate.video` the flag only matters with `style: 'raw'` — every other
+   *  video style runs TIXI anyway. */
   enhanced?: boolean;
   allowNSFW?: boolean;
   /** Up to 3 soft-conditioning reference creations. */
@@ -354,7 +355,13 @@ export interface VideoParams {
   aspectRatio?: string;
   /** Quality preset id or `'auto'`. Gen8 Flash: the presets `me()` lists for the account (`fast` at launch). */
   quality?: string;
+  /** Motion style id or `'auto'`. Every video style except `'raw'` runs TIXI on the prompt (the style's
+   *  guidance only exists through that rewrite); `'raw'` sends the prompt verbatim unless `enhanced` is true. */
   style?: string;
+  /** Run TIXI on the prompt with `style: 'raw'`: it writes the motion scenario (Video) or the full Gen8 Flash
+   *  brief (shots, pictures, sound) from your idea; a prompt starting with "tixi " adds a thinking pass. Every
+   *  other style already runs TIXI and cannot switch it off. No extra credit. */
+  enhanced?: boolean;
   frameInterpolation?: boolean;
   allowNSFW?: boolean;
   clientToken?: string;

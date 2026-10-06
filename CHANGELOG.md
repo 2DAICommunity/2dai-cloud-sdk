@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.6.1 (2026-10-06)
+
+- `generate.video` takes `enhanced` — with `style: 'raw'` TIXI writes the motion scenario (Video) or the
+  full Gen8 Flash brief from your idea; a prompt starting with "tixi " adds a thinking pass (the word itself
+  is dropped from what TIXI reads). Every other video style, and `auto`, already runs TIXI and cannot switch
+  it off. No extra credit. Additive.
+
 ## 2.6.0 (2026-10-06)
 
 - **Gen8 Flash (Preview)** — `generate.video({ videoModel: 'next' })` runs the preview of 2DAI's next video
