@@ -37,9 +37,9 @@ export interface Account {
   /** Whether this account may generate video at all (Holder+/tier2+). When false every video
    *  duration is locked and every video quality is not allowed. */
   canUseVideo?: boolean;
-  /** Duration used when a Video Next request omits `duration`. */
+  /** Duration used when a Gen8 Flash request omits `duration`. */
   defaultVideoDurationNext?: number;
-  /** Video Next durations in seconds with the tier lock resolved for this account (1 to 20 s). */
+  /** Gen8 Flash durations in seconds with the tier lock resolved for this account (1 to 20 s). */
   videoDurationsNext?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
   /** Engine behind each model channel (`null` = channel not available on this server). */
   modelChannels?: { video: { default: string | null; next: string | null }; image: { default: string | null; next: string | null } };
@@ -83,7 +83,7 @@ export interface QueueState {
   costUsd?: number;
   /** Resolved preset of the job (server ≥ 2.2.25). */
   quality?: string;
-  /** Video jobs: the model channel that rendered it (`'next'` = Video Next). */
+  /** Video jobs: the model channel that rendered it (`'next'` = Gen8 Flash). */
   videoModel?: 'default' | 'next';
   creationId?: string;
   cdnId?: string;
@@ -341,18 +341,18 @@ export interface VideoParams {
   prompt: string;
   /** The first frame: the creation the clip starts from. */
   inputCreationId: string;
-  /** Which video model: `'default'` (Video — silent clips of 5, 6 or 7 s) or `'next'` (Video Next preview —
+  /** Which video model: `'default'` (Video — silent clips of 5, 6 or 7 s) or `'next'` (Gen8 Flash preview —
    *  clips WITH sound from 1 to 20 s, a first frame plus up to 6 references). Default `'default'`. */
   videoModel?: 'default' | 'next';
-  /** Video Next only: up to 6 more reference creations (characters, props, places) after the first frame,
+  /** Gen8 Flash only: up to 6 more reference creations (characters, props, places) after the first frame,
    *  7 pictures in all. Each one past the first frame adds a surcharge to the price. */
   refCreationIds?: string[];
   /** Clip length in seconds. Video: 5, 6 or 7 (7 needs Supporter+), as the studio shows them.
-   *  Video Next: 1, 5, 8 (Believer+), 10 (Supporter+), 12, 15 or 20 (Founder). Default 5 on both. */
+   *  Gen8 Flash (`videoModel: 'next'`): the lengths `me().videoDurationsNext` lists for the account (1, 5, 8 or 10 at launch). Default 5 on both. */
   duration?: number;
-  /** Video Next only: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. */
+  /** Gen8 Flash only: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. */
   aspectRatio?: string;
-  /** Quality preset id or `'auto'`. Video Next renders in `fast` below Founder. */
+  /** Quality preset id or `'auto'`. Gen8 Flash: the presets `me()` lists for the account (`fast` at launch). */
   quality?: string;
   style?: string;
   frameInterpolation?: boolean;

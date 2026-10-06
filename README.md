@@ -14,6 +14,15 @@ Not on JavaScript? The same platform is a plain REST API — jump to
 npm install 2dai-cloud-sdk
 ```
 
+## New — Gen8 Flash (Preview)
+
+`client.generate.video({ videoModel: 'next', ... })` runs **Gen8 Flash**, the preview of 2DAI's next video engine:
+clips come out **with sound**, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds` (characters,
+props and places kept consistent), with an optional `aspectRatio`. Lengths and presets follow the account —
+`fast` quality and 1, 5, 8 or 10 s at launch, more with the next releases and higher tiers: read
+`me().videoDurationsNext` and `me().qualities.videoNext` instead of guessing. In the 2DAI studio the same engine also
+takes an audio reference (music, or a voice to clone) and TIXI writes the full scenario.
+
 ## Get a key
 
 Sign in at [2dai.io](https://2dai.io) (any active account works — no plan
@@ -93,15 +102,15 @@ const vid = await client.generate.video({
   duration: 5,
 });
 
-// Video Next preview (clips WITH sound): a first frame plus up to 6 references,
-// 1, 5, 8 (Believer+), 10 (Supporter+), 12, 15 or 20 s (Founder). Fast quality
-// below Founder. Long clips render for minutes: the SDK waits up to 20 min here.
+// Gen8 Flash, the new video engine (clips WITH sound): a first frame plus up to 6
+// references. Lengths and presets follow the account (me().videoDurationsNext /
+// qualities): Fast and 1, 5, 8 or 10 s at launch. The SDK waits up to 20 min here.
 const next = await client.generate.video({
   videoModel: 'next',
   prompt: 'the kite surfer lands, waves at the camera, the crowd cheers',
   inputCreationId: gen.creationId,          // first frame
   refCreationIds: [characterId, placeId],   // optional, ≤6 (each adds a surcharge)
-  duration: 20,
+  duration: 10,                             // one of me().videoDurationsNext
   aspectRatio: '16:9',                      // 'auto' = the first frame's ratio
 });
 
@@ -114,7 +123,7 @@ const wall = await client.generate.wallpaper({
 ```
 
 Each tool caps its references (3 image · 6 face/character · 3 style-transfer ·
-4 smart-edit · 3 wallpaper · 7 Video Next pictures) — exceeding a cap rejects with `TOO_MANY_REFS`
+4 smart-edit · 3 wallpaper · 7 Gen8 Flash pictures) — exceeding a cap rejects with `TOO_MANY_REFS`
 before anything is charged. A ticket that is still **pending** can be stopped
 with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 [Generating](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Generating).

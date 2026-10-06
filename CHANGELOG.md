@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.6.0 (unreleased)
+
+- **Gen8 Flash (Preview)** — `generate.video({ videoModel: 'next' })` runs the preview of 2DAI's next video
+  engine: clips with sound, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds`, optional
+  `aspectRatio`; the default wait for a `next` clip is 20 min. `me()` reports `canUseVideo`,
+  `videoDurationsNext` (tier lock resolved), `qualities.videoNext` and `modelChannels`; results carry
+  `videoModel`. Lengths and presets follow the account: `fast` and 1, 5, 8 or 10 s at launch. Additive.
+- Prompt caps follow the tier up to **20,000** characters (Founder); `me().promptMaxChars` stays the source of truth.
+
 ## 2.5.9 (2026-09-27)
 
 - Prompt caps now follow the account's tier (1,500 characters as a Guest, up to 8,000 from

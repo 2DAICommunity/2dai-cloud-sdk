@@ -96,7 +96,7 @@ export function createGenerate(http: Http): GenerateNamespace {
     video: (params: VideoParams, opts?: SubmitOptions) => {
       const isNext = params.videoModel === 'next';
       const refs = isNext && Array.isArray(params.refCreationIds) ? params.refCreationIds.filter(Boolean) : [];
-      // Long Video Next clips render for minutes: wait up to 20 min unless the caller set a deadline.
+      // Long Gen8 Flash clips render for minutes: wait up to 20 min unless the caller set a deadline.
       const waitOpts = isNext && opts?.timeoutMs === undefined ? { ...(opts ?? {}), timeoutMs: 1_200_000 } : opts;
       return submit(http, '/v1/generate/video', {
         prompt: params.prompt,
