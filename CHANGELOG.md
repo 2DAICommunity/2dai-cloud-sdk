@@ -5,8 +5,8 @@
 - **Gen8 Flash (Preview)** — `generate.video({ videoModel: 'next' })` runs the preview of 2DAI's next video
   engine: clips with sound, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds`, optional
   `aspectRatio`; the default wait for a `next` clip is 20 min. `me()` reports `canUseVideo`,
-  `videoDurationsNext` (tier lock resolved), `qualities.videoNext` and `modelChannels`; results carry
-  `videoModel`. Lengths and presets follow the account: `fast` and 1, 5, 8 or 10 s at launch. Additive.
+  `videoDurationsNext` (tier lock resolved), `qualities.videoNext` and `modelChannels`; queue states carry
+  `videoModel` and the finished creation is stamped `aiModel: 'gen8.0'`. Lengths and presets follow the account: `fast` and 1, 5, 8 or 10 s at launch. Additive.
 - Prompt caps follow the tier up to **20,000** characters (Founder); `me().promptMaxChars` stays the source of truth.
 
 ## 2.5.9 (2026-09-27)
