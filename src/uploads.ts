@@ -1,6 +1,7 @@
 // Uploads namespace — push a local image/gif/mp4 into your library so it can be
-// used as a generation reference or animated into a video. Runs the same
-// server-side moderation pass as the studio (throws NsfwRejectedError on block).
+// used as a generation reference or animated into a video, or an MP3 that
+// becomes the audio reference of a Gen8 Flash clip. Runs the same server-side
+// moderation pass as the studio (throws NsfwRejectedError on block).
 
 import { ApiError } from './errors';
 import { mimeFromFilename, normalizeCreation } from './internal';
@@ -13,6 +14,11 @@ export interface UploadsNamespace {
    *  (mutually exclusive) record the upload as an edit of an existing
    *  creation you own; `targetFolderId` files it directly into a folder. */
   image(input: UploadInput): Promise<Creation>;
+  /** Upload an MP3 (5 min max, Holder tier and up — 403 `AUDIO_NOT_ALLOWED` below, 400 `AUDIO_TOO_LONG` over)
+   *  and return the created audio creation: pass its `creationId` as `audioCreationId` to `generate.video`
+   *  with `videoModel: 'next'`, as the clip's music / sound design or as a voice sample. `targetFolderId`
+   *  files it into a folder. No pixels, so no vision caption: the file name and length label it. */
+  audio(input: UploadInput): Promise<Creation>;
   /** Advisory pre-flight dedup: does a creation with this MD5 already exist
    *  (optionally within one folder)? Saves the full upload round-trip; the
    *  upload itself still re-checks, so treat a `false` as a hint, not a lock. */
@@ -22,19 +28,12 @@ export interface UploadsNamespace {
 export function createUploads(http: Http): UploadsNamespace {
   return {
     async image(input: UploadInput): Promise<Creation> {
-      const { blob, filename } = await toBlob(input);
-      const form = new FormData();
-      form.append('file', blob, filename);
-      if (input.croppedFromCreationId) form.append('croppedFromCreationId', input.croppedFromCreationId);
-      if (input.erasedFromCreationId) form.append('erasedFromCreationId', input.erasedFromCreationId);
-      if (input.targetFolderId) form.append('targetFolderId', input.targetFolderId);
-      if (input.telegramUser) form.append('telegramUser', JSON.stringify(input.telegramUser));
-      if (input.sceneDescription === true) form.append('sceneDescription', 'true');
-      // Uploads carry the file AND wait for the server-side moderation pass —
-      // give them a 3-minute floor so a large mp4 on a slow uplink doesn't
-      // trip the default 60s budget and orphan a server-side creation.
-      const raw = await http.request<any>('POST', '/v1/uploads', { form, idempotent: false, signal: input.signal, timeoutMs: 180_000 });
-      return normalizeCreation(raw, http.baseUrl);
+      return send(http, input);
+    },
+
+    async audio(input: UploadInput): Promise<Creation> {
+      // An MP3 by path or bytes; the MIME defaults to audio/mpeg when nothing names it.
+      return send(http, { contentType: 'audio/mpeg', ...input });
     },
 
     async checkDuplicate(md5: string, folderId?: string, signal?: AbortSignal): Promise<DuplicateCheck> {
@@ -45,6 +44,22 @@ export function createUploads(http: Http): UploadsNamespace {
       });
     },
   };
+}
+
+async function send(http: Http, input: UploadInput): Promise<Creation> {
+  const { blob, filename } = await toBlob(input);
+  const form = new FormData();
+  form.append('file', blob, filename);
+  if (input.croppedFromCreationId) form.append('croppedFromCreationId', input.croppedFromCreationId);
+  if (input.erasedFromCreationId) form.append('erasedFromCreationId', input.erasedFromCreationId);
+  if (input.targetFolderId) form.append('targetFolderId', input.targetFolderId);
+  if (input.telegramUser) form.append('telegramUser', JSON.stringify(input.telegramUser));
+  if (input.sceneDescription === true) form.append('sceneDescription', 'true');
+  // Uploads carry the file AND wait for the server-side moderation pass —
+  // give them a 3-minute floor so a large mp4 on a slow uplink doesn't
+  // trip the default 60s budget and orphan a server-side creation.
+  const raw = await http.request<any>('POST', '/v1/uploads', { form, idempotent: false, signal: input.signal, timeoutMs: 180_000 });
+  return normalizeCreation(raw, http.baseUrl);
 }
 
 async function toBlob(input: UploadInput): Promise<{ blob: Blob; filename: string }> {

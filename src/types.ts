@@ -101,6 +101,9 @@ export interface QueueState {
 }
 
 /** A creation row (from `list`, `get`, or an enriched generation result). */
+/** What a creation row holds. */
+export type MediaKind = 'image' | 'video' | 'audio';
+
 export interface Creation {
   creationId: string;
   prompt?: string;
@@ -116,6 +119,12 @@ export interface Creation {
   downloadUrl?: string;
   width?: number;
   height?: number;
+  /** What the row holds: an `'image'`, a `'video'` clip, or an `'audio'` upload (the audio reference of Gen8 Flash). */
+  mediaKind?: MediaKind;
+  /** Seconds, measured on the file — video clips and audio uploads only. */
+  duration?: number;
+  /** The file carries sound: a Gen8 Flash clip, or an uploaded audio file. */
+  hasAudio?: boolean;
   isUploaded?: boolean;
   /** Origin of the creation: 'web' (studio), 'sdk', 'mcp' or 'api' (raw
    *  REST). Powers the dashboard's SDK / MCP cloud collections. */
@@ -362,6 +371,13 @@ export interface VideoParams {
    *  brief (shots, pictures, sound) from your idea; a prompt starting with "tixi " adds a thinking pass. Every
    *  other style already runs TIXI and cannot switch it off. No extra credit. */
   enhanced?: boolean;
+  /** Gen8 Flash only: one of your uploaded MP3s (`uploads.audio`) as the clip's audio reference. It counts as one
+   *  more reference for the price. 400 `AUDIO_REF_NEXT_ONLY` on the default model, `INVALID_AUDIO_REF` when the
+   *  creation is not an audio file, 404 when it is not yours. */
+  audioCreationId?: string;
+  /** How the audio reference is used: `'music'` (soundtrack / sound design, the default) or `'voice'` (a voice
+   *  sample the speaking character follows). Ignored without `audioCreationId`. */
+  audioUse?: 'music' | 'voice';
   frameInterpolation?: boolean;
   allowNSFW?: boolean;
   clientToken?: string;
@@ -562,6 +578,9 @@ export interface TelegramAuthor {
   first_name?: string;
 }
 
+/** One upload: an image (jpeg/png/webp/gif), an mp4, or — through `uploads.audio` — an MP3 that becomes the audio
+ *  reference of a Gen8 Flash clip (5 min max, Holder tier and up). `contentType` is read from `filename`/`path`
+ *  when omitted. */
 export interface UploadInput {
   /** Official bot integrations only — see {@link TelegramAuthor}. */
   telegramUser?: TelegramAuthor;

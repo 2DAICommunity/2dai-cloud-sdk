@@ -20,8 +20,9 @@ npm install 2dai-cloud-sdk
 clips come out **with sound**, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds` (characters,
 props and places kept consistent), with an optional `aspectRatio`. Lengths and presets follow the account —
 `fast` quality and 1, 5, 8 or 10 s at launch, more with the next releases and higher tiers: read
-`me().videoDurationsNext` and `me().qualities.videoNext` instead of guessing. In the 2DAI studio the same engine also
-takes an audio reference (music, or a voice to clone) and TIXI writes the full scenario.
+`me().videoDurationsNext` and `me().qualities.videoNext` instead of guessing. Since 2.7.0 the clip can follow an
+**audio reference** too: `uploads.audio()` an MP3, then pass its id as `audioCreationId` (`audioUse: 'music'` for a
+soundtrack, `'voice'` for a voice sample) — and TIXI writes the full scenario around it.
 
 ## Get a key
 
@@ -118,6 +119,19 @@ const next = await client.generate.video({
   style: 'raw', enhanced: true,             // your idea → TIXI writes the Gen8 Flash brief (shots, pictures, sound)
 });
 
+// Gen8 Flash with an audio reference: your MP3 as the soundtrack ('music') or
+// as a voice sample the speaking character follows ('voice'). Counts as one
+// more reference for the price.
+const track = await client.uploads.audio({ path: './theme.mp3' });
+const scored = await client.generate.video({
+  videoModel: 'next',
+  prompt: 'the band walks on stage as the intro swells',
+  inputCreationId: gen.creationId,
+  audioCreationId: track.creationId,
+  audioUse: 'music',
+  duration: 8,
+});
+
 // Wallpaper-resize: expand a creation into a wallpaper dimension.
 // Quality is always Ultra; the dimension drives the price.
 const wall = await client.generate.wallpaper({
@@ -135,12 +149,16 @@ with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 ## Uploading your own media
 
 Bring an image/gif/mp4 into your library so it can be used as a reference or
-animated. The same moderation pass as the studio runs server-side.
+animated, or an MP3 that becomes the audio reference of a Gen8 Flash clip. The
+same moderation pass as the studio runs server-side.
 
 ```ts
 const up = await client.uploads.image({ path: './portrait.jpg' });      // Node
 const up2 = await client.uploads.image({ data: fileBlob });             // Browser
 await client.generate.imageWithRefs({ tool: 'character-ref', prompt: 'in a suit', refCreationIds: [up.creationId] });
+
+// An MP3 (5 min max, Holder tier and up) for Gen8 Flash — see generate.video above.
+const track = await client.uploads.audio({ path: './theme.mp3' });
 
 // File it straight into a folder, and skip re-uploads with the md5 pre-flight:
 const probe = await client.uploads.checkDuplicate(md5Hex, folder.folderId);

@@ -73,6 +73,8 @@ const CT_TO_EXT: Record<string, string> = {
   'image/webp': 'webp',
   'video/mp4': 'mp4',
   'video/webm': 'webm',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
 };
 
 export function extFromContentType(ct?: string): string {
@@ -89,6 +91,7 @@ const EXT_TO_MIME: Record<string, string> = {
   webp: 'image/webp',
   mp4: 'video/mp4',
   webm: 'video/webm',
+  mp3: 'audio/mpeg',
 };
 
 export function mimeFromFilename(name?: string): string {
@@ -137,6 +140,10 @@ export function normalizeCreation(raw: any, baseUrl: string): Creation {
     downloadUrl: absoluteUrl(baseUrl, rel),
     width: num(raw?.width) ?? num(raw?.outputWidth),
     height: num(raw?.height) ?? num(raw?.outputHeight),
+    mediaKind: raw?.mediaKind === 'audio' || raw?.mediaKind === 'video' || raw?.mediaKind === 'image' ? raw.mediaKind : undefined,
+    // Only the server's `duration` (seconds) — raw `outputDuration` mixes units (uploads keep CDN milliseconds).
+    duration: num(raw?.duration),
+    hasAudio: bool(raw?.hasAudio),
     isUploaded: raw?.isUploaded === true,
     source: typeof raw?.source === 'string' ? raw.source : undefined,
     // Only when the payload carries them — list rows are curated and omit the

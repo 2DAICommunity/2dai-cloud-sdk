@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.7.0 (2026-10-07)
+
+- **Audio reference for Gen8 Flash** — `uploads.audio({ path: './track.mp3' })` uploads an MP3 (5 min max,
+  Holder tier and up) and `generate.video({ videoModel: 'next', audioCreationId, audioUse: 'music' | 'voice' })`
+  renders the clip with it: `music` = soundtrack / sound design, `voice` = a voice sample the speaking character
+  follows. The audio counts as one more reference for the price; 400 `AUDIO_REF_NEXT_ONLY` on the default model,
+  `INVALID_AUDIO_REF` when the creation is not an audio file.
+- Creation rows carry `mediaKind` (`image` | `video` | `audio`), `duration` (seconds) and `hasAudio`; `.mp3` is
+  known to the upload MIME table and to `cdn.download`. Additive.
+
 ## 2.6.1 (2026-10-06)
 
 - `generate.video` takes `enhanced` — with `style: 'raw'` TIXI writes the motion scenario (Video) or the

@@ -51,6 +51,7 @@ export type {
   ListOptions,
   DeleteFolderOptions,
   UploadInput,
+  MediaKind,
   DuplicateCheck,
   CdnAsset,
   CdnRef,

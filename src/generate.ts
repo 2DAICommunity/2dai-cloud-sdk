@@ -107,6 +107,8 @@ export function createGenerate(http: Http): GenerateNamespace {
         quality: params.quality,
         style: params.style,
         enhanced: params.enhanced,
+        // Audio reference — Gen8 Flash only; the server rejects it on the default model.
+        ...(isNext && params.audioCreationId ? { audioCreationId: params.audioCreationId, audioUse: params.audioUse === 'voice' ? 'voice' : 'music' } : {}),
         frameInterpolation: params.frameInterpolation,
         allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,
