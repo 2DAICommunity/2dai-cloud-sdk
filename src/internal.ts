@@ -47,14 +47,6 @@ export function absoluteUrl(baseUrl: string, path?: string): string | undefined 
   return base + p;
 }
 
-/** A collision-resistant idempotency token (native crypto, zero deps). */
-export function mintClientToken(): string {
-  const c: any = (globalThis as any).crypto;
-  if (c && typeof c.randomUUID === 'function') return 'sdk_' + c.randomUUID();
-  // Fallback for exotic runtimes without crypto.randomUUID.
-  return 'sdk_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
-}
-
 /** Pull a CDN id out of a raw id or a Creation / QueueState / result object. */
 export function extractCdnId(ref: CdnRef): string | undefined {
   if (typeof ref === 'string') return ref || undefined;

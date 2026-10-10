@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The SDK no longer attaches its own `clientToken` to generation submits. The server only honours a hex token
+  (`[0-9a-f]{1,64}`) and silently ignored the SDK's `sdk_…` value, deriving its own 5 s hash of the call
+  instead — so nothing changes on the wire or in billing: an identical immediate retry is still de-duplicated
+  server-side (`409 IDEMPOTENT_RETRY`), and a token you pass yourself still goes through and sets the window.
+  Doc comments and wiki corrected accordingly.
+
 ## 2.7.0 (2026-10-07)
 
 - **Audio reference for Gen8 Flash** — `uploads.audio({ path: './track.mp3' })` uploads an MP3 (5 min max,

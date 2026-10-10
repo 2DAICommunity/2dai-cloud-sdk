@@ -268,7 +268,7 @@ export interface ImageParams {
   allowNSFW?: boolean;
   /** Up to 3 soft-conditioning reference creations. */
   refCreationIds?: string[];
-  /** Idempotency token; auto-minted if omitted. */
+  /** Idempotency token, hex `[0-9a-f]{1,64}`. Omitted: the server de-duplicates an identical submit within ~5 s by itself. */
   clientToken?: string;
   /** Official bot integrations only — see {@link TelegramAuthor}. */
   telegramUser?: TelegramAuthor;

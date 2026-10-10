@@ -3,7 +3,7 @@
 // to get the queue ticket immediately and poll yourself.
 
 import { ApiError, GenerationFailedError } from './errors';
-import { extractCreationId, mintClientToken, normalizeCreation, resolveDims } from './internal';
+import { extractCreationId, normalizeCreation, resolveDims } from './internal';
 import { pollQueue } from './queue';
 import type { Http } from './http';
 import type {
@@ -149,10 +149,11 @@ async function submit(
   body: Record<string, unknown>,
   opts: SubmitOptions = {},
 ): Promise<GenerationResult | QueueTicket> {
-  // Always carry a clientToken so a user-driven retry can't double-charge (the
-  // server dedups identical bodies for 5s). The submit itself is never
-  // auto-retried by the transport.
-  if (!body.clientToken) body.clientToken = mintClientToken();
+  // No token is minted here: the server only honours a hex clientToken
+  // ([0-9a-f]{1,64}) and otherwise derives its own 5 s hash of the body
+  // (prompt, settings, source, refs, audio), so an identical immediate retry
+  // is de-duplicated either way. A caller-supplied token passes through and
+  // sets the window. The submit itself is never auto-retried by the transport.
   return submitTicket(http, path, pruneUndefined(body), opts);
 }
 
