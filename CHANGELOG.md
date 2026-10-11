@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Prices: since 2026-10-11 a `next` image is priced on its render time — roughly three times the same preset on the
+  default model (Ultimate more) — the 2.8.0 "a little more" wording is outdated; `costUsd` on the ticket stays the truth.
 - Docs: `negativePrompt` is applied by **Gen8 Preview images** since 2026-10-11 (the engine now samples with
   guidance above 1); the 2.8.0 note saying the preview ignored it is outdated. The Gen7 image engine still renders
   without it. No API change — the field was always accepted on every image channel.
