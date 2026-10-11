@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.8.1 (2026-10-11)
 
 - Prices: since 2026-10-11 a `next` image is priced on its render time — roughly three times the same preset on the
   default model (Ultimate more) — the 2.8.0 "a little more" wording is outdated; `costUsd` on the ticket stays the truth.
