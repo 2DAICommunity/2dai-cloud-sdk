@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Docs: `negativePrompt` is applied by **Gen8 Preview images** since 2026-10-11 (the engine now samples with
+  guidance above 1); the 2.8.0 note saying the preview ignored it is outdated. The Gen7 image engine still renders
+  without it. No API change — the field was always accepted on every image channel.
+
 ## 2.8.0 (2026-10-10)
 
 - **Naming** — both Gen8 engines are now named **Gen8 Preview**: **Gen8 Preview video** (formerly "Gen8 Flash") and **Gen8 Preview images**; the API is unchanged (`videoModel: 'next'`, `imageModel: 'next'`).

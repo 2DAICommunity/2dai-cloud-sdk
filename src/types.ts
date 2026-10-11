@@ -269,7 +269,7 @@ export interface ImageParams {
   aspectRatio?: AspectRatio | 'auto';
   width?: number;
   height?: number;
-  /** Things to avoid. Optional. Not every engine applies it — Gen8 Preview images currently ignore it. */
+  /** Things to avoid. Optional — applied by Gen8 Preview images; the Gen7 image engine renders without it (the field is still accepted). */
   negativePrompt?: string;
   /** Rewrite the prompt with **TIXI**, the 2DAI prompt agent, before it reaches
    *  the image model (default `false`).
