@@ -95,12 +95,19 @@ function num(v: unknown): number | undefined {
   return typeof v === 'number' && isFinite(v) ? v : undefined;
 }
 
+/** A model channel only when the payload names one of the two the server knows. */
+function channel(v: unknown): 'default' | 'next' | undefined {
+  return v === 'default' || v === 'next' ? v : undefined;
+}
+
 /** Normalize a server queue payload → QueueState with an absolute downloadUrl. */
 export function normalizeQueue(raw: any, baseUrl: string): QueueState {
   return {
     queueId: raw?.queueId,
     status: raw?.status,
     quality: typeof raw.quality === 'string' ? raw.quality : undefined,
+    videoModel: channel(raw?.videoModel),
+    imageModel: channel(raw?.imageModel),
     costUsd: num(raw?.costUsd),
     creationId: raw?.creationId || undefined,
     cdnId: raw?.outputCdnId || undefined,
@@ -109,6 +116,7 @@ export function normalizeQueue(raw: any, baseUrl: string): QueueState {
     errorCode: typeof raw?.errorCode === 'string' && raw.errorCode ? raw.errorCode : undefined,
     errorMessage: typeof raw?.errorMessage === 'string' && raw.errorMessage ? raw.errorMessage : undefined,
     createdAt: raw?.createdAt || undefined,
+    startedAt: raw?.startedAt || undefined,
     completedAt: raw?.completedAt || undefined,
   };
 }
@@ -128,6 +136,8 @@ export function normalizeCreation(raw: any, baseUrl: string): Creation {
     style: raw?.style ?? undefined,
     quality: raw?.quality,
     aiModel: raw?.aiModel,
+    videoModel: channel(raw?.videoModel),
+    imageModel: channel(raw?.imageModel),
     cdnId,
     downloadUrl: absoluteUrl(baseUrl, rel),
     width: num(raw?.width) ?? num(raw?.outputWidth),

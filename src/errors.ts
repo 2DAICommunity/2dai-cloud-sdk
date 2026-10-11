@@ -91,8 +91,19 @@ export class SpendLimitError extends ApiError {
   get spendLimitUsd(): number | undefined { return this.details.spendLimitUsd as number | undefined; }
 }
 
-/** The tier gates this tool/quality/duration — `*_NOT_ALLOWED_FOR_TIER`, `INSUFFICIENT_TIER`. */
-export class TierError extends ApiError {}
+/** The tier gates this tool/quality/duration — `*_NOT_ALLOWED_FOR_TIER`, `INSUFFICIENT_TIER`. The server names the
+ *  first tier that opens what was asked (`requiredTier` key, `requiredTierName` label) and ships a ready sentence in
+ *  `message`; `tool` / `quality` echo the gated option when the code carries one. Nothing was charged. */
+export class TierError extends ApiError {
+  /** Tier key that opens the option (e.g. `tier2`), when the server knows one. */
+  get requiredTier(): string | undefined { return this.details.requiredTier as string | undefined; }
+  /** Tier label that opens the option (e.g. `Holder`), when the server knows one. */
+  get requiredTierName(): string | undefined { return this.details.requiredTierName as string | undefined; }
+  /** The gated tool on `TOOL_NOT_ALLOWED_FOR_TIER` (`video`, `video-next`, `image-next`, `style-transfer`, …). */
+  get tool(): string | undefined { return this.details.tool as string | undefined; }
+  /** The gated preset on `QUALITY_NOT_ALLOWED_FOR_TIER`. */
+  get quality(): string | undefined { return this.details.quality as string | undefined; }
+}
 
 /** Content blocked by the moderation pass — `NSFW_REJECTED`, `NSFW_REFS_BLOCKED`. */
 export class NsfwRejectedError extends ApiError {
@@ -150,6 +161,9 @@ function messageForCode(code: string, status: number): string {
     QUEUE_LIMIT_REACHED: 'Too many generations are in progress. Wait for some to finish.',
     QUEUE_ITEM_NOT_FOUND: 'No such queue item.',
     CREATION_NOT_FOUND: 'No such creation.',
+    KEY_POLICY_CHANNEL: 'This API key cannot submit to that model channel (see me().key.modelChannels).',
+    IMAGE_MODEL_UNAVAILABLE: 'That image model is not available on this server.',
+    VIDEO_MODEL_UNAVAILABLE: 'That video model is not available on this server.',
   };
   return table[code] || `Request failed (${code}, HTTP ${status}).`;
 }

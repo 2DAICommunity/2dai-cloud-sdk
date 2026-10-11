@@ -1,7 +1,24 @@
 # Changelog
 
-## Unreleased
+## 2.8.0 (2026-10-10)
 
+- **Naming** — both Gen8 engines are now named **Gen8 Preview**: **Gen8 Preview video** (formerly "Gen8 Flash") and **Gen8 Preview images**; the API is unchanged (`videoModel: 'next'`, `imageModel: 'next'`).
+- **Gen8 Preview images** — `generate.image({ imageModel: 'next' })` runs the preview of 2DAI's next image
+  engine: up to **6** `refCreationIds` kept natively (3 on the default model), legible text in the picture, long
+  literal prompts honoured, same quality ids (`fast` … `ultimate`, `auto` picks between `high` and `max`).
+  The channel opens at Holder: `me().canUseImageNext` says whether the account may submit it and
+  `me().qualities.imageNext` lists its presets with `allowed` resolved; a submit below the gate is a 403
+  `TOOL_NOT_ALLOWED_FOR_TIER` (`tool: 'image-next'`), 400 `IMAGE_MODEL_UNAVAILABLE` when the engine is off,
+  403 `KEY_POLICY_CHANNEL` when the key's policy stops at `default`. Prices: a `next` image costs a little more
+  than the same preset on the default model, and every reference now adds a surcharge on both image models
+  (`costUsd` on the ticket is the truth). Finished creations are stamped `aiModel: 'gen8.0'`. Additive.
+- Queue states and creation rows carry `imageModel` and `videoModel` as typed fields (`videoModel` was declared on
+  `QueueState` since 2.6.0 but never populated by `queue.get()` / `waitFor()` — fixed).
+- `QueueState.startedAt` — when a worker picked the job up (server ≥ 2.5.0); absent while the job still waits.
+- Docs: `negativePrompt` is optional and not every engine applies it — Gen8 Preview images currently ignore it (the field is still accepted).
+  With `createdAt` it gives the elapsed render time of a long Gen8 clip.
+- `TierError` gains `requiredTier`, `requiredTierName`, `tool` and `quality` getters over what the server already
+  sent; `KEY_POLICY_CHANNEL`, `IMAGE_MODEL_UNAVAILABLE` and `VIDEO_MODEL_UNAVAILABLE` get a default message.
 - The SDK no longer attaches its own `clientToken` to generation submits. The server only honours a hex token
   (`[0-9a-f]{1,64}`) and silently ignored the SDK's `sdk_…` value, deriving its own 5 s hash of the call
   instead — so nothing changes on the wire or in billing: an identical immediate retry is still de-duplicated

@@ -1,6 +1,6 @@
 // Uploads namespace — push a local image/gif/mp4 into your library so it can be
 // used as a generation reference or animated into a video, or an MP3 that
-// becomes the audio reference of a Gen8 Flash clip. Runs the same server-side
+// becomes the audio reference of a Gen8 Preview video clip. Runs the same server-side
 // moderation pass as the studio (throws NsfwRejectedError on block).
 
 import { ApiError } from './errors';
