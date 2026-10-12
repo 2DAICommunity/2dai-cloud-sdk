@@ -257,7 +257,7 @@ export interface ImageParams {
    *  Default `'default'`. `'next'` opens at Holder: `me().canUseImageNext` says whether this account may submit it and
    *  `me().qualities.imageNext` lists its presets (same ids, `allowed` resolved); 403 `TOOL_NOT_ALLOWED_FOR_TIER`
    *  otherwise, 400 `IMAGE_MODEL_UNAVAILABLE` when the engine is off. A `next` image is priced on render time — roughly
-   *  three times the same preset on the default model — and every reference adds a surcharge on both models. */
+   *  four to seven times the same preset on the default model — and every reference adds a surcharge on both models. */
   imageModel?: 'default' | 'next';
   /** Style id, or `'auto'` (default) to let the server pick by tier. */
   style?: string;

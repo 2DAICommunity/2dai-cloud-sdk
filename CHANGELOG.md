@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.2 (2026-10-12)
+
+- Prices: since 2026-10-12 a `next` image is priced on its render time measured on the standard workers — roughly
+  four to seven times the same preset on the default model (Ultra and Ultimate now finish with a model upscale);
+  the 2.8.1 "three times" wording is outdated. `costUsd` on the ticket stays the truth. No API change.
+
 ## 2.8.1 (2026-10-11)
 
 - Prices: since 2026-10-11 a `next` image is priced on its render time — roughly three times the same preset on the
