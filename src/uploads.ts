@@ -1,4 +1,4 @@
-// Uploads namespace — push a local image/gif/mp4 into your library so it can be
+// Uploads namespace — push a local image/gif/mp4 (or .m4v, the same container, stored as mp4) into your library so it can be
 // used as a generation reference or animated into a video, or an MP3 that
 // becomes the audio reference of a Gen8 Preview video clip. Runs the same server-side
 // moderation pass as the studio (throws NsfwRejectedError on block).
@@ -9,7 +9,7 @@ import type { Http } from './http';
 import type { Creation, DuplicateCheck, UploadInput } from './types';
 
 export interface UploadsNamespace {
-  /** Upload an image/gif/mp4 and return the created (uploaded) creation.
+  /** Upload an image/gif/mp4 (an `.m4v` is accepted and stored as mp4) and return the created (uploaded) creation.
    *  Optional lineage: `croppedFromCreationId` / `erasedFromCreationId`
    *  (mutually exclusive) record the upload as an edit of an existing
    *  creation you own; `targetFolderId` files it directly into a folder. */

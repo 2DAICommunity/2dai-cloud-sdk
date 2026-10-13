@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.3 (2026-10-13)
+
+- `uploads.image` accepts an `.m4v` by `path`/`filename` (its MIME resolves to `video/mp4`): the same ISO BMFF container as
+  mp4, stored and served as `.mp4` by the platform. A DRM-protected file (iTunes / FairPlay, CENC) is refused with
+  400 `PROTECTED_MEDIA`; an unreadable one stays 400 `INVALID_MEDIA`. No API change otherwise.
+
 ## 2.8.2 (2026-10-12)
 
 - Prices: since 2026-10-12 a `next` image is priced on its render time measured on the standard workers — roughly

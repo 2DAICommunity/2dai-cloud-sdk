@@ -166,7 +166,7 @@ with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 
 ## Uploading your own media
 
-Bring an image/gif/mp4 into your library so it can be used as a reference or
+Bring an image/gif/mp4 (an `.m4v` is accepted and stored as mp4) into your library so it can be used as a reference or
 animated, or an MP3 that becomes the audio reference of a Gen8 Preview video clip. The
 same moderation pass as the studio runs server-side.
 

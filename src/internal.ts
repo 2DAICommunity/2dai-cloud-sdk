@@ -64,6 +64,7 @@ const CT_TO_EXT: Record<string, string> = {
   'image/gif': 'gif',
   'image/webp': 'webp',
   'video/mp4': 'mp4',
+  'video/x-m4v': 'mp4',
   'video/webm': 'webm',
   'audio/mpeg': 'mp3',
   'audio/mp3': 'mp3',
@@ -82,6 +83,7 @@ const EXT_TO_MIME: Record<string, string> = {
   gif: 'image/gif',
   webp: 'image/webp',
   mp4: 'video/mp4',
+  m4v: 'video/mp4',
   webm: 'video/webm',
   mp3: 'audio/mpeg',
 };

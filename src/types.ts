@@ -605,7 +605,7 @@ export interface TelegramAuthor {
   first_name?: string;
 }
 
-/** One upload: an image (jpeg/png/webp/gif), an mp4, or — through `uploads.audio` — an MP3 that becomes the audio
+/** One upload: an image (jpeg/png/webp/gif), an mp4 (or an `.m4v`, the same container — stored and served as mp4), or — through `uploads.audio` — an MP3 that becomes the audio
  *  reference of a Gen8 Preview video clip (5 min max, Holder tier and up). `contentType` is read from `filename`/`path`
  *  when omitted. */
 export interface UploadInput {
