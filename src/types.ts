@@ -286,7 +286,7 @@ export interface ImageParams {
    *  Your text is never discarded — the returned `Creation.prompt` is still what
    *  you sent, and TIXI's rewrite is in `raw.finalPrompt`.
    *
-   *  Not a free-for-all switch across the API: face-ref, character-ref and
+   *  Not a free-for-all switch across the API: character-ref and
    *  wallpaper-resize always run TIXI (their directives depend on it), and on
    *  `generate.video` the flag only matters with `style: 'raw'` — every other
    *  video style runs TIXI anyway. */
@@ -301,20 +301,25 @@ export interface ImageParams {
   telegramUser?: TelegramAuthor;
 }
 
-export type RefTool = 'face-ref' | 'character-ref' | 'style-transfer' | 'smart-edit';
+/** Since 3.0.0 `'face-ref'` is gone (400 `INVALID_TOOL`): Face Reference was merged into
+ *  `'character-ref'`, which keeps the exact same face when the references are face photos. */
+export type RefTool = 'character-ref' | 'style-transfer' | 'smart-edit';
 
 export interface RefParams {
   tool: RefTool;
-  /** face/character-ref: identity refs (≤6). style-transfer: style-source
-   *  refs (≤3). smart-edit: refs[0] = the image to EDIT (+ up to 3 support
-   *  refs, ≤4 total); `prompt` is the edit instruction. Optional ONLY for
+  /** character-ref: identity refs (≤6) — face shots, full-body shots or a
+   *  character sheet of the same character; face photos lock the exact same
+   *  face, the prompt drives outfit, pose and scene. style-transfer: style-source
+   *  refs (≤6). smart-edit: refs[0] = the image to EDIT (+ up to 5 support
+   *  refs, ≤6 total); `prompt` is the edit instruction. All three render on the
+   *  Gen8 image engine, which reads every reference natively. Optional ONLY for
    *  `character-ref` through a registered meme-bot key — the server resolves
    *  the identity refs from its registry; every other tool requires refs. */
   refCreationIds?: string[];
   prompt?: string;
   quality?: string;
   /** Output shape. `'auto'` (server picks the best-fitting ratio) applies to
-   *  `face-ref` / `character-ref` only — `smart-edit` and `style-transfer`
+   *  `character-ref` only — `smart-edit` and `style-transfer`
    *  derive their dims from the source ref, so `'auto'` there is ignored. */
   aspectRatio?: AspectRatio | 'auto';
   width?: number;
@@ -345,7 +350,7 @@ export interface ArtisticStyleParams {
   /** An `artisticStyleId` from `artisticStyles.list()`, or `'auto'` (default) to let the
    *  server pick the best-matching artistic style for the prompt. */
   artisticStyleId?: string;
-  /** Optional subject images (≤ 3) to place into the artistic style. */
+  /** Optional subject images (≤ 6) to place into the artistic style. */
   refCreationIds?: string[];
   /** Quality id, or `'auto'` (default) to let the server pick by tier. */
   quality?: string;
@@ -544,7 +549,8 @@ export interface NsfwExplanation {
   nsfwThreshold: number;
 }
 
-/** `creations.scoreFaceRef` / `scoreCharacterRef` — ref-quality score. */
+/** `creations.scoreFaceRef` / `scoreCharacterRef` — reference-quality score (a face shot / a
+ *  character shot for `character-ref`); the studio shows the better of the two on each slot. */
 export interface RefScore {
   score: number;
   scoredAt?: string;

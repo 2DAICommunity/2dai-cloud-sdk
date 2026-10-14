@@ -91,9 +91,9 @@ const poster = await client.generate.image({
 const { queueId } = await client.generate.image({ prompt: '…' }, { wait: false });
 const state = await client.queue.waitFor(queueId, { timeoutMs: 300_000 });
 
-// Reference tools (face-ref / character-ref / style-transfer / smart-edit):
+// Reference tools (character-ref / style-transfer / smart-edit), on the Gen8 image engine:
 const ref = await client.generate.imageWithRefs({
-  tool: 'face-ref',
+  tool: 'character-ref',         // 1–6 shots of one character; face photos lock the exact same face
   prompt: 'as an astronaut',
   refCreationIds: [gen.creationId],
 });
@@ -111,7 +111,7 @@ const styles = await client.artisticStyles.list();
 const painting = await client.generate.artisticStyle({
   prompt: 'a lighthouse on a stormy coast',
   artisticStyleId: styles[0]?.artisticStyleId,          // or 'auto'
-  refCreationIds: [gen.creationId],        // optional subject images (≤3)
+  refCreationIds: [gen.creationId],        // optional subject images (≤6)
 });
 
 // Video from an existing still (silent, 5, 6 or 7 s — 7 s needs Supporter+).

@@ -26,7 +26,7 @@ export interface GenerateNamespace {
   video(params: VideoParams, opts?: SubmitOptions & { wait?: true }): Promise<GenerationResult>;
   video(params: VideoParams, opts: SubmitOptions & { wait: false }): Promise<QueueTicket>;
   /** Artist Painter: paint your subject as a new work in a curated
-   *  artistic style — your prompt and up to 3 optional subject refs are
+   *  artistic style — your prompt and up to 6 optional subject refs are
    *  rendered in the chosen style; `artisticStyleId` comes from
    *  `artisticStyles.list()` or stays `'auto'` to let the server pick the
    *  best match. Billed like style-transfer. */

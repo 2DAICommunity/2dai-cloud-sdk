@@ -72,11 +72,11 @@ export interface CreationsNamespace {
    *  row — the first call burns an LLM pass (hence the `generate` scope),
    *  repeats are free. 400 NOT_FLAGGED on clean rows; 503 = retry later. */
   explainNsfw(ref: CreationRef, signal?: AbortSignal): Promise<NsfwExplanation>;
-  /** Vision-LLM quality score of a creation AS A FACE REFERENCE. Cached on
-   *  the row (first call burns an LLM pass — `generate` scope). */
+  /** Vision-LLM quality score of a creation AS A FACE SHOT for `character-ref`
+   *  (face lock). Cached on the row (first call burns an LLM pass — `generate` scope). */
   scoreFaceRef(ref: CreationRef, signal?: AbortSignal): Promise<RefScore>;
-  /** Vision-LLM quality score of a creation AS A CHARACTER REFERENCE. Cached
-   *  on the row (first call burns an LLM pass — `generate` scope). */
+  /** Vision-LLM quality score of a creation AS A CHARACTER SHOT for `character-ref`
+   *  (body, outfit, face coverage). Cached on the row (first call burns an LLM pass — `generate` scope). */
   scoreCharacterRef(ref: CreationRef, signal?: AbortSignal): Promise<RefScore>;
   /** Stamp the drag-reorder order: `creationIds[i]` gets sortIndex i (≤1000
    *  ids). Ids you don't own are silently skipped. */

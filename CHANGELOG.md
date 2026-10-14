@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.0.0 (2026-10-14)
+
+- **BREAKING — `RefTool` drops `'face-ref'`.** Face Reference was merged into Character Consistency: send
+  `tool: 'character-ref'` with the same references. `character-ref` keeps the exact same face when the references
+  are face photos (features, proportions, skin tone) while the prompt drives outfit, body, pose and scene; full-body
+  shots and character sheets work as before. A submit with `'face-ref'` is refused 400 `INVALID_TOOL`; older
+  `face-ref` creations read back as `toolKind: 'character-ref'` (with `legacyToolKind: 'face-ref'` on the row).
+  `creations.scoreFaceRef` stays: it scores a reference as a face shot, `scoreCharacterRef` as a character shot.
+- **Gen8 image engine** behind `character-ref`, `style-transfer`, `smart-edit` and `generate.artisticStyle`: every
+  reference is read natively (no more side-by-side bundling past three refs) and long literal prompts are honoured.
+  Same preset ids and tier gates as before; `imageModel` is not involved and nothing changes for `generate.image`.
+- Reference caps (strict, `TOO_MANY_REFS` before any charge): `character-ref` 6 (unchanged), `style-transfer` 6
+  (was 3), `smart-edit` 6 — the image to edit plus up to 5 support refs (was 4), `generate.artisticStyle` 6
+  subject images (was 3).
+- Prices: these tools are now priced on the Gen8 image ladder plus a surcharge per reference; `style-transfer` and
+  `generate.artisticStyle` keep their two-step multiplier on top. `costUsd` on the ticket stays the truth.
+
 ## 2.8.3 (2026-10-13)
 
 - `uploads.image` accepts an `.m4v` by `path`/`filename` (its MIME resolves to `video/mp4`): the same ISO BMFF container as
