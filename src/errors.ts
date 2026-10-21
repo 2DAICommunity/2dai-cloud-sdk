@@ -29,7 +29,9 @@ export class ApiError extends Error {
   /** Build the most specific error subclass from an HTTP status + body. */
   static from(httpStatus: number, body: ApiErrorBody | undefined): ApiError {
     const b: ApiErrorBody = body ?? {};
-    const code = typeof b.error === 'string' && b.error ? b.error : `HTTP_${httpStatus}`;
+    const raw = typeof b.error === 'string' && b.error ? b.error : `HTTP_${httpStatus}`;
+    // The file store's own busy reply ("Memory budget reached, retry shortly") reaches /cdn/file verbatim.
+    const code = httpStatus === 503 && /memory budget/i.test(raw) ? 'MEMORY_BUSY' : raw;
     const msg = (typeof b.message === 'string' && b.message) ? b.message : messageForCode(code, httpStatus);
 
     switch (code) {
@@ -164,6 +166,9 @@ function messageForCode(code: string, status: number): string {
     KEY_POLICY_CHANNEL: 'This API key cannot submit to that model channel (see me().key.modelChannels).',
     IMAGE_MODEL_UNAVAILABLE: 'That image model is not available on this server.',
     VIDEO_MODEL_UNAVAILABLE: 'That video model is not available on this server.',
+    MEMORY_BUSY: 'The file store is busy. Retry after the Retry-After delay (about 30 s).',
+    INVALID_LIKE_FILTER: "likeFilter must be 'liked' or 'unliked'.",
+    INVALID_MEDIA_KIND: "mediaKind must be 'image', 'video' or 'audio'.",
   };
   return table[code] || `Request failed (${code}, HTTP ${status}).`;
 }

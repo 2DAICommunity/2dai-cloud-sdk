@@ -450,6 +450,10 @@ export type CreationSort =
  *  server-side. */
 export type RatioBucket = 'square' | 'landscape' | 'portrait';
 
+/** `likeFilter` — `'liked'` keeps the creations YOU (the key owner) liked,
+ *  `'unliked'` the others. Works on every lens, shared folders included. */
+export type LikeFilter = 'liked' | 'unliked';
+
 /** The cross-cutting listing filters shared by `creations.list` and
  *  `creations.random`. The MODES are mutually exclusive — combining
  *  `activity`, `smart`, `sharedFolderId`, `groupId` or a `folderId` mode rejects with
@@ -489,6 +493,16 @@ export interface CreationFilterOptions {
    *  parent (retry, crop, erase, clone, edit) counts, and the server expands
    *  clone families exactly like the studio's filter-by-reference lens. */
   usedRef?: CreationRef;
+  /** The studio's Likes filter: only the creations you liked, or only the
+   *  ones you did not. */
+  likeFilter?: LikeFilter;
+  /** The studio's Type filter: `'image'` (GIFs count as images), `'video'`
+   *  or `'audio'` (MP3 uploads). `random()` draws images and videos only, so
+   *  `'audio'` there rejects with 400 `RANDOM_NOT_SUPPORTED`. */
+  mediaKind?: MediaKind;
+  /** Hide NSFW creations on this call even when the account shows them
+   *  (the account's own NSFW preference always applies). */
+  blockNsfw?: boolean;
   signal?: AbortSignal;
 }
 

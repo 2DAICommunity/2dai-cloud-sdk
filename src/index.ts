@@ -22,6 +22,7 @@ export type {
   CreationFilterOptions,
   RandomOptions,
   RatioBucket,
+  LikeFilter,
   FeedOptions,
   FeedPage,
   LikeResult,

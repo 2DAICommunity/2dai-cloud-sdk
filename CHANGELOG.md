@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.1.0 (2026-10-21)
+
+- `creations.list` / `creations.random` take the studio's new cloud filters:
+  - `likeFilter: 'liked' | 'unliked'`: the creations you (the key owner) liked, or the others. Works on every lens,
+    shared folders included.
+  - `mediaKind: 'image' | 'video' | 'audio'`: GIFs count as images, `'audio'` keeps the MP3 uploads. `random()` draws
+    images and videos only, so `mediaKind: 'audio'` there rejects with 400 `RANDOM_NOT_SUPPORTED`.
+  - `blockNsfw: true`: hide NSFW creations on this call even when the account shows them.
+- An unknown `likeFilter` / `mediaKind` value rejects with 400 `INVALID_LIKE_FILTER` / `INVALID_MEDIA_KIND`.
+- `LikeFilter` type exported. `ApiError` messages for `MEMORY_BUSY` (the file store is busy: 503 with `Retry-After: 30`;
+  idempotent calls such as downloads are retried automatically, each wait following Retry-After capped at 15 s; the
+  file store's own busy reply on `cdn.*` downloads is reported with this code too),
+  `INVALID_LIKE_FILTER` and `INVALID_MEDIA_KIND`.
+- `quality: 'auto'` on `imageModel: 'next'` now follows the same tier rule as the default model (Holder and above: a
+  weighted draw over max / ultra / ultimate); Ultra and Ultimate are no longer excluded. Server change, no API change.
+
 ## 3.0.0 (2026-10-14)
 
 - **BREAKING — `RefTool` drops `'face-ref'`.** Face Reference was merged into Character Consistency: send

@@ -28,12 +28,13 @@ export interface CreationsNamespace {
    *  listing (`folderId` / `'root'`, `trashed`), an `activity` lens, a
    *  `smart` collection, or a `sharedFolderId`; plus the cross-cutting
    *  filters (`search`, `sort`, `ratioFilter`, `from`/`to`, `hideFiled`,
-   *  `usedRef`). Paginate with `nextBeforeDate` (newest-first only) or
+   *  `usedRef`, `likeFilter`, `mediaKind`, `blockNsfw`). Paginate with `nextBeforeDate` (newest-first only) or
    *  `page`. For a random pick use `random()` — `list` always returns a page. */
   list(opts?: ListOptions): Promise<CreationPage>;
   /** ONE uniformly-sampled creation from the filtered collection (or null
    *  when the filter matches nothing). Same filters as `list`, no paging;
-   *  the trash rejects with 400 `RANDOM_NOT_SUPPORTED`. */
+   *  images and videos only — the trash and `mediaKind: 'audio'` reject with
+   *  400 `RANDOM_NOT_SUPPORTED`. */
   random(opts?: RandomOptions): Promise<Creation | null>;
   /** A page of the cross-user public feed, newest-published first. Non-owner
    *  rows hide prompts; `includeNsfw` opts into flagged rows. */
@@ -110,6 +111,9 @@ export function createCreations(http: Http): CreationsNamespace {
     to: opts.to,
     hideFiled: opts.hideFiled ? '1' : undefined,
     usedRef: opts.usedRef !== undefined ? idOf(opts.usedRef) : undefined,
+    likeFilter: opts.likeFilter,
+    mediaKind: opts.mediaKind,
+    blockNSFW: opts.blockNsfw ? '1' : undefined,
   });
 
   return {

@@ -238,11 +238,12 @@ await client.creations.list({ activity: 'uploaded' });        // all|history|upl
 await client.creations.list({ smart: 'faces' });              // faces|videos|crop|alpha|favorites
 
 // Filters compose with any lens: whole-word search (trailing * = prefix),
-// sort, aspect-ratio buckets, date range…
+// sort, aspect-ratio buckets, date range, the studio's Likes and Type filters…
 await client.creations.list({ search: 'red fox*', sort: 'size-desc', ratioFilter: 'portrait' });
+await client.creations.list({ folderId: folder.folderId, likeFilter: 'liked', mediaKind: 'video' });
 
-// ONE uniformly-random creation from any lens:
-const surprise = await client.creations.random({ smart: 'favorites' });
+// ONE uniformly-random creation from any lens (images and videos only), same filters:
+const surprise = await client.creations.random({ smart: 'favorites', mediaKind: 'image', blockNsfw: true });
 
 // The cross-user public feed:
 const feed = await client.creations.feed({ limit: 48 });
