@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.2 (2026-10-29)
+
+Documentation only, no code change:
+
+- **Gen8 Preview image price:** about 1.1 to 1.9 times the same Gen 7.2 preset (was 1.2 to 2.6). The server now renders
+  Ultra and Ultimate as one sampling pass plus a model upscale, and prices them on that shorter render time.
+  `costUsd` on the ticket stays the truth.
+
 ## 3.1.1 (2026-10-29)
 
 Documentation only, no code change:

@@ -19,7 +19,7 @@ npm install 2dai-cloud-sdk
 `client.generate.image({ imageModel: 'next', ... })` runs **Gen8 Preview images**, the preview of 2DAI's next image engine:
 up to **6** `refCreationIds` kept natively (3 on the default model), legible text in the picture, long literal
 prompts honoured, the same quality ids as today. The channel opens at Holder — read `me().canUseImageNext` and
-`me().qualities.imageNext` instead of guessing; a `next` image is priced on render time (about 1.2 to 2.6 times the same preset on Gen 7.2),
+`me().qualities.imageNext` instead of guessing; a `next` image is priced on render time (about 1.1 to 1.9 times the same preset on Gen 7.2),
 and every reference adds a surcharge on both models (`costUsd` on the ticket is the truth).
 
 ## Gen8 Preview video
