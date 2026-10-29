@@ -256,8 +256,8 @@ export interface ImageParams {
    *  image engine: up to 6 references kept natively, legible text in the picture, long literal prompts honoured).
    *  Default `'default'`. `'next'` opens at Holder: `me().canUseImageNext` says whether this account may submit it and
    *  `me().qualities.imageNext` lists its presets (same ids, `allowed` resolved); 403 `TOOL_NOT_ALLOWED_FOR_TIER`
-   *  otherwise, 400 `IMAGE_MODEL_UNAVAILABLE` when the engine is off. A `next` image is priced on render time — roughly
-   *  four to seven times the same preset on the default model — and every reference adds a surcharge on both models. */
+   *  otherwise, 400 `IMAGE_MODEL_UNAVAILABLE` when the engine is off. A `next` image is priced on render time — about
+   *  1.2 to 2.6 times the same preset on the default model — and every reference adds a surcharge on both models. */
   imageModel?: 'default' | 'next';
   /** Style id, or `'auto'` (default) to let the server pick by tier. */
   style?: string;
@@ -394,7 +394,7 @@ export interface VideoParams {
   duration?: number;
   /** Gen8 Preview video only: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. */
   aspectRatio?: string;
-  /** Quality preset id or `'auto'`. Gen8 Preview video: the presets `me()` lists for the account (`fast` from Holder, every preset at Founder). */
+  /** Quality preset id or `'auto'`. Gen8 Preview video: the presets `me()` lists for the account (`fast` from Holder, `normal` from Believer, `high` from Supporter, every preset at Founder). */
   quality?: string;
   /** Motion style id or `'auto'`. Every video style except `'raw'` runs TIXI on the prompt (the style's
    *  guidance only exists through that rewrite); `'raw'` sends the prompt verbatim unless `enhanced` is true. */

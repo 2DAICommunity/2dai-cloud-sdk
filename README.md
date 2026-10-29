@@ -19,7 +19,7 @@ npm install 2dai-cloud-sdk
 `client.generate.image({ imageModel: 'next', ... })` runs **Gen8 Preview images**, the preview of 2DAI's next image engine:
 up to **6** `refCreationIds` kept natively (3 on the default model), legible text in the picture, long literal
 prompts honoured, the same quality ids as today. The channel opens at Holder — read `me().canUseImageNext` and
-`me().qualities.imageNext` instead of guessing; a `next` image is priced on render time (roughly four to seven times the same preset on Gen 7.2),
+`me().qualities.imageNext` instead of guessing; a `next` image is priced on render time (about 1.2 to 2.6 times the same preset on Gen 7.2),
 and every reference adds a surcharge on both models (`costUsd` on the ticket is the truth).
 
 ## Gen8 Preview video
@@ -27,8 +27,8 @@ and every reference adds a surcharge on both models (`costUsd` on the ticket is 
 `client.generate.video({ videoModel: 'next', ... })` runs **Gen8 Preview video**, the preview of 2DAI's next video engine:
 clips come out **with sound**, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds` (characters,
 props and places kept consistent), with an optional `aspectRatio`. Lengths and presets follow the account —
-`fast` quality and 1, 5, 8 or 10 s from Holder, every preset and 12, 15, 17 or 20 s at Founder: read
-`me().videoDurationsNext` and `me().qualities.videoNext` instead of guessing. Since 2.7.0 the clip can follow an
+`fast` quality and 1, 5, 8 or 10 s from Holder, `normal` from Believer, `high` from Supporter, every preset and
+12, 15, 17 or 20 s at Founder: read `me().videoDurationsNext` and `me().qualities.videoNext` instead of guessing. Since 2.7.0 the clip can follow an
 **audio reference** too: `uploads.audio()` an MP3, then pass its id as `audioCreationId` (`audioUse: 'music'` for a
 soundtrack, `'voice'` for a voice sample) — and TIXI writes the full scenario around it.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.1 (2026-10-29)
+
+Documentation only, no code change:
+
+- **Gen8 Preview video ladder:** `fast` from Holder, `normal` from Believer, `high` from Supporter, every preset at
+  Founder (server change of 2026-10-29). `me().qualities.videoNext` already reports it per account.
+- **Gen8 Preview image price:** about 1.2 to 2.6 times the same Gen 7.2 preset, after the 2026-10-29 price review.
+  `costUsd` on the ticket stays the truth.
+
 ## 3.1.0 (2026-10-21)
 
 - `creations.list` / `creations.random` take the studio's new cloud filters:
