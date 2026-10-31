@@ -30,7 +30,7 @@ export interface Account {
   /** Every quality preset per generation type, with the account's access and the
    *  platform recommendation (image: max; video: ultra at 5 s; ultimate = highest resolution). */
   qualities?: { image: QualityPreset[]; video: QualityPreset[]; videoNext?: QualityPreset[];
-    /** Gen8 Preview images presets (`generate.image({ imageModel: 'next' })`), same ids as `image`; `allowed` resolves the
+    /** Gen8.1 images presets (`generate.image({ imageModel: 'next' })`), same ids as `image`; `allowed` resolves the
      *  tier lock, the key's channel policy and whether the engine is on (`modelChannels.image.next`): when the
      *  channel is off every preset is `allowed: false` and `canUseImageNext` is false. */
     imageNext?: QualityPreset[] };
@@ -41,11 +41,11 @@ export interface Account {
   /** Whether this account may generate video at all (Holder+/tier2+). When false every video
    *  duration is locked and every video quality is not allowed. */
   canUseVideo?: boolean;
-  /** Duration used when a Gen8 Preview video request omits `duration`. */
+  /** Duration used when a Gen8.1 video request omits `duration`. */
   defaultVideoDurationNext?: number;
-  /** Gen8 Preview video durations in seconds with the tier lock resolved for this account (1 to 20 s). */
+  /** Gen8.1 video durations in seconds with the tier lock resolved for this account (1 to 20 s). */
   videoDurationsNext?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
-  /** Whether this account may submit Gen8 Preview images right now (`generate.image({ imageModel: 'next' })`): the engine
+  /** Whether this account may submit Gen8.1 images right now (`generate.image({ imageModel: 'next' })`): the engine
    *  is on (`modelChannels.image.next`), the tool opens at Holder (tier2) and the calling key reaches the `next`
    *  channel. When false the submit is a 400 `IMAGE_MODEL_UNAVAILABLE`, a 403 `TOOL_NOT_ALLOWED_FOR_TIER` or a 403
    *  `KEY_POLICY_CHANNEL`, and every `qualities.imageNext` preset is not allowed. */
@@ -92,9 +92,9 @@ export interface QueueState {
   costUsd?: number;
   /** Resolved preset of the job (server ≥ 2.2.25). */
   quality?: string;
-  /** Video jobs: the model channel that rendered it (`'next'` = Gen8 Preview video). */
+  /** Video jobs: the model channel that rendered it (`'next'` = Gen8.1 video). */
   videoModel?: 'default' | 'next';
-  /** Image jobs: the model channel that rendered it (`'next'` = Gen8 Preview images). */
+  /** Image jobs: the model channel that rendered it (`'next'` = Gen8.1 images). */
   imageModel?: 'default' | 'next';
   creationId?: string;
   cdnId?: string;
@@ -129,19 +129,19 @@ export interface Creation {
   style?: string | null;
   quality?: string;
   aiModel?: string;
-  /** Video rows: the model channel that rendered the clip (`'next'` = Gen8 Preview video, `aiModel: 'gen8.0'`). */
+  /** Video rows: the model channel that rendered the clip (`'next'` = Gen8.1 video, `aiModel: 'gen8.1'`; rows rendered before the Gen8.1 release keep `'gen8.0'`). */
   videoModel?: 'default' | 'next';
-  /** Image rows: the model channel that rendered the image (`'next'` = Gen8 Preview images, `aiModel: 'gen8.0'`). */
+  /** Image rows: the model channel that rendered the image (`'next'` = Gen8.1 images, `aiModel: 'gen8.1'`). */
   imageModel?: 'default' | 'next';
   cdnId?: string;
   downloadUrl?: string;
   width?: number;
   height?: number;
-  /** What the row holds: an `'image'`, a `'video'` clip, or an `'audio'` upload (the audio reference of Gen8 Preview video). */
+  /** What the row holds: an `'image'`, a `'video'` clip, or an `'audio'` upload (the audio reference of Gen8.1 video). */
   mediaKind?: MediaKind;
   /** Seconds, measured on the file — video clips and audio uploads only. */
   duration?: number;
-  /** The file carries sound: a Gen8 Preview video clip, or an uploaded audio file. */
+  /** The file carries sound: a Gen8.1 video clip, or an uploaded audio file. */
   hasAudio?: boolean;
   isUploaded?: boolean;
   /** Origin of the creation: 'web' (studio), 'sdk', 'mcp' or 'api' (raw
@@ -252,7 +252,7 @@ export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3
 
 export interface ImageParams {
   prompt: string;
-  /** Which image model: `'default'` (Gen 7.2, up to 3 references) or `'next'` (Gen8 Preview images — the preview of 2DAI's next
+  /** Which image model: `'default'` (Gen 7.2, up to 3 references) or `'next'` (Gen8.1 images — 2DAI's next
    *  image engine: up to 6 references kept natively, legible text in the picture, long literal prompts honoured).
    *  Default `'default'`. `'next'` opens at Holder: `me().canUseImageNext` says whether this account may submit it and
    *  `me().qualities.imageNext` lists its presets (same ids, `allowed` resolved); 403 `TOOL_NOT_ALLOWED_FOR_TIER`
@@ -269,7 +269,7 @@ export interface ImageParams {
   aspectRatio?: AspectRatio | 'auto';
   width?: number;
   height?: number;
-  /** Things to avoid. Optional — applied by Gen8 Preview images; the Gen7 image engine renders without it (the field is still accepted). */
+  /** Things to avoid. Optional — applied by Gen8.1 images; the Gen7 image engine renders without it (the field is still accepted). */
   negativePrompt?: string;
   /** Rewrite the prompt with **TIXI**, the 2DAI prompt agent, before it reaches
    *  the image model (default `false`).
@@ -383,27 +383,27 @@ export interface VideoParams {
   prompt: string;
   /** The first frame: the creation the clip starts from. */
   inputCreationId: string;
-  /** Which video model: `'default'` (Video — silent clips of 5, 6 or 7 s) or `'next'` (Gen8 Preview video —
+  /** Which video model: `'default'` (Video — silent clips of 5, 6 or 7 s) or `'next'` (Gen8.1 video —
    *  clips WITH sound from 1 to 20 s, a first frame plus up to 6 references). Default `'default'`. */
   videoModel?: 'default' | 'next';
-  /** Gen8 Preview video only: up to 6 more reference creations (characters, props, places) after the first frame,
+  /** Gen8.1 video only: up to 6 more reference creations (characters, props, places) after the first frame,
    *  7 pictures in all. Each one past the first frame adds a surcharge to the price. */
   refCreationIds?: string[];
   /** Clip length in seconds. Video: 5, 6 or 7 (7 needs Supporter+), as the studio shows them.
-   *  Gen8 Preview video (`videoModel: 'next'`): the lengths `me().videoDurationsNext` lists for the account (1, 5, 8 or 10 from Holder; 12, 15, 17 or 20 at Founder). Default 5 on both. */
+   *  Gen8.1 video (`videoModel: 'next'`): the lengths `me().videoDurationsNext` lists for the account (1, 5, 8 or 10 from Holder; 12, 15, 17 or 20 at Founder). Default 5 on both. */
   duration?: number;
-  /** Gen8 Preview video only: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. */
+  /** Gen8.1 video only: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. */
   aspectRatio?: string;
-  /** Quality preset id or `'auto'`. Gen8 Preview video: the presets `me()` lists for the account (`fast` from Holder, `normal` from Believer, `high` from Supporter, every preset at Founder). */
+  /** Quality preset id or `'auto'`. Gen8.1 video: the presets `me()` lists for the account (`fast` from Holder, `normal` from Believer, `high` from Supporter, every preset at Founder). */
   quality?: string;
   /** Motion style id or `'auto'`. Every video style except `'raw'` runs TIXI on the prompt (the style's
    *  guidance only exists through that rewrite); `'raw'` sends the prompt verbatim unless `enhanced` is true. */
   style?: string;
-  /** Run TIXI on the prompt with `style: 'raw'`: it writes the motion scenario (Video) or the full Gen8 Preview video
+  /** Run TIXI on the prompt with `style: 'raw'`: it writes the motion scenario (Video) or the full Gen8.1 video
    *  brief (shots, pictures, sound) from your idea; a prompt starting with "tixi " adds a thinking pass. Every
    *  other style already runs TIXI and cannot switch it off. No extra credit. */
   enhanced?: boolean;
-  /** Gen8 Preview video only: one of your uploaded MP3s (`uploads.audio`) as the clip's audio reference. It counts as one
+  /** Gen8.1 video only: one of your uploaded MP3s (`uploads.audio`) as the clip's audio reference. It counts as one
    *  more reference for the price. 400 `AUDIO_REF_NEXT_ONLY` on the default model, `INVALID_AUDIO_REF` when the
    *  creation is not an audio file, 404 when it is not yours. */
   audioCreationId?: string;
@@ -626,7 +626,7 @@ export interface TelegramAuthor {
 }
 
 /** One upload: an image (jpeg/png/webp/gif), an mp4 (or an `.m4v`, the same container — stored and served as mp4), or — through `uploads.audio` — an MP3 that becomes the audio
- *  reference of a Gen8 Preview video clip (5 min max, Holder tier and up). `contentType` is read from `filename`/`path`
+ *  reference of a Gen8.1 video clip (5 min max, Holder tier and up). `contentType` is read from `filename`/`path`
  *  when omitted. */
 export interface UploadInput {
   /** Official bot integrations only — see {@link TelegramAuthor}. */

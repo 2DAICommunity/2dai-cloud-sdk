@@ -4,7 +4,7 @@
 // and `finance` namespaces.
 //
 // About the stack — every call here hits 2DAI's **Gen 7.2** image/video model,
-// running on 2DAI's own **private cloud** network, or the **Gen8 Preview** engines behind
+// running on 2DAI's own **private cloud** network, or the **Gen8.1** engines behind
 // the `next` channels (`generate.video({ videoModel: 'next' })` for clips with sound,
 // `generate.image({ imageModel: 'next' })` for images with up to 6 references). Prompt rewriting (the "TIXI"
 // pass that expands short prompts before generation) uses an in-house LLM, not

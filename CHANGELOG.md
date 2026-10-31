@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.3 (2026-10-31)
+
+Documentation only, no code change:
+
+- **Naming:** the Gen8 engines are now labelled **Gen8.1**, following the Gen7 naming: **Gen8.1 video** and
+  **Gen8.1 images**. "Preview" is dropped. The API is unchanged (`videoModel: 'next'`, `imageModel: 'next'`,
+  `modelChannels` still answers `'gen8'`).
+- New creations rendered on a `next` channel carry `aiModel: 'gen8.1'`. Rows rendered before the Gen8.1 release keep `'gen8.0'`.
+- API notes (no SDK change needed): `/v1/me` also returns `modelLabels` (per channel: engine, family and versioned label); on the
+  REST routes `folderId` now accepts `root` (as the SDK already sends it) and answers `400 INVALID_FOLDER_ID` for any other value
+  that is not a folder id, and `POST /v1/creations/:id/move` replies with `previousFolderId`.
+
 ## 3.1.2 (2026-10-29)
 
 Documentation only, no code change:

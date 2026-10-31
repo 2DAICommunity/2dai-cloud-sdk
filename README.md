@@ -14,17 +14,17 @@ Not on JavaScript? The same platform is a plain REST API — jump to
 npm install 2dai-cloud-sdk
 ```
 
-## New — Gen8 Preview images
+## New — Gen8.1 images
 
-`client.generate.image({ imageModel: 'next', ... })` runs **Gen8 Preview images**, the preview of 2DAI's next image engine:
+`client.generate.image({ imageModel: 'next', ... })` runs **Gen8.1 images**, 2DAI's next image engine:
 up to **6** `refCreationIds` kept natively (3 on the default model), legible text in the picture, long literal
 prompts honoured, the same quality ids as today. The channel opens at Holder — read `me().canUseImageNext` and
 `me().qualities.imageNext` instead of guessing; a `next` image is priced on render time (about 1.1 to 1.9 times the same preset on Gen 7.2),
 and every reference adds a surcharge on both models (`costUsd` on the ticket is the truth).
 
-## Gen8 Preview video
+## Gen8.1 video
 
-`client.generate.video({ videoModel: 'next', ... })` runs **Gen8 Preview video**, the preview of 2DAI's next video engine:
+`client.generate.video({ videoModel: 'next', ... })` runs **Gen8.1 video**, 2DAI's next video engine:
 clips come out **with sound**, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds` (characters,
 props and places kept consistent), with an optional `aspectRatio`. Lengths and presets follow the account —
 `fast` quality and 1, 5, 8 or 10 s from Holder, `normal` from Believer, `high` from Supporter, every preset and
@@ -77,7 +77,7 @@ const img = await client.generate.image({
 // TIXI's version is in `.raw.finalPrompt`.
 const rich = await client.generate.image({ prompt: 'a warrior', enhanced: true });
 
-// Gen8 Preview images, the new image engine (Holder+): up to 6 references kept natively,
+// Gen8.1 images, the new image engine (Holder+): up to 6 references kept natively,
 // legible text, long literal prompts. Same quality ids; me().qualities.imageNext
 // lists what the account may submit.
 const poster = await client.generate.image({
@@ -124,7 +124,7 @@ const vid = await client.generate.video({
   style: 'raw',        // verbatim — add `enhanced: true` to let TIXI write the scenario
 });
 
-// Gen8 Preview video, the new video engine (clips WITH sound): a first frame plus up to 6
+// Gen8.1 video, the new video engine (clips WITH sound): a first frame plus up to 6
 // references. Lengths and presets follow the account (me().videoDurationsNext /
 // qualities): Fast and 1-10 s from Holder, up to 20 s at Founder. The SDK waits up to 20 min here.
 const next = await client.generate.video({
@@ -134,10 +134,10 @@ const next = await client.generate.video({
   refCreationIds: [characterId, placeId],   // optional, ≤6 (each adds a surcharge)
   duration: 10,                             // one of me().videoDurationsNext
   aspectRatio: '16:9',                      // 'auto' = the first frame's ratio
-  style: 'raw', enhanced: true,             // your idea → TIXI writes the Gen8 Preview video brief (shots, pictures, sound)
+  style: 'raw', enhanced: true,             // your idea → TIXI writes the Gen8.1 video brief (shots, pictures, sound)
 });
 
-// Gen8 Preview video with an audio reference: your MP3 as the soundtrack ('music') or
+// Gen8.1 video with an audio reference: your MP3 as the soundtrack ('music') or
 // as a voice sample the speaking character follows ('voice'). Counts as one
 // more reference for the price.
 const track = await client.uploads.audio({ path: './theme.mp3' });
@@ -159,7 +159,7 @@ const wall = await client.generate.wallpaper({
 ```
 
 Each tool caps its references (3 image, 6 on `imageModel: 'next'` · 6 face/character · 3 style-transfer ·
-4 smart-edit · 3 wallpaper · 7 Gen8 Preview video pictures) — exceeding a cap rejects with `TOO_MANY_REFS`
+4 smart-edit · 3 wallpaper · 7 Gen8.1 video pictures) — exceeding a cap rejects with `TOO_MANY_REFS`
 before anything is charged. A ticket that is still **pending** can be stopped
 with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 [Generating](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Generating).
@@ -167,7 +167,7 @@ with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 ## Uploading your own media
 
 Bring an image/gif/mp4 (an `.m4v` is accepted and stored as mp4) into your library so it can be used as a reference or
-animated, or an MP3 that becomes the audio reference of a Gen8 Preview video clip. The
+animated, or an MP3 that becomes the audio reference of a Gen8.1 video clip. The
 same moderation pass as the studio runs server-side.
 
 ```ts
@@ -175,7 +175,7 @@ const up = await client.uploads.image({ path: './portrait.jpg' });      // Node
 const up2 = await client.uploads.image({ data: fileBlob });             // Browser
 await client.generate.imageWithRefs({ tool: 'character-ref', prompt: 'in a suit', refCreationIds: [up.creationId] });
 
-// An MP3 (5 min max, Holder tier and up) for Gen8 Preview video — see generate.video above.
+// An MP3 (5 min max, Holder tier and up) for Gen8.1 video — see generate.video above.
 const track = await client.uploads.audio({ path: './theme.mp3' });
 
 // File it straight into a folder, and skip re-uploads with the md5 pre-flight:
@@ -337,7 +337,7 @@ A `GenerationFailedError` (and a failed `QueueState`) also carries `errorCode` t
 branch on (`CAPACITY_FULL`, `EXPIRED`, `GENERATION_TIMEOUT`, …) and `errorMessage`,
 a readable sentence you can show as is.
 A `TierError` names the tier that opens what was asked (`requiredTier`, `requiredTierName`)
-and ships a ready sentence in `message` ("Gen8 Preview images open at Holder. Upgrade your tier…");
+and ships a ready sentence in `message` ("Gen8.1 images open at Holder. Upgrade your tier…");
 nothing was charged.
 
 A **content-rated** result is not an error: a creation with `nsfwFlagged: true`
@@ -355,8 +355,8 @@ own R&D — we then disassemble, modify, fine-tune and optimize them to align
 with our legacy and **2DAI❤️ART** lines. They also run on our own private
 cloud network.
 
-The **Gen8** generation is rolling out as two previews behind the `next` channels:
-Gen8 Preview video (`videoModel: 'next'`, clips with sound) and Gen8 Preview images
+The **Gen8** generation is rolling out as two engines behind the `next` channels:
+Gen8.1 video (`videoModel: 'next'`, clips with sound) and Gen8.1 images
 (`imageModel: 'next'`, 6 references). Same rule, same cloud; `me().modelChannels`
 names the engine behind each channel.
 

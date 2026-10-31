@@ -98,7 +98,7 @@ export function createGenerate(http: Http): GenerateNamespace {
     video: (params: VideoParams, opts?: SubmitOptions) => {
       const isNext = params.videoModel === 'next';
       const refs = isNext && Array.isArray(params.refCreationIds) ? params.refCreationIds.filter(Boolean) : [];
-      // Long Gen8 Preview video clips render for minutes: wait up to 20 min unless the caller set a deadline.
+      // Long Gen8.1 video clips render for minutes: wait up to 20 min unless the caller set a deadline.
       const waitOpts = isNext && opts?.timeoutMs === undefined ? { ...(opts ?? {}), timeoutMs: 1_200_000 } : opts;
       return submit(http, '/v1/generate/video', {
         prompt: params.prompt,
@@ -109,7 +109,7 @@ export function createGenerate(http: Http): GenerateNamespace {
         quality: params.quality,
         style: params.style,
         enhanced: params.enhanced,
-        // Audio reference — Gen8 Preview video only; the server rejects it on the default model.
+        // Audio reference — Gen8.1 video only; the server rejects it on the default model.
         ...(params.audioCreationId ? { audioCreationId: params.audioCreationId, audioUse: params.audioUse === 'voice' ? 'voice' : 'music' } : {}),
         frameInterpolation: params.frameInterpolation,
         allowNSFW: params.allowNSFW,
