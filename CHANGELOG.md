@@ -1,5 +1,77 @@
 # Changelog
 
+## 3.2.0 (<date>)
+
+<!-- DRAFT, owner review before the tag: replace the <date> placeholders (release and switch day; closing day of the `next` channels, twice). -->
+
+The default channels move to the Gen8 engines (server switch of <date>). The SDK no longer encodes engine rules on the
+value `'next'`: every rule of a channel follows the engine behind it, and `me()` reports it.
+
+Behaviour:
+
+- `generate.video` sends `refCreationIds` (as `inputCreationIds`) and `aspectRatio` on every channel. The server keeps
+  what the engine behind the channel takes: the Gen8 engine reads the first frame plus up to 6 references and the
+  ratio, a Gen7 engine animates the first frame only. Up to 3.1.3 the SDK dropped both unless `videoModel: 'next'`, so
+  a Gen8 default channel lost them without a word.
+- Every video job waits up to **20 min** by default (`generate.video`, `generate.similar` of a clip, `queue.waitFor`
+  of a clip) instead of 5 min. An explicit `timeoutMs` still wins. A `TimeoutError` never cancels the job: it keeps
+  rendering and stays charged, so collect it with `queue.waitFor(queueId)` instead of submitting again.
+- New error classes: `DurationError` (400 `INVALID_DURATION`, a `ValidationError`; `allowed` lists the lengths of the
+  channel in exact seconds) and `GenerationPausedError` (503 `GENERATION_PAUSED`: submits are frozen for a short
+  maintenance, nothing is charged or queued, retry later; the SDK never retries a submit by itself). The fallback
+  messages of `VIDEO_MODEL_UNAVAILABLE` / `IMAGE_MODEL_UNAVAILABLE` say the channel is closed; the server's own
+  `message`, which says what to send instead, still takes priority.
+- New error classes for the key policy caps, both direct `ApiError` subclasses as before: `KeyPolicyQualityError`
+  (403 `KEY_POLICY_QUALITY`, with `maxQuality` and `kind`, `'image'` or `'video'`) and `KeyPolicyDurationError`
+  (403 `KEY_POLICY_DURATION`, with `maxVideoDurationSec`). Nothing is charged on either.
+- `generate.video` without a first frame (`inputCreationId` empty or missing) still answers 400
+  `INPUT_CREATION_REQUIRED`: a reference never becomes the first frame.
+
+Types (additive, nothing removed):
+
+- `Account.modelLabels`: per channel, the engine behind it (`ModelLabel`: `engine`, `family`, `label`), `null` when
+  the channel is closed. Name the engines from here.
+- `Creation.videoEngine` / `imageEngine` and `QueueState.videoEngine` / `imageEngine` (optional, read-only): the
+  engine that rendered the row. Classify history by engine (or `aiModel`), not by `videoModel === 'next'`: new Gen8
+  rows carry `videoModel: 'default'`.
+- `KeyContext.maxQuality` / `maxVideoQuality` / `maxVideoDurationSec` (optional): the ceilings of a key with a
+  policy, as `/v1/me.key` reports them (`maxVideoQuality` is `high` at most for a bot key in community mode and for
+  the Telegram bots; another policy key keeps its own cap, a key without a policy has none).
+- `QueueTicket.duration` (optional): the effective length of a video submit or similar, in seconds; a server-derived
+  similar may be shorter than the source when the tier or key no longer allows it.
+- `VideoParams.frameInterpolation` is `@deprecated`: the Gen8 engines ignore it (native 24 fps, no double price).
+- JSDoc rewritten per channel: lengths, presets, reference caps and sound come from `me()` (`videoDurations`,
+  `qualities`, `modelChannels`, `modelLabels`); no engine is assumed behind `'default'` or `'next'`.
+
+README: rewritten for the Gen8 default channels (sound, 6 references, exact lengths, the tier ladders, the `next`
+closing date); lengths, presets and engines point to `me()`.
+
+What the server switch changes, with or without this release:
+
+- Default video: clips with sound, at the length asked, at 24 fps. `duration` is one of `me().videoDurations`, exact
+  seconds (Gen8 ladder 1, 5, 8, 10, 12, 15, 17, 20, opened by tier); the creation's `duration` is measured on the file
+  (up to about 0.25 s longer; a 1 s clip runs about 1.6 s). The retired 6 / 7 s lengths, and 6.5 / 7.5, answer 400
+  `INVALID_DURATION`, uncharged.
+- Presets and their tier gates follow the Gen8 ladders (`me().qualities`). An explicit preset that is now locked
+  answers 403 `QUALITY_NOT_ALLOWED_FOR_TIER`, uncharged; `'auto'` keeps working. Video, and the MP3 upload of
+  `uploads.audio`, open at Explorer (Holder before). Prices follow the Gen8 engines
+  (`costUsd` on the ticket stays the truth), so key spend caps may be reached sooner.
+- Default image: up to 6 references (`TOO_MANY_REFS` reports `max: 6`) and `negativePrompt` applied. Audio
+  references work on the default video channel.
+- `'next'` stays in the types, kept for the next engine. Until <date>, `videoModel: 'next'` / `imageModel: 'next'`
+  serve the same engine as the default channel; after that they answer 400 `VIDEO_MODEL_UNAVAILABLE` /
+  `IMAGE_MODEL_UNAVAILABLE`, uncharged, with a `message`, until a new engine opens them (`me().modelChannels`).
+- `generate.wallpaper` is unchanged.
+
+Migration:
+
+- Drop `videoModel: 'next'` / `imageModel: 'next'` before <date>: the default channel renders the same engine.
+- Pick `duration` from `me().videoDurations` and `quality` from `me().qualities` (`allowed`, `recommended`) instead of
+  hard-coding 5 / 6 / 7 s or `'ultra'`.
+- Classify creations with `videoEngine` / `imageEngine`, `aiModel` and `hasAudio`.
+- Staying on 3.1.3 or older: references and ratio are dropped on the default channel, and a long clip ends in
+  `TimeoutError` after 5 min while it still renders. Pass `timeoutMs: 1_200_000` or `wait: false` meanwhile.
+
 ## 3.1.3 (2026-10-31)
 
 Documentation only, no code change:

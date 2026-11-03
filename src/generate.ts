@@ -4,7 +4,7 @@
 
 import { ApiError, GenerationFailedError } from './errors';
 import { extractCreationId, normalizeCreation, resolveDims } from './internal';
-import { pollQueue } from './queue';
+import { pollQueue, VIDEO_WAIT_TIMEOUT_MS } from './queue';
 import type { Http } from './http';
 import type {
   ArtisticStyleParams,
@@ -53,7 +53,7 @@ export function createGenerate(http: Http): GenerateNamespace {
       const { width, height, aspectRatio } = resolveDims(params);
       return submit(http, '/v1/generate/image', {
         prompt: params.prompt,
-        // Image channel — the server resolves the engine, the tier gate and the 3 / 6 reference cap.
+        // Image channel — the server resolves the engine behind it, the tier gate and that engine's reference cap.
         imageModel: params.imageModel,
         style: params.style,
         quality: params.quality,
@@ -96,20 +96,23 @@ export function createGenerate(http: Http): GenerateNamespace {
       }, opts) as any;
     },
     video: (params: VideoParams, opts?: SubmitOptions) => {
-      const isNext = params.videoModel === 'next';
-      const refs = isNext && Array.isArray(params.refCreationIds) ? params.refCreationIds.filter(Boolean) : [];
-      // Long Gen8.1 video clips render for minutes: wait up to 20 min unless the caller set a deadline.
-      const waitOpts = isNext && opts?.timeoutMs === undefined ? { ...(opts ?? {}), timeoutMs: 1_200_000 } : opts;
+      const refs = Array.isArray(params.refCreationIds) ? params.refCreationIds.filter(Boolean) : [];
+      // No first frame: send the body as before so the server answers 400 INPUT_CREATION_REQUIRED, rather than let
+      // the first reference become the frame.
+      const hasFrame = typeof params.inputCreationId === 'string' && params.inputCreationId.trim() !== '';
+      // A clip renders for minutes, long ones well past 5: wait up to 20 min unless the caller set a deadline.
+      const waitOpts = opts?.timeoutMs === undefined ? { ...(opts ?? {}), timeoutMs: VIDEO_WAIT_TIMEOUT_MS } : opts;
       return submit(http, '/v1/generate/video', {
         prompt: params.prompt,
-        ...(refs.length ? { inputCreationIds: [params.inputCreationId, ...refs] } : { inputCreationId: params.inputCreationId }),
+        // References and ratio go out on every channel: the server keeps what the engine behind the channel takes.
+        ...(hasFrame && refs.length ? { inputCreationIds: [params.inputCreationId, ...refs] } : { inputCreationId: params.inputCreationId }),
         videoModel: params.videoModel,
-        aspectRatio: isNext ? params.aspectRatio : undefined,
+        aspectRatio: params.aspectRatio,
         duration: params.duration,
         quality: params.quality,
         style: params.style,
         enhanced: params.enhanced,
-        // Audio reference — Gen8.1 video only; the server rejects it on the default model.
+        // Audio reference — the server refuses it when the engine behind the channel renders no sound.
         ...(params.audioCreationId ? { audioCreationId: params.audioCreationId, audioUse: params.audioUse === 'voice' ? 'voice' : 'music' } : {}),
         frameInterpolation: params.frameInterpolation,
         allowNSFW: params.allowNSFW,
@@ -140,7 +143,9 @@ export function createGenerate(http: Http): GenerateNamespace {
       // No clientToken here: the server rebuilds the submit body from the
       // stored row, so a token in THIS body would be discarded. Rapid repeats
       // still dedup — identical derived bodies hit the server's 5s window.
-      return submitTicket(http, '/v1/generate/similar', { creationId, telegramUser: opts?.telegramUser }, opts ?? {}) as any;
+      // The kind of the source is only known once the queue answers: a video job (it carries `videoModel`) waits 20 min.
+      const videoTimeoutMs = opts?.timeoutMs === undefined ? VIDEO_WAIT_TIMEOUT_MS : undefined;
+      return submitTicket(http, '/v1/generate/similar', { creationId, telegramUser: opts?.telegramUser }, opts ?? {}, videoTimeoutMs) as any;
     },
   };
 }
@@ -166,6 +171,7 @@ async function submitTicket(
   path: string,
   body: Record<string, unknown>,
   opts: SubmitOptions,
+  videoTimeoutMs?: number,
 ): Promise<GenerationResult | QueueTicket> {
   const ticket = await http.request<QueueTicket>('POST', path, { json: body, idempotent: false, signal: opts.signal });
 
@@ -175,6 +181,7 @@ async function submitTicket(
     intervalMs: opts.intervalMs,
     timeoutMs: opts.timeoutMs,
     signal: opts.signal,
+    videoTimeoutMs,
   });
   if (terminal.status !== 'completed') {
     throw new GenerationFailedError(terminal.status, terminal.error, ticket.queueId, {

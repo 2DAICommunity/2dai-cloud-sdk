@@ -54,6 +54,14 @@ export class ApiError extends Error {
       case 'NOT_FOUND':
       case 'KEY_NOT_FOUND':
         return new NotFoundError(code, httpStatus, msg, b);
+      case 'INVALID_DURATION':
+        return new DurationError(code, httpStatus, msg, b);
+      case 'GENERATION_PAUSED':
+        return new GenerationPausedError(code, httpStatus, msg, b);
+      case 'KEY_POLICY_QUALITY':
+        return new KeyPolicyQualityError(code, httpStatus, msg, b);
+      case 'KEY_POLICY_DURATION':
+        return new KeyPolicyDurationError(code, httpStatus, msg, b);
     }
     if (code.includes('TIER')) return new TierError(code, httpStatus, msg, b);
     if (httpStatus === 429) return new RateLimitError(code, httpStatus, msg, b);
@@ -101,7 +109,8 @@ export class TierError extends ApiError {
   get requiredTier(): string | undefined { return this.details.requiredTier as string | undefined; }
   /** Tier label that opens the option (e.g. `Holder`), when the server knows one. */
   get requiredTierName(): string | undefined { return this.details.requiredTierName as string | undefined; }
-  /** The gated tool on `TOOL_NOT_ALLOWED_FOR_TIER` (`video`, `video-next`, `image-next`, `style-transfer`, …). */
+  /** The gated tool on `TOOL_NOT_ALLOWED_FOR_TIER` (`video`, `style-transfer`, …; `video-next` / `image-next` are the
+   *  gates of the Gen8 video and image engines, whichever channel serves them). */
   get tool(): string | undefined { return this.details.tool as string | undefined; }
   /** The gated preset on `QUALITY_NOT_ALLOWED_FOR_TIER`. */
   get quality(): string | undefined { return this.details.quality as string | undefined; }
@@ -124,8 +133,50 @@ export class NotFoundError extends ApiError {}
 /** 429 — too many requests. */
 export class RateLimitError extends ApiError {}
 
-/** Any other 4xx (bad input) — `INVALID_PROMPT`, `INVALID_STYLE`, `NO_FILE`, … */
+/** Any other 4xx (bad input) — `INVALID_PROMPT`, `INVALID_STYLE`, `NO_FILE`, `VIDEO_MODEL_UNAVAILABLE` (a closed
+ *  channel; the server's `message` says what to send instead), … */
 export class ValidationError extends ApiError {}
+
+/** 400 `INVALID_DURATION` — the clip length is not one the engine behind the channel renders (e.g. a retired 6 or 7 s).
+ *  Nothing was charged. A `ValidationError`, so existing `instanceof ValidationError` checks still match. */
+export class DurationError extends ValidationError {
+  /** The lengths the channel accepts, in exact seconds (`me().videoDurations` adds the tier lock). */
+  get allowed(): number[] | undefined {
+    const a = this.details.allowed;
+    return Array.isArray(a) ? a.filter((v): v is number => typeof v === 'number') : undefined;
+  }
+}
+
+/** 403 `KEY_POLICY_QUALITY` — the quality preset asked is above the ceiling of this request: the key's policy
+ *  (`me().key.maxQuality` for images, `me().key.maxVideoQuality` for video) or the High cap of a bot. The account's
+ *  tier may allow it; the key does not. Nothing was charged: submit at or under `maxQuality`, or use another key.
+ *  A direct `ApiError` subclass (what this code was before), never a `ScopeError` or `TierError`. */
+export class KeyPolicyQualityError extends ApiError {
+  /** The highest preset id this request may submit for that `kind` (e.g. `normal`), when the server sends it. */
+  get maxQuality(): string | undefined {
+    const q = this.details.maxQuality;
+    return typeof q === 'string' && q ? q : undefined;
+  }
+  /** Which ceiling refused the preset, `'image'` or `'video'`, when the server sends it. */
+  get kind(): 'image' | 'video' | undefined {
+    const k = this.details.kind;
+    return k === 'image' || k === 'video' ? k : undefined;
+  }
+}
+
+/** 403 `KEY_POLICY_DURATION` — the calling key's policy caps the clip length below the one asked. Nothing was
+ *  charged: submit a `duration` at or under `maxVideoDurationSec` (an omitted `duration` is clamped by the server). */
+export class KeyPolicyDurationError extends ApiError {
+  /** The longest clip, in seconds, this key may submit, when the server sends it. */
+  get maxVideoDurationSec(): number | undefined {
+    const d = this.details.maxVideoDurationSec;
+    return typeof d === 'number' && Number.isFinite(d) ? d : undefined;
+  }
+}
+
+/** 503 `GENERATION_PAUSED` — the server froze new submits for a short maintenance (an engine switch). Nothing was
+ *  charged or queued; `message` says when to come back. The SDK never retries a submit by itself: retry later. */
+export class GenerationPausedError extends ApiError {}
 
 /** The generation reached a terminal non-success state (`failed`/`cancelled`/`timeout`). */
 export class GenerationFailedError extends ApiError {
@@ -164,8 +215,12 @@ function messageForCode(code: string, status: number): string {
     QUEUE_ITEM_NOT_FOUND: 'No such queue item.',
     CREATION_NOT_FOUND: 'No such creation.',
     KEY_POLICY_CHANNEL: 'This API key cannot submit to that model channel (see me().key.modelChannels).',
-    IMAGE_MODEL_UNAVAILABLE: 'That image model is not available on this server.',
-    VIDEO_MODEL_UNAVAILABLE: 'That video model is not available on this server.',
+    KEY_POLICY_QUALITY: "This API key's policy caps the quality preset below the one asked (see maxQuality). Nothing was charged.",
+    KEY_POLICY_DURATION: "This API key's policy caps the video length below the one asked (see maxVideoDurationSec). Nothing was charged.",
+    IMAGE_MODEL_UNAVAILABLE: 'That image channel is closed on this server (see me().modelChannels). Nothing was charged.',
+    VIDEO_MODEL_UNAVAILABLE: 'That video channel is closed on this server (see me().modelChannels). Nothing was charged.',
+    INVALID_DURATION: 'That video length is not offered on this channel (see me().videoDurations). Nothing was charged.',
+    GENERATION_PAUSED: 'Generation is paused for a short maintenance. Nothing was charged; try again in a few minutes.',
     MEMORY_BUSY: 'The file store is busy. Retry after the Retry-After delay (about 30 s).',
     INVALID_LIKE_FILTER: "likeFilter must be 'liked' or 'unliked'.",
     INVALID_MEDIA_KIND: "mediaKind must be 'image', 'video' or 'audio'.",

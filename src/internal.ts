@@ -102,6 +102,11 @@ function channel(v: unknown): 'default' | 'next' | undefined {
   return v === 'default' || v === 'next' ? v : undefined;
 }
 
+/** An engine id (`gen7`, `gen8`, …) only when the payload carries a non-empty string. */
+function engine(v: unknown): string | undefined {
+  return typeof v === 'string' && v.length > 0 ? v : undefined;
+}
+
 /** Normalize a server queue payload → QueueState with an absolute downloadUrl. */
 export function normalizeQueue(raw: any, baseUrl: string): QueueState {
   return {
@@ -110,6 +115,8 @@ export function normalizeQueue(raw: any, baseUrl: string): QueueState {
     quality: typeof raw.quality === 'string' ? raw.quality : undefined,
     videoModel: channel(raw?.videoModel),
     imageModel: channel(raw?.imageModel),
+    videoEngine: engine(raw?.videoEngine),
+    imageEngine: engine(raw?.imageEngine),
     costUsd: num(raw?.costUsd),
     creationId: raw?.creationId || undefined,
     cdnId: raw?.outputCdnId || undefined,
@@ -140,6 +147,8 @@ export function normalizeCreation(raw: any, baseUrl: string): Creation {
     aiModel: raw?.aiModel,
     videoModel: channel(raw?.videoModel),
     imageModel: channel(raw?.imageModel),
+    videoEngine: engine(raw?.videoEngine),
+    imageEngine: engine(raw?.imageEngine),
     cdnId,
     downloadUrl: absoluteUrl(baseUrl, rel),
     width: num(raw?.width) ?? num(raw?.outputWidth),

@@ -1,6 +1,6 @@
 // Uploads namespace — push a local image/gif/mp4 (or .m4v, the same container, stored as mp4) into your library so it can be
 // used as a generation reference or animated into a video, or an MP3 that
-// becomes the audio reference of a Gen8.1 video clip. Runs the same server-side
+// becomes the audio reference of a video clip. Runs the same server-side
 // moderation pass as the studio (throws NsfwRejectedError on block).
 
 import { ApiError } from './errors';
@@ -14,10 +14,11 @@ export interface UploadsNamespace {
    *  (mutually exclusive) record the upload as an edit of an existing
    *  creation you own; `targetFolderId` files it directly into a folder. */
   image(input: UploadInput): Promise<Creation>;
-  /** Upload an MP3 (5 min max, Holder tier and up — 403 `AUDIO_NOT_ALLOWED` below, 400 `AUDIO_TOO_LONG` over)
-   *  and return the created audio creation: pass its `creationId` as `audioCreationId` to `generate.video`
-   *  with `videoModel: 'next'`, as the clip's music / sound design or as a voice sample. `targetFolderId`
-   *  files it into a folder. No pixels, so no vision caption: the file name and length label it. */
+  /** Upload an MP3 (5 min max, tier-gated — 403 `AUDIO_NOT_ALLOWED` below the tier that opens it, 400
+   *  `AUDIO_TOO_LONG` over) and return the created audio creation: pass its `creationId` as `audioCreationId` to
+   *  `generate.video` on a channel whose engine renders sound (`me().modelLabels`), as the clip's music / sound
+   *  design or as a voice sample. `targetFolderId` files it into a folder. No pixels, so no vision caption: the
+   *  file name and length label it. */
   audio(input: UploadInput): Promise<Creation>;
   /** Advisory pre-flight dedup: does a creation with this MD5 already exist
    *  (optionally within one folder)? Saves the full upload round-trip; the

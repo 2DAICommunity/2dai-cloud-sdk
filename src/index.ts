@@ -10,6 +10,7 @@ export type {
   ArtisticStyleParams,
   Account,
   KeyContext,
+  ModelLabel,
   Scope,
   QueueStatus,
   QueueTicket,
@@ -97,6 +98,10 @@ export {
   NotFoundError,
   RateLimitError,
   ValidationError,
+  DurationError,
+  GenerationPausedError,
+  KeyPolicyQualityError,
+  KeyPolicyDurationError,
   GenerationFailedError,
   TimeoutError,
 } from './errors';

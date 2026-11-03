@@ -14,23 +14,22 @@ Not on JavaScript? The same platform is a plain REST API — jump to
 npm install 2dai-cloud-sdk
 ```
 
-## New — Gen8.1 images
+## Gen8 on the default channels
 
-`client.generate.image({ imageModel: 'next', ... })` runs **Gen8.1 images**, 2DAI's next image engine:
-up to **6** `refCreationIds` kept natively (3 on the default model), legible text in the picture, long literal
-prompts honoured, the same quality ids as today. The channel opens at Holder — read `me().canUseImageNext` and
-`me().qualities.imageNext` instead of guessing; a `next` image is priced on render time (about 1.1 to 1.9 times the same preset on Gen 7.2),
-and every reference adds a surcharge on both models (`costUsd` on the ticket is the truth).
+`generate.image` and `generate.video` run the Gen8 engines on their default channel; `me().modelLabels` names the
+engine behind each channel (today **Gen8.1**), and every rule of a channel follows that engine:
 
-## Gen8.1 video
+- **Images**: up to **6** `refCreationIds` kept natively, legible text in the picture, long literal prompts honoured,
+  `negativePrompt` applied at every preset.
+- **Video**: clips **with sound** at 24 fps, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds`
+  (characters, props, places), an optional `aspectRatio` and an optional **audio reference** (`uploads.audio()` an
+  MP3, then pass its id as `audioCreationId`, `audioUse: 'music'` for a soundtrack or `'voice'` for a voice sample).
+  Lengths are exact seconds (1, 5, 8, 10, 12, 15, 17, 20, opened by tier); video opens at Explorer.
+- Presets and lengths depend on the tier: read `me().qualities` and `me().videoDurations` instead of guessing.
 
-`client.generate.video({ videoModel: 'next', ... })` runs **Gen8.1 video**, 2DAI's next video engine:
-clips come out **with sound**, from a first frame (`inputCreationId`) plus up to 6 `refCreationIds` (characters,
-props and places kept consistent), with an optional `aspectRatio`. Lengths and presets follow the account —
-`fast` quality and 1, 5, 8 or 10 s from Holder, `normal` from Believer, `high` from Supporter, every preset and
-12, 15, 17 or 20 s at Founder: read `me().videoDurationsNext` and `me().qualities.videoNext` instead of guessing. Since 2.7.0 the clip can follow an
-**audio reference** too: `uploads.audio()` an MP3, then pass its id as `audioCreationId` (`audioUse: 'music'` for a
-soundtrack, `'voice'` for a voice sample) — and TIXI writes the full scenario around it.
+`next` is kept for the next engine. Until <date> it serves the same engine as the default channel; after that it
+answers 400 `VIDEO_MODEL_UNAVAILABLE` / `IMAGE_MODEL_UNAVAILABLE`, uncharged, until an engine opens it (see
+`me().modelChannels`). Leave `videoModel` / `imageModel` unset. Coming from 3.1.x: see the [CHANGELOG](./CHANGELOG.md).
 
 ## Get a key
 
@@ -68,7 +67,7 @@ const img = await client.generate.image({
   prompt: 'a neon city street, rain',
   aspectRatio: '16:9', // or 'auto' — the server picks the best ratio from the prompt
   // style + quality default to 'auto' (the server picks by your tier);
-  // recommended: quality 'max' for images, 'ultra' at 5 s for video, 'ultimate' = highest resolution
+  // me().qualities lists the presets open to your tier and flags the recommended one
 });
 
 // `enhanced` rewrites your prompt with TIXI, the 2DAI prompt agent, before it
@@ -77,14 +76,11 @@ const img = await client.generate.image({
 // TIXI's version is in `.raw.finalPrompt`.
 const rich = await client.generate.image({ prompt: 'a warrior', enhanced: true });
 
-// Gen8.1 images, the new image engine (Holder+): up to 6 references kept natively,
-// legible text, long literal prompts. Same quality ids; me().qualities.imageNext
-// lists what the account may submit.
+// Up to 6 references kept natively, legible text, long literal prompts honoured.
 const poster = await client.generate.image({
-  imageModel: 'next',
   prompt: 'a concert poster titled "NEON TIDE": the singer with the red braids on the neon-lit festival stage, bold white typography',
   refCreationIds: [singerId, venueId],      // optional, ≤6 (each adds a surcharge)
-  quality: 'max',
+  quality: 'auto',                          // or an allowed id of me().qualities.image ('max' opens at Holder)
 });
 
 // Non-blocking: get a ticket now, poll later.
@@ -114,52 +110,51 @@ const painting = await client.generate.artisticStyle({
   refCreationIds: [gen.creationId],        // optional subject images (≤6)
 });
 
-// Video from an existing still (silent, 5, 6 or 7 s — 7 s needs Supporter+).
-// Every video style except 'raw' runs TIXI on your prompt (the style's guidance
-// only exists through that rewrite); 'raw' sends it verbatim unless enhanced: true.
+// Video from an existing still, with sound. `duration` is one of me().videoDurations
+// (exact seconds, tier lock resolved). Every video style except 'raw' runs TIXI on your
+// prompt (the style's guidance only exists through that rewrite); 'raw' sends it
+// verbatim unless enhanced: true. An empty prompt on 'raw' or 'auto' runs the 'action'
+// style, exactly as if you had picked it.
 const vid = await client.generate.video({
   prompt: 'gentle camera push-in',
   inputCreationId: gen.creationId,
   duration: 5,
-  style: 'raw',        // verbatim — add `enhanced: true` to let TIXI write the scenario
+  style: 'raw',        // verbatim — add `enhanced: true` to let TIXI write the brief
 });
 
-// Gen8.1 video, the new video engine (clips WITH sound): a first frame plus up to 6
-// references. Lengths and presets follow the account (me().videoDurationsNext /
-// qualities): Fast and 1-10 s from Holder, up to 20 s at Founder. The SDK waits up to 20 min here.
-const next = await client.generate.video({
-  videoModel: 'next',
+// A first frame plus up to 6 references, a ratio and a longer clip. Clips render for
+// minutes: the SDK waits up to 20 min for a video (set timeoutMs, or wait: false).
+const scene = await client.generate.video({
   prompt: 'the kite surfer lands, waves at the camera, the crowd cheers',
   inputCreationId: gen.creationId,          // first frame
   refCreationIds: [characterId, placeId],   // optional, ≤6 (each adds a surcharge)
-  duration: 10,                             // one of me().videoDurationsNext
+  duration: 8,                              // one of me().videoDurations (8 s opens at Holder)
   aspectRatio: '16:9',                      // 'auto' = the first frame's ratio
-  style: 'raw', enhanced: true,             // your idea → TIXI writes the Gen8.1 video brief (shots, pictures, sound)
+  style: 'raw', enhanced: true,             // your idea → TIXI writes the brief (shots, pictures, sound)
 });
 
-// Gen8.1 video with an audio reference: your MP3 as the soundtrack ('music') or
-// as a voice sample the speaking character follows ('voice'). Counts as one
-// more reference for the price.
+// With an audio reference: your MP3 as the soundtrack ('music') or as a voice
+// sample the speaking character follows ('voice'). Counts as one more reference
+// for the price.
 const track = await client.uploads.audio({ path: './theme.mp3' });
 const scored = await client.generate.video({
-  videoModel: 'next',
   prompt: 'the band walks on stage as the intro swells',
   inputCreationId: gen.creationId,
   audioCreationId: track.creationId,
   audioUse: 'music',
-  duration: 8,
+  duration: 5,
 });
 
-// Wallpaper-resize: expand a creation into a wallpaper dimension.
-// Quality is always Ultra; the dimension drives the price.
+// Wallpaper-resize: expand a creation into a wallpaper dimension. It runs on its own
+// engine: quality is always Ultra, the dimension drives the price, up to 3 extra references.
 const wall = await client.generate.wallpaper({
   inputCreationId: gen.creationId,
   dimension: 'widescreen',   // 'standard' | 'photo' | 'widescreen' | 'ultrawide'
 });
 ```
 
-Each tool caps its references (3 image, 6 on `imageModel: 'next'` · 6 face/character · 3 style-transfer ·
-4 smart-edit · 3 wallpaper · 7 Gen8.1 video pictures) — exceeding a cap rejects with `TOO_MANY_REFS`
+Each tool caps its references (6 image · 6 character-ref · 6 style-transfer · 6 smart-edit · 6 artistic-style ·
+3 wallpaper · video: the first frame plus 6) — exceeding a cap rejects with `TOO_MANY_REFS`
 before anything is charged. A ticket that is still **pending** can be stopped
 with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 [Generating](https://github.com/2DAICommunity/2dai-cloud-sdk/wiki/Generating).
@@ -167,7 +162,7 @@ with `client.queue.cancel(queueId)`; the charge is refunded. Details:
 ## Uploading your own media
 
 Bring an image/gif/mp4 (an `.m4v` is accepted and stored as mp4) into your library so it can be used as a reference or
-animated, or an MP3 that becomes the audio reference of a Gen8.1 video clip. The
+animated, or an MP3 that becomes the audio reference of a video clip. The
 same moderation pass as the studio runs server-side.
 
 ```ts
@@ -175,7 +170,7 @@ const up = await client.uploads.image({ path: './portrait.jpg' });      // Node
 const up2 = await client.uploads.image({ data: fileBlob });             // Browser
 await client.generate.imageWithRefs({ tool: 'character-ref', prompt: 'in a suit', refCreationIds: [up.creationId] });
 
-// An MP3 (5 min max, Holder tier and up) for Gen8.1 video — see generate.video above.
+// An MP3 (5 min max, from Explorer, like video) as a clip's audio reference — see generate.video above.
 const track = await client.uploads.audio({ path: './theme.mp3' });
 
 // File it straight into a folder, and skip re-uploads with the md5 pre-flight:
@@ -278,6 +273,7 @@ Deleting a group only detaches its folders — nothing else is deleted.
 const me = await client.me();
 console.log(me.creditUsd, me.tier, me.key.scopes);
 console.log(me.promptMaxChars, me.promptMaxCharsNext); // prompt cap for this tier (1,500 → 20,000), and the tier that raises it
+console.log(me.modelLabels, me.videoDurations, me.qualities); // engine per channel, lengths and presets open to this tier
 
 const page = await client.creations.list({ limit: 20 });
 const one = await client.creations.get(page.creations[0].creationId);
@@ -331,13 +327,16 @@ try {
 ```
 
 Other errors: `AuthError`, `ScopeError`, `TierError`, `QueueLimitError`,
-`RateLimitError`, `ValidationError`, `NotFoundError`, `GenerationFailedError`,
-`TimeoutError`. All extend `ApiError` (`.code`, `.httpStatus`, `.details`).
+`RateLimitError`, `ValidationError` (with `DurationError` for 400 `INVALID_DURATION`, whose
+`allowed` lists the lengths of the channel), `NotFoundError`, `GenerationFailedError`,
+`TimeoutError`, `GenerationPausedError` (503 `GENERATION_PAUSED`, a short maintenance: retry later),
+`KeyPolicyQualityError` / `KeyPolicyDurationError` (403, the key's own caps: `maxQuality` and `kind`,
+`maxVideoDurationSec`). All extend `ApiError` (`.code`, `.httpStatus`, `.details`).
 A `GenerationFailedError` (and a failed `QueueState`) also carries `errorCode` to
 branch on (`CAPACITY_FULL`, `EXPIRED`, `GENERATION_TIMEOUT`, …) and `errorMessage`,
 a readable sentence you can show as is.
 A `TierError` names the tier that opens what was asked (`requiredTier`, `requiredTierName`)
-and ships a ready sentence in `message` ("Gen8.1 images open at Holder. Upgrade your tier…");
+and ships a ready sentence in `message` (for example "… opens at Holder. Upgrade your tier…");
 nothing was charged.
 
 A **content-rated** result is not an error: a creation with `nsfwFlagged: true`
@@ -349,16 +348,14 @@ charged, reword the prompt. Details: [Content rating](https://github.com/2DAICom
 
 ## The 2DAI stack
 
-We currently use our **Gen 7.2** model, and unlike others, we don't resell
-model access. All our models originate from the open-source community or our
-own R&D — we then disassemble, modify, fine-tune and optimize them to align
-with our legacy and **2DAI❤️ART** lines. They also run on our own private
-cloud network.
+2DAI runs its own models, and unlike others, we don't resell model access.
+All our models originate from the open-source community or our own R&D — we
+then disassemble, modify, fine-tune and optimize them to align with our legacy
+and **2DAI❤️ART** lines. They also run on our own private cloud network.
 
-The **Gen8** generation is rolling out as two engines behind the `next` channels:
-Gen8.1 video (`videoModel: 'next'`, clips with sound) and Gen8.1 images
-(`imageModel: 'next'`, 6 references). Same rule, same cloud; `me().modelChannels`
-names the engine behind each channel.
+`me().modelChannels` / `me().modelLabels` name the engine behind each channel
+(`videoModel` / `imageModel`); every rule of a channel follows that engine. The
+`next` channels are kept for the next engine.
 
 The prompt rewriter (the "TIXI" pass that expands short prompts before
 generation) is our own in-house LLM — same rule: not re-sold third-party

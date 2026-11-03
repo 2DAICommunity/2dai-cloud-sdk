@@ -14,6 +14,16 @@ export interface KeyContext {
   /** Model channels this key may submit to. A key without a policy reaches every channel;
    *  a bot-policy key reaches `default` only unless its policy lists `next`. */
   modelChannels?: Array<'default' | 'next'>;
+  /** Image quality ceiling of the key's policy, when it has one: an image preset above it is a 403 `KEY_POLICY_QUALITY`
+   *  (`KeyPolicyQualityError`), uncharged. Video reads `maxVideoQuality`. Absent = the tier is the only gate. */
+  maxQuality?: string;
+  /** Effective video quality ceiling of this request: the policy's video cap (its `maxQuality` when it sets none), and
+   *  `high` at most for a bot key (community mode) and for the Telegram bots. A video preset above it is a 403
+   *  `KEY_POLICY_QUALITY`; `'auto'` and `generate.similar` are brought under it. Absent = no ceiling beyond the tier. */
+  maxVideoQuality?: string;
+  /** Longest clip this key may submit, in seconds: a longer `duration` is a 403 `KEY_POLICY_DURATION`
+   *  (`KeyPolicyDurationError`), uncharged; an omitted one is clamped under it. Absent = the tier is the only gate. */
+  maxVideoDurationSec?: number;
 }
 
 /** `GET /v1/me` — identity, balance, tier, and the calling key's context. */
@@ -25,33 +35,41 @@ export interface Account {
   /** Whether the account's tier (Holder+/tier2+) may turn OFF the 2DAI
    *  watermark on downloads/deliveries. Below the gate it is forced on. */
   canDisableWatermark?: boolean;
-  /** Tier-gated quality caps: which of the ultra / ultimate presets this account may use. */
+  /** Tier-gated caps on the ultra / ultimate presets, read on the ladder of the engine behind the default channel.
+   *  `qualities` carries the full picture: every preset of both channels with `allowed` resolved. */
   quality?: { ultraImage: boolean; ultraVideo: boolean; ultimateImage: boolean; ultimateVideo: boolean };
-  /** Every quality preset per generation type, with the account's access and the
-   *  platform recommendation (image: max; video: ultra at 5 s; ultimate = highest resolution). */
-  qualities?: { image: QualityPreset[]; video: QualityPreset[]; videoNext?: QualityPreset[];
-    /** Gen8.1 images presets (`generate.image({ imageModel: 'next' })`), same ids as `image`; `allowed` resolves the
-     *  tier lock, the key's channel policy and whether the engine is on (`modelChannels.image.next`): when the
-     *  channel is off every preset is `allowed: false` and `canUseImageNext` is false. */
+  /** Every quality preset per channel, on the ladder of the engine behind that channel, with this account's access
+   *  resolved (`allowed`) and the platform's everyday pick (`recommended`). `image` / `video` = the default channel. */
+  qualities?: { image: QualityPreset[]; video: QualityPreset[];
+    /** Video presets of the `next` channel (`videoModel: 'next'`); empty while that channel is closed. */
+    videoNext?: QualityPreset[];
+    /** Image presets of the `next` channel (`imageModel: 'next'`), same ids as `image`; `allowed` also resolves the
+     *  channel's tier gate and the key's channel policy. Empty while that channel is closed. */
     imageNext?: QualityPreset[] };
-  /** Video durations in seconds with the tier lock resolved for this account. */
+  /** The clip lengths the default channel accepts, in exact seconds, on the ladder of the engine behind it, with this
+   *  account's tier lock and the key's `maxVideoDurationSec` resolved: submit an unlocked `value` as `duration`. Any
+   *  other length is a 400 `INVALID_DURATION` (`DurationError`), uncharged. */
   videoDurations?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
-  /** Duration used when a video request omits `duration`. */
+  /** Duration used when a request on the default channel omits `duration`. */
   defaultVideoDuration?: number;
-  /** Whether this account may generate video at all (Holder+/tier2+). When false every video
-   *  duration is locked and every video quality is not allowed. */
+  /** Whether this account's tier may generate video at all. When false every video duration is locked and every
+   *  video preset is not allowed. */
   canUseVideo?: boolean;
-  /** Duration used when a Gen8.1 video request omits `duration`. */
+  /** Duration used when a `videoModel: 'next'` request omits `duration`. Absent while the `next` channel is closed. */
   defaultVideoDurationNext?: number;
-  /** Gen8.1 video durations in seconds with the tier lock resolved for this account (1 to 20 s). */
+  /** Same as `videoDurations`, for the `next` channel (`videoModel: 'next'`). Empty while that channel is closed. */
   videoDurationsNext?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
-  /** Whether this account may submit Gen8.1 images right now (`generate.image({ imageModel: 'next' })`): the engine
-   *  is on (`modelChannels.image.next`), the tool opens at Holder (tier2) and the calling key reaches the `next`
-   *  channel. When false the submit is a 400 `IMAGE_MODEL_UNAVAILABLE`, a 403 `TOOL_NOT_ALLOWED_FOR_TIER` or a 403
+  /** Whether this account may submit on the image `next` channel right now (`generate.image({ imageModel: 'next' })`):
+   *  the channel is open (`modelChannels.image.next`), the account's tier opens it and the calling key reaches `next`.
+   *  When false the submit is a 400 `IMAGE_MODEL_UNAVAILABLE`, a 403 `TOOL_NOT_ALLOWED_FOR_TIER` or a 403
    *  `KEY_POLICY_CHANNEL`, and every `qualities.imageNext` preset is not allowed. */
   canUseImageNext?: boolean;
-  /** Engine behind each model channel (`null` = channel not available on this server). */
+  /** Engine id behind each model channel (`'gen8'`, …; `null` = channel closed). Every rule of a channel — presets,
+   *  lengths, references, sound, price — follows the engine behind it, so read them here rather than assuming them. */
   modelChannels?: { video: { default: string | null; next: string | null }; image: { default: string | null; next: string | null } };
+  /** Display names of the engine behind each channel (`null` = channel closed), e.g.
+   *  `{ engine: 'gen8', family: 'Gen8', label: 'Gen8.1' }`. Name the engines from here instead of hard-coding them. */
+  modelLabels?: { video: { default: ModelLabel | null; next: ModelLabel | null }; image: { default: ModelLabel | null; next: ModelLabel | null } };
   /** Longest prompt (and negative prompt) the generate calls accept for this account, in characters — it follows the tier. */
   promptMaxChars?: number;
   /** The first tier that raises `promptMaxChars`, when there is one. */
@@ -59,7 +77,17 @@ export interface Account {
   key: KeyContext;
 }
 
-/** One quality preset as returned by `GET /v1/me` — same ladder for every tool. */
+/** The engine behind a model channel, as `GET /v1/me` names it in `modelLabels`. */
+export interface ModelLabel {
+  /** Engine id, the value `modelChannels` carries (`'gen7'`, `'gen8'`, …). */
+  engine: string;
+  /** Family name shown on the studio's engine tabs (`'Gen8'`). */
+  family: string;
+  /** Versioned name used everywhere else (`'Gen8.1'`). */
+  label: string;
+}
+
+/** One quality preset as returned by `GET /v1/me` — the ladder of the engine behind the channel. */
 export interface QualityPreset {
   id: string;
   name: string;
@@ -83,6 +111,9 @@ export interface QueueTicket {
   /** The preset the server resolved at submit — what `auto` chose, and what
    *  `costUsd` was priced on (server ≥ 2.2.25). */
   quality?: string;
+  /** Video submits and similar: the effective length, in seconds; a server-derived similar may be shorter than the
+   *  source when the tier or key no longer allows it. A waited result carries the creation's measured `duration`. */
+  duration?: number;
 }
 
 /** `GET /v1/queue/:id` — the live state of a generation. */
@@ -92,10 +123,14 @@ export interface QueueState {
   costUsd?: number;
   /** Resolved preset of the job (server ≥ 2.2.25). */
   quality?: string;
-  /** Video jobs: the model channel that rendered it (`'next'` = Gen8.1 video). */
+  /** Video jobs: the model channel the job was submitted on. The engine that renders it is `videoEngine`. */
   videoModel?: 'default' | 'next';
-  /** Image jobs: the model channel that rendered it (`'next'` = Gen8.1 images). */
+  /** Image jobs: the model channel the job was submitted on. The engine that renders it is `imageEngine`. */
   imageModel?: 'default' | 'next';
+  /** Video jobs: the engine that renders the clip (`'gen7'`, `'gen8'`, …), when the server reports it. */
+  videoEngine?: string;
+  /** Image jobs: the engine that renders the image, when the server reports it. */
+  imageEngine?: string;
   creationId?: string;
   cdnId?: string;
   downloadUrl?: string;
@@ -109,7 +144,7 @@ export interface QueueState {
   errorMessage?: string;
   createdAt?: string;
   /** When a worker picked the job up (server ≥ 2.5.0) — absent while it is still waiting; with `createdAt`
-   *  it gives the elapsed render time of a long Gen8 clip. */
+   *  it gives the elapsed render time of a long clip. */
   startedAt?: string;
   completedAt?: string;
 }
@@ -128,20 +163,28 @@ export interface Creation {
   artisticStyleName?: string;
   style?: string | null;
   quality?: string;
+  /** Versioned model that rendered the creation, e.g. `'gen8.1'` or `'gen7.2'` (Gen8 rows rendered before the Gen8.1
+   *  release keep `'gen8.0'`). */
   aiModel?: string;
-  /** Video rows: the model channel that rendered the clip (`'next'` = Gen8.1 video, `aiModel: 'gen8.1'`; rows rendered before the Gen8.1 release keep `'gen8.0'`). */
+  /** Video rows: the model channel the clip was submitted on. A channel can change engine: classify history by
+   *  `videoEngine` (or `aiModel`), not by channel. */
   videoModel?: 'default' | 'next';
-  /** Image rows: the model channel that rendered the image (`'next'` = Gen8.1 images, `aiModel: 'gen8.1'`). */
+  /** Image rows: the model channel the image was submitted on. Classify history by `imageEngine` (or `aiModel`). */
   imageModel?: 'default' | 'next';
+  /** Generated video rows: the engine that rendered the clip (`'gen7'`, `'gen8'`, …). Absent on uploads and on
+   *  older servers. */
+  videoEngine?: string;
+  /** Generated image rows: the engine that rendered the image. Absent on uploads, extracted frames and older servers. */
+  imageEngine?: string;
   cdnId?: string;
   downloadUrl?: string;
   width?: number;
   height?: number;
-  /** What the row holds: an `'image'`, a `'video'` clip, or an `'audio'` upload (the audio reference of Gen8.1 video). */
+  /** What the row holds: an `'image'`, a `'video'` clip, or an `'audio'` upload (an audio reference for a clip). */
   mediaKind?: MediaKind;
   /** Seconds, measured on the file — video clips and audio uploads only. */
   duration?: number;
-  /** The file carries sound: a Gen8.1 video clip, or an uploaded audio file. */
+  /** The file carries sound: a clip rendered with sound, or an uploaded audio file. */
   hasAudio?: boolean;
   isUploaded?: boolean;
   /** Origin of the creation: 'web' (studio), 'sdk', 'mcp' or 'api' (raw
@@ -252,12 +295,11 @@ export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3
 
 export interface ImageParams {
   prompt: string;
-  /** Which image model: `'default'` (Gen 7.2, up to 3 references) or `'next'` (Gen8.1 images — 2DAI's next
-   *  image engine: up to 6 references kept natively, legible text in the picture, long literal prompts honoured).
-   *  Default `'default'`. `'next'` opens at Holder: `me().canUseImageNext` says whether this account may submit it and
-   *  `me().qualities.imageNext` lists its presets (same ids, `allowed` resolved); 403 `TOOL_NOT_ALLOWED_FOR_TIER`
-   *  otherwise, 400 `IMAGE_MODEL_UNAVAILABLE` when the engine is off. A `next` image is priced on render time — about
-   *  1.1 to 1.9 times the same preset on the default model — and every reference adds a surcharge on both models. */
+  /** Which image channel: `'default'` (default) or `'next'`, the channel kept for the next image engine. Each channel
+   *  runs the engine `me().modelChannels.image` names (`me().modelLabels` for display) and follows that engine's
+   *  presets (`me().qualities.image` / `.imageNext`), reference cap and price. `'next'` is tier-gated
+   *  (`me().canUseImageNext`; 403 `TOOL_NOT_ALLOWED_FOR_TIER` otherwise) and answers 400 `IMAGE_MODEL_UNAVAILABLE`,
+   *  uncharged, with a `message`, while it is closed. Every reference adds a surcharge. */
   imageModel?: 'default' | 'next';
   /** Style id, or `'auto'` (default) to let the server pick by tier. */
   style?: string;
@@ -269,7 +311,8 @@ export interface ImageParams {
   aspectRatio?: AspectRatio | 'auto';
   width?: number;
   height?: number;
-  /** Things to avoid. Optional — applied by Gen8.1 images; the Gen7 image engine renders without it (the field is still accepted). */
+  /** Things to avoid. Optional — applied by the Gen8 image engine at every preset; a Gen7 image engine renders without
+   *  it (the field is accepted on every channel). */
   negativePrompt?: string;
   /** Rewrite the prompt with **TIXI**, the 2DAI prompt agent, before it reaches
    *  the image model (default `false`).
@@ -292,8 +335,9 @@ export interface ImageParams {
    *  video style runs TIXI anyway. */
   enhanced?: boolean;
   allowNSFW?: boolean;
-  /** Soft-conditioning reference creations: up to 3 on the default model, up to 6 on `imageModel: 'next'`.
-   *  The cap is strict — 400 `TOO_MANY_REFS` (`max`, `got`) before any charge. Each reference adds a surcharge. */
+  /** Soft-conditioning reference creations, up to the cap of the engine behind the channel: 6 on the Gen8 image
+   *  engine, 3 on a Gen7 one. The cap is strict — 400 `TOO_MANY_REFS` (`max`, `got`) before any charge. Each
+   *  reference adds a surcharge. */
   refCreationIds?: string[];
   /** Idempotency token, hex `[0-9a-f]{1,64}`. Omitted: the server de-duplicates an identical submit within ~5 s by itself. */
   clientToken?: string;
@@ -383,33 +427,42 @@ export interface VideoParams {
   prompt: string;
   /** The first frame: the creation the clip starts from. */
   inputCreationId: string;
-  /** Which video model: `'default'` (Video — silent clips of 5, 6 or 7 s) or `'next'` (Gen8.1 video —
-   *  clips WITH sound from 1 to 20 s, a first frame plus up to 6 references). Default `'default'`. */
+  /** Which video channel: `'default'` (default) or `'next'`, the channel kept for the next video engine. Each channel
+   *  runs the engine `me().modelChannels.video` names (`me().modelLabels` for display) and follows that engine's
+   *  lengths, presets, references, sound and price, all listed by `me()`. `'next'` answers 400
+   *  `VIDEO_MODEL_UNAVAILABLE`, uncharged, with a `message`, while it is closed. */
   videoModel?: 'default' | 'next';
-  /** Gen8.1 video only: up to 6 more reference creations (characters, props, places) after the first frame,
-   *  7 pictures in all. Each one past the first frame adds a surcharge to the price. */
+  /** Up to 6 more reference creations (characters, props, places) after the first frame, 7 pictures in all, sent on
+   *  every channel. The Gen8 video engine reads them, each one adding a surcharge; a Gen7 engine animates the first
+   *  frame only and drops them. */
   refCreationIds?: string[];
-  /** Clip length in seconds. Video: 5, 6 or 7 (7 needs Supporter+), as the studio shows them.
-   *  Gen8.1 video (`videoModel: 'next'`): the lengths `me().videoDurationsNext` lists for the account (1, 5, 8 or 10 from Holder; 12, 15, 17 or 20 at Founder). Default 5 on both. */
+  /** Clip length in exact seconds: one `value` of `me().videoDurations` (`me().videoDurationsNext` with
+   *  `videoModel: 'next'`), where the tier lock and the key's cap are resolved. Any other length is a 400 `INVALID_DURATION`
+   *  (`DurationError`), uncharged, whose `allowed` lists the lengths of the channel. Omitted:
+   *  `me().defaultVideoDuration`. The creation's `duration` is measured on the file, a fraction of a second longer. */
   duration?: number;
-  /** Gen8.1 video only: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. */
+  /** Output shape: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. Sent on
+   *  every channel; a Gen7 engine keeps the first frame's ratio. */
   aspectRatio?: string;
-  /** Quality preset id or `'auto'`. Gen8.1 video: the presets `me()` lists for the account (`fast` from Holder, `normal` from Believer, `high` from Supporter, every preset at Founder). */
+  /** Quality preset id or `'auto'`: an `allowed` id of `me().qualities.video` (`.videoNext` with `videoModel: 'next'`);
+   *  `recommended` marks the everyday pick. A locked preset is a 403 `QUALITY_NOT_ALLOWED_FOR_TIER`, uncharged. */
   quality?: string;
   /** Motion style id or `'auto'`. Every video style except `'raw'` runs TIXI on the prompt (the style's
    *  guidance only exists through that rewrite); `'raw'` sends the prompt verbatim unless `enhanced` is true. */
   style?: string;
-  /** Run TIXI on the prompt with `style: 'raw'`: it writes the motion scenario (Video) or the full Gen8.1 video
-   *  brief (shots, pictures, sound) from your idea; a prompt starting with "tixi " adds a thinking pass. Every
-   *  other style already runs TIXI and cannot switch it off. No extra credit. */
+  /** Run TIXI on the prompt with `style: 'raw'`: it writes the clip's brief for the engine behind the channel (shots,
+   *  pictures and, when the engine renders sound, the sound) from your idea; a prompt starting with "tixi " adds a
+   *  thinking pass. Every other style already runs TIXI and cannot switch it off. No extra credit. */
   enhanced?: boolean;
-  /** Gen8.1 video only: one of your uploaded MP3s (`uploads.audio`) as the clip's audio reference. It counts as one
-   *  more reference for the price. 400 `AUDIO_REF_NEXT_ONLY` on the default model, `INVALID_AUDIO_REF` when the
-   *  creation is not an audio file, 404 when it is not yours. */
+  /** One of your uploaded MP3s (`uploads.audio`) as the clip's audio reference, on an engine that renders sound (Gen8).
+   *  It counts as one more reference for the price. 400 `AUDIO_REF_NEXT_ONLY` when the engine behind the channel
+   *  renders no sound, `INVALID_AUDIO_REF` when the creation is not an audio file, 404 when it is not yours. */
   audioCreationId?: string;
   /** How the audio reference is used: `'music'` (soundtrack / sound design, the default) or `'voice'` (a voice
    *  sample the speaking character follows). Ignored without `audioCreationId`. */
   audioUse?: 'music' | 'voice';
+  /** @deprecated Ignored by the Gen8 video engine, which renders at its native 24 fps (and no longer doubles the
+   *  price). Only a Gen7 engine still interpolates. Kept so existing calls compile; may be removed in a future major. */
   frameInterpolation?: boolean;
   allowNSFW?: boolean;
   clientToken?: string;
@@ -422,7 +475,8 @@ export interface SubmitOptions {
   wait?: boolean;
   /** Poll interval in ms (default 2000). */
   intervalMs?: number;
-  /** Give-up deadline in ms (default 300000). */
+  /** Give-up deadline in ms (default 300000; 1200000 for a video job). Past it the SDK throws `TimeoutError` with the
+   *  `queueId` while the job keeps running and stays charged: collect it with `queue.waitFor`, never re-submit. */
   timeoutMs?: number;
   signal?: AbortSignal;
 }
@@ -626,8 +680,7 @@ export interface TelegramAuthor {
 }
 
 /** One upload: an image (jpeg/png/webp/gif), an mp4 (or an `.m4v`, the same container — stored and served as mp4), or — through `uploads.audio` — an MP3 that becomes the audio
- *  reference of a Gen8.1 video clip (5 min max, Holder tier and up). `contentType` is read from `filename`/`path`
- *  when omitted. */
+ *  reference of a clip (5 min max, tier-gated). `contentType` is read from `filename`/`path` when omitted. */
 export interface UploadInput {
   /** Official bot integrations only — see {@link TelegramAuthor}. */
   telegramUser?: TelegramAuthor;
@@ -719,7 +772,8 @@ export interface StatsGenerations {
   };
 }
 
-/** One most-used reference with the config the studio would suggest for it. */
+/** One most-used reference with the config the studio would suggest for it. On older rows `requestedDuration` and
+ *  `frameInterpolation` may hold retired values (6.5 / 7.5 s, `true`): pick the length from `me().videoDurations`. */
 export interface TopRef {
   referenceCreationId: string;
   useCount: number;
