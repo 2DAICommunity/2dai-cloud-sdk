@@ -1,10 +1,8 @@
 # Changelog
 
-## 3.2.0 (<date>)
+## 3.2.0 (2026-11-03)
 
-<!-- DRAFT, owner review before the tag: replace the <date> placeholders (release and switch day; closing day of the `next` channels, twice). -->
-
-The default channels move to the Gen8 engines (server switch of <date>). The SDK no longer encodes engine rules on the
+The default channels move to the Gen8 engines (server switch of 2026-11-03). The SDK no longer encodes engine rules on the
 value `'next'`: every rule of a channel follows the engine behind it, and `me()` reports it.
 
 Behaviour:
@@ -58,14 +56,14 @@ What the server switch changes, with or without this release:
   (`costUsd` on the ticket stays the truth), so key spend caps may be reached sooner.
 - Default image: up to 6 references (`TOO_MANY_REFS` reports `max: 6`) and `negativePrompt` applied. Audio
   references work on the default video channel.
-- `'next'` stays in the types, kept for the next engine. Until <date>, `videoModel: 'next'` / `imageModel: 'next'`
+- `'next'` stays in the types, kept for the next engine. Until 2026-11-17, `videoModel: 'next'` / `imageModel: 'next'`
   serve the same engine as the default channel; after that they answer 400 `VIDEO_MODEL_UNAVAILABLE` /
   `IMAGE_MODEL_UNAVAILABLE`, uncharged, with a `message`, until a new engine opens them (`me().modelChannels`).
 - `generate.wallpaper` is unchanged.
 
 Migration:
 
-- Drop `videoModel: 'next'` / `imageModel: 'next'` before <date>: the default channel renders the same engine.
+- Drop `videoModel: 'next'` / `imageModel: 'next'` before 2026-11-17: the default channel renders the same engine.
 - Pick `duration` from `me().videoDurations` and `quality` from `me().qualities` (`allowed`, `recommended`) instead of
   hard-coding 5 / 6 / 7 s or `'ultra'`.
 - Classify creations with `videoEngine` / `imageEngine`, `aiModel` and `hasAudio`.

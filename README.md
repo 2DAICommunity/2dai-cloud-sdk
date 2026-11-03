@@ -27,7 +27,7 @@ engine behind each channel (today **Gen8.1**), and every rule of a channel follo
   Lengths are exact seconds (1, 5, 8, 10, 12, 15, 17, 20, opened by tier); video opens at Explorer.
 - Presets and lengths depend on the tier: read `me().qualities` and `me().videoDurations` instead of guessing.
 
-`next` is kept for the next engine. Until <date> it serves the same engine as the default channel; after that it
+`next` is kept for the next engine. Until 2026-11-17 it serves the same engine as the default channel; after that it
 answers 400 `VIDEO_MODEL_UNAVAILABLE` / `IMAGE_MODEL_UNAVAILABLE`, uncharged, until an engine opens it (see
 `me().modelChannels`). Leave `videoModel` / `imageModel` unset. Coming from 3.1.x: see the [CHANGELOG](./CHANGELOG.md).
 
