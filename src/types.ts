@@ -291,7 +291,8 @@ export interface GenerationResult extends Creation {
   costUsd?: number;
 }
 
-export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3';
+/** `'9:19.5'` = phone full screen: fills a modern phone (iPhone, Galaxy S) edge to edge; `'9:16'` stays the Reels / Stories shape. */
+export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3' | '9:19.5';
 
 export interface ImageParams {
   prompt: string;
@@ -441,7 +442,7 @@ export interface VideoParams {
    *  (`DurationError`), uncharged, whose `allowed` lists the lengths of the channel. Omitted:
    *  `me().defaultVideoDuration`. The creation's `duration` is measured on the file, a fraction of a second longer. */
   duration?: number;
-  /** Output shape: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16. Sent on
+  /** Output shape: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16, 9:19.5. Sent on
    *  every channel; a Gen7 engine keeps the first frame's ratio. */
   aspectRatio?: string;
   /** Quality preset id or `'auto'`: an `allowed` id of `me().qualities.video` (`.videoNext` with `videoModel: 'next'`);

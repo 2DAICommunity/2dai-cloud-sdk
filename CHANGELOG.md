@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.3.0 (2026-11-08)
+
+New aspect ratio `'9:19.5'`, phone full screen: a picture that fills a modern phone screen edge to edge in portrait
+(iPhone since the X, Galaxy S, e.g. 1320×2868 and 1440×3120 panels). `'9:16'` stays the Reels / Stories / TikTok
+shape; on these phones a 9:16 wallpaper loses about 18 % of its width.
+
+- `AspectRatio` gains `'9:19.5'` (additive). `generate.image` sends it as 672×1456 like the other ~1 MP buckets; the
+  quality still decides the resolution, so the price does not change.
+- `generate.video` accepts `aspectRatio: '9:19.5'` on a Gen8 channel.
+- `aspectRatio: 'auto'` may now resolve to `'9:19.5'` (phone wallpapers, lock screens).
+
 ## 3.2.0 (2026-11-03)
 
 The default channels move to the Gen8 engines (server switch of 2026-11-03). The SDK no longer encodes engine rules on the

@@ -11,6 +11,7 @@ const ASPECT_DIMS: Record<AspectRatio, [number, number]> = {
   '3:4': [896, 1152],
   '3:2': [1216, 832],
   '2:3': [832, 1216],
+  '9:19.5': [672, 1456],
 };
 
 export function dimsForAspect(ratio?: AspectRatio): { width?: number; height?: number } {
