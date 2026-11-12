@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.4.0 (2026-11-12)
+
+Engine profiles (server 2.9.0): every rule of a channel now comes from the profile of the engine behind it, and the
+server says so per channel. No wire change on the SDK side, nothing removed.
+
+- `Account.channels` (optional, additive): per model channel, the engine behind it with what it takes and this
+  account's access resolved, `null` when the channel is closed. `AccountVideoChannel`: `engine`, `family`, `label`,
+  `allowed`, `qualities`, `durations`, `defaultDuration`, `refs` (`max` counts the first frame when `firstFrame` is
+  true: Gen8 video = 7, so up to 6 `refCreationIds`), `audio` (`output`, `reference`, `uses`), `aspectRatios`,
+  `outputFps`, `negativePrompt`, `traits`. `AccountImageChannel`: the same minus the video fields (Gen8 images:
+  `refs.max` 6). New exported types `AccountChannelBase`, `AccountVideoChannel`, `AccountImageChannel`,
+  `VideoDurationOption`.
+- The flat keys of `me()` (`modelChannels`, `modelLabels`, `qualities.*`, `videoDurations`, `videoDurationsNext`,
+  `canUseVideo`, `canUseImageNext`, …) stay and keep their values: `channels.video.default.qualities` equals
+  `qualities.video`, `channels.video.default.durations` equals `videoDurations`, and so on. Read `channels` for the
+  reference cap, sound, aspect ratio and frame rate instead of assuming them.
+- `TierError` gains `family` (`'video'` / `'image'`), `channel` (`'default'` / `'next'`) and `engine` (`'gen8'`, …).
+  On a 403 `TOOL_NOT_ALLOWED_FOR_TIER` for a generation channel, `tool` is now the family, `'video'` or `'image'`
+  (servers before 2.9.0 sent `'video-next'` / `'image-next'`); `channel` and `engine` say which channel was refused.
+  Other tools keep their own id (`style-transfer`, …).
+- `DurationError` gains `channel` and `engine`; `allowed` is the ladder of the engine behind the channel.
+- JSDoc: `refCreationIds` and `audioCreationId` point at `me().channels` for the caps of the engine behind the channel.
+
 ## 3.3.1 (2026-11-11)
 
 The next channel closed on 2026-11-11 (server switch): `videoModel: 'next'` / `imageModel: 'next'` answer 400

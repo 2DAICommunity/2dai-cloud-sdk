@@ -26,6 +26,8 @@ engine behind each channel (today **Gen8.1**), and every rule of a channel follo
   MP3, then pass its id as `audioCreationId`, `audioUse: 'music'` for a soundtrack or `'voice'` for a voice sample).
   Lengths are exact seconds (1, 5, 8, 10, 12, 15, 17, 20, opened by tier); video opens at Explorer.
 - Presets and lengths depend on the tier: read `me().qualities` and `me().videoDurations` instead of guessing.
+- What each channel's engine takes (reference cap, sound, aspect ratio, frame rate) is in `me().channels`
+  (server 2.9.0+); `null` = the channel is closed.
 
 `next` is kept for the next engine. The next channel closed on 2026-11-11: it answers 400 `VIDEO_MODEL_UNAVAILABLE` /
 `IMAGE_MODEL_UNAVAILABLE`, uncharged, until an engine opens it (see `me().modelChannels`). Leave `videoModel` /
@@ -274,6 +276,7 @@ const me = await client.me();
 console.log(me.creditUsd, me.tier, me.key.scopes);
 console.log(me.promptMaxChars, me.promptMaxCharsNext); // prompt cap for this tier (1,500 → 20,000), and the tier that raises it
 console.log(me.modelLabels, me.videoDurations, me.qualities); // engine per channel, lengths and presets open to this tier
+console.log(me.channels?.video.default?.refs.max, me.channels?.video.default?.audio); // what the engine behind a channel takes
 
 const page = await client.creations.list({ limit: 20 });
 const one = await client.creations.get(page.creations[0].creationId);
@@ -337,7 +340,7 @@ branch on (`CAPACITY_FULL`, `EXPIRED`, `GENERATION_TIMEOUT`, …) and `errorMess
 a readable sentence you can show as is.
 A `TierError` names the tier that opens what was asked (`requiredTier`, `requiredTierName`)
 and ships a ready sentence in `message` (for example "… opens at Holder. Upgrade your tier…");
-nothing was charged.
+`family` (`'video'` / `'image'`), `channel` and `engine` say where it was refused; nothing was charged.
 
 A **content-rated** result is not an error: a creation with `nsfwFlagged: true`
 (`nsfwRate` 0.8 or 0.99) completed and was charged, but it stays masked in the
@@ -354,8 +357,8 @@ then disassemble, modify, fine-tune and optimize them to align with our legacy
 and **2DAI❤️ART** lines. They also run on our own private cloud network.
 
 `me().modelChannels` / `me().modelLabels` name the engine behind each channel
-(`videoModel` / `imageModel`); every rule of a channel follows that engine. The
-`next` channels are kept for the next engine.
+(`videoModel` / `imageModel`), and `me().channels` says what it takes; every rule of a
+channel follows that engine. The `next` channels are kept for the next engine.
 
 The prompt rewriter (the "TIXI" pass that expands short prompts before
 generation) is our own in-house LLM — same rule: not re-sold third-party

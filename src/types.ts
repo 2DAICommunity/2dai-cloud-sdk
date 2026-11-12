@@ -49,7 +49,7 @@ export interface Account {
   /** The clip lengths the default channel accepts, in exact seconds, on the ladder of the engine behind it, with this
    *  account's tier lock and the key's `maxVideoDurationSec` resolved: submit an unlocked `value` as `duration`. Any
    *  other length is a 400 `INVALID_DURATION` (`DurationError`), uncharged. */
-  videoDurations?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
+  videoDurations?: VideoDurationOption[];
   /** Duration used when a request on the default channel omits `duration`. */
   defaultVideoDuration?: number;
   /** Whether this account's tier may generate video at all. When false every video duration is locked and every
@@ -58,7 +58,7 @@ export interface Account {
   /** Duration used when a `videoModel: 'next'` request omits `duration`. Absent while the `next` channel is closed. */
   defaultVideoDurationNext?: number;
   /** Same as `videoDurations`, for the `next` channel (`videoModel: 'next'`). Empty while that channel is closed. */
-  videoDurationsNext?: Array<{ value: number; label: string; locked: boolean; recommended?: boolean }>;
+  videoDurationsNext?: VideoDurationOption[];
   /** Whether this account may submit on the image `next` channel right now (`generate.image({ imageModel: 'next' })`):
    *  the channel is open (`modelChannels.image.next`), the account's tier opens it and the calling key reaches `next`.
    *  When false the submit is a 400 `IMAGE_MODEL_UNAVAILABLE`, a 403 `TOOL_NOT_ALLOWED_FOR_TIER` or a 403
@@ -70,6 +70,14 @@ export interface Account {
   /** Display names of the engine behind each channel (`null` = channel closed), e.g.
    *  `{ engine: 'gen8', family: 'Gen8', label: 'Gen8.1' }`. Name the engines from here instead of hard-coding them. */
   modelLabels?: { video: { default: ModelLabel | null; next: ModelLabel | null }; image: { default: ModelLabel | null; next: ModelLabel | null } };
+  /** What the engine behind each channel takes, with this account's access resolved (`null` = channel closed;
+   *  server ≥ 2.9.0). The flat keys above stay valid and carry the same values (`channels.video.default.qualities` =
+   *  `qualities.video`, `.durations` = `videoDurations`, `channels.video.next.durations` = `videoDurationsNext`, …);
+   *  read `channels` for what the flat keys do not say: reference cap, sound, aspect ratio, frame rate. */
+  channels?: {
+    video: { default: AccountVideoChannel | null; next: AccountVideoChannel | null };
+    image: { default: AccountImageChannel | null; next: AccountImageChannel | null };
+  };
   /** Longest prompt (and negative prompt) the generate calls accept for this account, in characters — it follows the tier. */
   promptMaxChars?: number;
   /** The first tier that raises `promptMaxChars`, when there is one. */
@@ -86,6 +94,56 @@ export interface ModelLabel {
   /** Versioned name used everywhere else (`'Gen8.1'`). */
   label: string;
 }
+
+/** One clip length of a video channel, as `GET /v1/me` lists it (`videoDurations`, `channels.video.*.durations`). */
+export interface VideoDurationOption {
+  /** Exact seconds: submit it as `duration`. */
+  value: number;
+  label: string;
+  /** true when this account's tier or the key's `maxVideoDurationSec` refuses it (submit would 403). */
+  locked: boolean;
+  recommended?: boolean;
+}
+
+/** The engine behind one model channel, as `GET /v1/me.channels` describes it. */
+export interface AccountChannelBase {
+  /** Engine id (`'gen8'`, …), the value `modelChannels` carries for this channel. */
+  engine: string;
+  /** Family name (`'Gen8'`). */
+  family: string;
+  /** Versioned name (`'Gen8.1'`). */
+  label: string;
+  /** Long name, when the server sends it (`'Gen8.1 video'`, `'Gen8.1 images'`). */
+  displayName?: string;
+  /** Whether this account and key may submit on this channel right now (tier gate, key channel policy, engine access). */
+  allowed: boolean;
+  /** The presets of this engine with this account's access resolved (same array as the flat `qualities.*` key). */
+  qualities: QualityPreset[];
+  /** Reference cap: `max` counts every image the engine reads, the first frame included when `firstFrame` is true
+   *  (Gen8 video: 7 = the first frame plus up to 6 `refCreationIds`; Gen8 images: 6). */
+  refs: { max: number; firstFrame?: boolean };
+  /** Whether `negativePrompt` is applied. */
+  negativePrompt: boolean;
+  /** One plain sentence on what the engine is good at, when the server sends it. */
+  traits?: string;
+}
+
+/** A video channel of `GET /v1/me.channels`. */
+export interface AccountVideoChannel extends AccountChannelBase {
+  /** Same array as `videoDurations` (default channel) / `videoDurationsNext` (next channel). */
+  durations: VideoDurationOption[];
+  /** Length used when a request on this channel omits `duration`. */
+  defaultDuration: number;
+  /** `output`: clips carry sound; `reference`: an `audioCreationId` is read, with the `audioUse` values in `uses`. */
+  audio: { output: boolean; reference: boolean; uses: Array<'music' | 'voice'> };
+  /** Whether `aspectRatio` is honoured. */
+  aspectRatios: boolean;
+  /** Native frame rate of the clips. */
+  outputFps: number;
+}
+
+/** An image channel of `GET /v1/me.channels`. */
+export interface AccountImageChannel extends AccountChannelBase {}
 
 /** One quality preset as returned by `GET /v1/me` — the ladder of the engine behind the channel. */
 export interface QualityPreset {
@@ -336,8 +394,8 @@ export interface ImageParams {
    *  video style runs TIXI anyway. */
   enhanced?: boolean;
   allowNSFW?: boolean;
-  /** Soft-conditioning reference creations, up to the cap of the engine behind the channel: 6 on the Gen8 image
-   *  engine. The cap is strict — 400 `TOO_MANY_REFS` (`max`, `got`) before any charge. Each reference adds a
+  /** Soft-conditioning reference creations, up to the cap of the engine behind the channel
+   *  (`me().channels.image.<channel>.refs.max`; 6 on the Gen8 image engine). The cap is strict — 400 `TOO_MANY_REFS` (`max`, `got`) before any charge. Each reference adds a
    *  surcharge. */
   refCreationIds?: string[];
   /** Idempotency token, hex `[0-9a-f]{1,64}`. Omitted: the server de-duplicates an identical submit within ~5 s by itself. */
@@ -433,8 +491,9 @@ export interface VideoParams {
    *  lengths, presets, references, sound and price, all listed by `me()`. `'next'` answers 400
    *  `VIDEO_MODEL_UNAVAILABLE`, uncharged, with a `message`, while it is closed. */
   videoModel?: 'default' | 'next';
-  /** Up to 6 more reference creations (characters, props, places) after the first frame, 7 pictures in all, sent on
-   *  every channel. The Gen8 video engine reads them, each one adding a surcharge. */
+  /** More reference creations (characters, props, places) after the first frame, sent on every channel, up to the
+   *  cap of the engine behind it (`me().channels.video.<channel>.refs.max` counts the first frame: the Gen8 video
+   *  engine reads 7 pictures in all, so up to 6 here), each one adding a surcharge. */
   refCreationIds?: string[];
   /** Clip length in exact seconds: one `value` of `me().videoDurations` (`me().videoDurationsNext` with
    *  `videoModel: 'next'`), where the tier lock and the key's cap are resolved. Any other length is a 400 `INVALID_DURATION`
@@ -454,7 +513,8 @@ export interface VideoParams {
    *  pictures and, when the engine renders sound, the sound) from your idea; a prompt starting with "tixi " adds a
    *  thinking pass. Every other style already runs TIXI and cannot switch it off. No extra credit. */
   enhanced?: boolean;
-  /** One of your uploaded MP3s (`uploads.audio`) as the clip's audio reference, on an engine that renders sound (Gen8).
+  /** One of your uploaded MP3s (`uploads.audio`) as the clip's audio reference, on an engine that reads one
+   *  (`me().channels.video.<channel>.audio.reference`; Gen8).
    *  It counts as one more reference for the price. 400 `AUDIO_REF_NEXT_ONLY` when the engine behind the channel
    *  renders no sound, `INVALID_AUDIO_REF` when the creation is not an audio file, 404 when it is not yours. */
   audioCreationId?: string;

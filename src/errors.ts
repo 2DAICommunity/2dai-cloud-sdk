@@ -103,17 +103,35 @@ export class SpendLimitError extends ApiError {
 
 /** The tier gates this tool/quality/duration — `*_NOT_ALLOWED_FOR_TIER`, `INSUFFICIENT_TIER`. The server names the
  *  first tier that opens what was asked (`requiredTier` key, `requiredTierName` label) and ships a ready sentence in
- *  `message`; `tool` / `quality` echo the gated option when the code carries one. Nothing was charged. */
+ *  `message`; `tool` / `quality` echo the gated option when the code carries one, and `family` / `channel` / `engine`
+ *  say where the refusal happened (server ≥ 2.9.0). Nothing was charged. */
 export class TierError extends ApiError {
   /** Tier key that opens the option (e.g. `tier2`), when the server knows one. */
   get requiredTier(): string | undefined { return this.details.requiredTier as string | undefined; }
   /** Tier label that opens the option (e.g. `Holder`), when the server knows one. */
   get requiredTierName(): string | undefined { return this.details.requiredTierName as string | undefined; }
-  /** The gated tool on `TOOL_NOT_ALLOWED_FOR_TIER` (`video`, `style-transfer`, …; `video-next` / `image-next` are the
-   *  gates of the Gen8 video and image engines, whichever channel serves them). */
+  /** The gated tool on `TOOL_NOT_ALLOWED_FOR_TIER`: the family `'video'` / `'image'` when a generation channel is
+   *  refused (server ≥ 2.9.0; `channel` and `engine` say which), else the tool id (`style-transfer`, …). Servers before
+   *  2.9.0 sent `video-next` / `image-next` for the Gen8 engines. */
   get tool(): string | undefined { return this.details.tool as string | undefined; }
   /** The gated preset on `QUALITY_NOT_ALLOWED_FOR_TIER`. */
   get quality(): string | undefined { return this.details.quality as string | undefined; }
+  /** `'video'` or `'image'`: the generation family refused, on `TOOL_NOT_ALLOWED_FOR_TIER`,
+   *  `QUALITY_NOT_ALLOWED_FOR_TIER` and `INSUFFICIENT_TIER` (server ≥ 2.9.0). */
+  get family(): 'video' | 'image' | undefined {
+    const f = this.details.family;
+    return f === 'video' || f === 'image' ? f : undefined;
+  }
+  /** The model channel the request was on (`'default'` / `'next'`), when the server sends it. */
+  get channel(): 'default' | 'next' | undefined {
+    const c = this.details.channel;
+    return c === 'default' || c === 'next' ? c : undefined;
+  }
+  /** The engine behind that channel (`'gen8'`, …), as `me().modelChannels` names it, when the server sends it. */
+  get engine(): string | undefined {
+    const e = this.details.engine;
+    return typeof e === 'string' && e ? e : undefined;
+  }
 }
 
 /** Content blocked by the moderation pass — `NSFW_REJECTED`, `NSFW_REFS_BLOCKED`. */
@@ -144,6 +162,16 @@ export class DurationError extends ValidationError {
   get allowed(): number[] | undefined {
     const a = this.details.allowed;
     return Array.isArray(a) ? a.filter((v): v is number => typeof v === 'number') : undefined;
+  }
+  /** The model channel the request was on (`'default'` / `'next'`), when the server sends it (server ≥ 2.9.0). */
+  get channel(): 'default' | 'next' | undefined {
+    const c = this.details.channel;
+    return c === 'default' || c === 'next' ? c : undefined;
+  }
+  /** The engine behind that channel (`'gen8'`, …), when the server sends it (server ≥ 2.9.0). */
+  get engine(): string | undefined {
+    const e = this.details.engine;
+    return typeof e === 'string' && e ? e : undefined;
   }
 }
 
