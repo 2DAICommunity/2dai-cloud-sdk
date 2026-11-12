@@ -312,8 +312,8 @@ export interface ImageParams {
   aspectRatio?: AspectRatio | 'auto';
   width?: number;
   height?: number;
-  /** Things to avoid. Optional — applied by the Gen8 image engine at every preset; a Gen7 image engine renders without
-   *  it (the field is accepted on every channel). */
+  /** Things to avoid. Optional — applied by the Gen8 image engine at every preset (the field is accepted on every
+   *  channel). */
   negativePrompt?: string;
   /** Rewrite the prompt with **TIXI**, the 2DAI prompt agent, before it reaches
    *  the image model (default `false`).
@@ -337,8 +337,8 @@ export interface ImageParams {
   enhanced?: boolean;
   allowNSFW?: boolean;
   /** Soft-conditioning reference creations, up to the cap of the engine behind the channel: 6 on the Gen8 image
-   *  engine, 3 on a Gen7 one. The cap is strict — 400 `TOO_MANY_REFS` (`max`, `got`) before any charge. Each
-   *  reference adds a surcharge. */
+   *  engine. The cap is strict — 400 `TOO_MANY_REFS` (`max`, `got`) before any charge. Each reference adds a
+   *  surcharge. */
   refCreationIds?: string[];
   /** Idempotency token, hex `[0-9a-f]{1,64}`. Omitted: the server de-duplicates an identical submit within ~5 s by itself. */
   clientToken?: string;
@@ -434,8 +434,7 @@ export interface VideoParams {
    *  `VIDEO_MODEL_UNAVAILABLE`, uncharged, with a `message`, while it is closed. */
   videoModel?: 'default' | 'next';
   /** Up to 6 more reference creations (characters, props, places) after the first frame, 7 pictures in all, sent on
-   *  every channel. The Gen8 video engine reads them, each one adding a surcharge; a Gen7 engine animates the first
-   *  frame only and drops them. */
+   *  every channel. The Gen8 video engine reads them, each one adding a surcharge. */
   refCreationIds?: string[];
   /** Clip length in exact seconds: one `value` of `me().videoDurations` (`me().videoDurationsNext` with
    *  `videoModel: 'next'`), where the tier lock and the key's cap are resolved. Any other length is a 400 `INVALID_DURATION`
@@ -443,7 +442,7 @@ export interface VideoParams {
    *  `me().defaultVideoDuration`. The creation's `duration` is measured on the file, a fraction of a second longer. */
   duration?: number;
   /** Output shape: `'auto'` (the first frame's ratio, default) or 1:1, 3:2, 4:3, 16:9, 21:9, 2:3, 3:4, 9:16, 9:19.5. Sent on
-   *  every channel; a Gen7 engine keeps the first frame's ratio. */
+   *  every channel. */
   aspectRatio?: string;
   /** Quality preset id or `'auto'`: an `allowed` id of `me().qualities.video` (`.videoNext` with `videoModel: 'next'`);
    *  `recommended` marks the everyday pick. A locked preset is a 403 `QUALITY_NOT_ALLOWED_FOR_TIER`, uncharged. */
@@ -462,8 +461,8 @@ export interface VideoParams {
   /** How the audio reference is used: `'music'` (soundtrack / sound design, the default) or `'voice'` (a voice
    *  sample the speaking character follows). Ignored without `audioCreationId`. */
   audioUse?: 'music' | 'voice';
-  /** @deprecated Ignored by the Gen8 video engine, which renders at its native 24 fps (and no longer doubles the
-   *  price). Only a Gen7 engine still interpolates. Kept so existing calls compile; may be removed in a future major. */
+  /** @deprecated Not sent since 3.3.1: the Gen8 video engine renders at its native 24 fps. Kept so existing calls
+   *  compile; may be removed in a future major. */
   frameInterpolation?: boolean;
   allowNSFW?: boolean;
   clientToken?: string;

@@ -114,7 +114,6 @@ export function createGenerate(http: Http): GenerateNamespace {
         enhanced: params.enhanced,
         // Audio reference — the server refuses it when the engine behind the channel renders no sound.
         ...(params.audioCreationId ? { audioCreationId: params.audioCreationId, audioUse: params.audioUse === 'voice' ? 'voice' : 'music' } : {}),
-        frameInterpolation: params.frameInterpolation,
         allowNSFW: params.allowNSFW,
         clientToken: params.clientToken,
         telegramUser: params.telegramUser,

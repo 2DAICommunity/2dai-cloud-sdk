@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.3.1 (2026-11-11)
+
+The next channel closed on 2026-11-11 (server switch): `videoModel: 'next'` / `imageModel: 'next'` answer 400
+`VIDEO_MODEL_UNAVAILABLE` / `IMAGE_MODEL_UNAVAILABLE`, uncharged, with the server's `message`, until a new engine opens
+them (`me().modelChannels`). The default channels keep the Gen8.1 engines. No type is removed.
+
+- `generate.video` no longer sends `frameInterpolation`. The field stays in `VideoParams`, `@deprecated`, so existing
+  calls compile; the Gen8 video engine renders at its native 24 fps and ignored it already.
+- JSDoc: the Gen7 clauses of `negativePrompt`, `refCreationIds` and `aspectRatio` are gone (no channel serves Gen7).
+  Older Gen7 creations keep their `aiModel` / `videoEngine` / `imageEngine` values.
+- README: `next` is described as closed since 2026-11-11.
+
 ## 3.3.0 (2026-11-08)
 
 New aspect ratio `'9:19.5'`, phone full screen: a picture that fills a modern phone screen edge to edge in portrait
