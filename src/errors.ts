@@ -9,6 +9,9 @@ export interface ApiErrorBody {
   [key: string]: unknown;
 }
 
+/** Where the Terms of Use live: a relative `termsUrl` (`/terms`, older servers) is read on this site. */
+const WEBSITE_URL = 'https://www.2dai.io';
+
 export class ApiError extends Error {
   /** Machine-readable server code, e.g. `INSUFFICIENT_CREDIT`. */
   readonly code: string;
@@ -24,6 +27,22 @@ export class ApiError extends Error {
     this.httpStatus = httpStatus;
     this.details = details;
     Object.setPrototypeOf(this, new.target.prototype);
+  }
+
+  /** On a moderation refusal: the category of prohibited content the server named (`politics`, `graphic_harm`, …).
+   *  Absent on other errors, on a refusal of NSFW content while NSFW is off, and when the category is unknown. The
+   *  sentence to show is `message`. */
+  get category(): string | undefined {
+    const c = this.details.category;
+    return typeof c === 'string' && c ? c : undefined;
+  }
+
+  /** On a moderation refusal: the absolute link to the 2DAI Terms of Use (`https://www.2dai.io/terms`), to show next
+   *  to `message`. A relative link from an older server is resolved on www.2dai.io. Absent on other errors. */
+  get termsUrl(): string | undefined {
+    const t = typeof this.details.termsUrl === 'string' ? this.details.termsUrl.trim() : '';
+    if (!t) return undefined;
+    return /^https?:\/\//i.test(t) ? t : `${WEBSITE_URL}/${t.replace(/^\/+/, '')}`;
   }
 
   /** Build the most specific error subclass from an HTTP status + body. */
@@ -63,6 +82,8 @@ export class ApiError extends Error {
       case 'KEY_POLICY_DURATION':
         return new KeyPolicyDurationError(code, httpStatus, msg, b);
     }
+    // Every moderation refusal carries the Terms link, whatever its code.
+    if (typeof b.termsUrl === 'string' && b.termsUrl.trim()) return new NsfwRejectedError(code, httpStatus, msg, b);
     if (code.includes('TIER')) return new TierError(code, httpStatus, msg, b);
     if (httpStatus === 429) return new RateLimitError(code, httpStatus, msg, b);
     // Code-less responses (e.g. the CDN gate replies with EMPTY bodies) route
@@ -134,9 +155,17 @@ export class TierError extends ApiError {
   }
 }
 
-/** Content blocked by the moderation pass — `NSFW_REJECTED`, `NSFW_REFS_BLOCKED`. */
+/** Content refused by the moderation pass — `NSFW_REJECTED` (a prompt or an upload), `NSFW_REFS_BLOCKED` (a reference
+ *  image), and any other answer that carries the Terms link. Nothing was charged. `message` is the reason, one sentence
+ *  per category that never repeats the prompt and ends with « See the Terms of Use. »; `category` names the prohibited
+ *  category when the server knows it; `termsUrl` is the absolute Terms of Use link to show with it. */
 export class NsfwRejectedError extends ApiError {
   get nsfwRate(): number | undefined { return this.details.nsfwRate as number | undefined; }
+  /** On `NSFW_REFS_BLOCKED`: the reference creations that were refused. */
+  get blockedCreationIds(): string[] | undefined {
+    const ids = this.details.blockedCreationIds;
+    return Array.isArray(ids) ? ids.filter((v): v is string => typeof v === 'string') : undefined;
+  }
 }
 
 /** Too many generations in flight — `QUEUE_LIMIT_REACHED`. Retry once some finish. */

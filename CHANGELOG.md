@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.5.0 (2026-11-17)
+
+Links and refusal fields. Additive: nothing removed, every existing field unchanged.
+
+- `Account.links` (optional): the public 2DAI links `GET /v1/me` now sends, every URL absolute (https): `website`
+  (`https://www.2dai.io`), `terms` (the Terms of Use, `https://www.2dai.io/terms`), `privacy` (the privacy policy) and
+  `socials`, every community network the site lists, in its order: Telegram, X, Instagram, YouTube, Reddit, TikTok
+  (`{ id, name, description, url }`). New exported types `PlatformLinks` and `SocialLink`.
+- Moderation refusals (`NSFW_REJECTED` on a prompt or an upload, `NSFW_REFS_BLOCKED` on a reference image) answer
+  `{ error, message, category?, termsUrl }`: `message` is the reason (one sentence per category, never the prompt,
+  ending with « See the Terms of Use. »), `category` names the prohibited category when the server knows it, and
+  `termsUrl` is the Terms of Use link, absolute on `/v1`.
+- `ApiError` gains `category` and `termsUrl`, so every error class reads them; `termsUrl` is always absolute (a relative
+  `/terms` from an older server is resolved on www.2dai.io) and `undefined` on errors that are not refusals.
+- `NsfwRejectedError` gains `blockedCreationIds` (on `NSFW_REFS_BLOCKED`). `ApiError.from` also maps any other answer
+  that carries `termsUrl` to `NsfwRejectedError`, so a future refusal code still lands on the refusal class.
+- README: a « Links » section (Terms of Use, privacy, website, every network) and the refusal fields under Error
+  handling.
+
 ## 3.4.0 (2026-11-12)
 
 Engine profiles (server 2.9.0): every rule of a channel now comes from the profile of the engine behind it, and the

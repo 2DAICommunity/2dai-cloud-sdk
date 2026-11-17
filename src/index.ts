@@ -9,6 +9,8 @@ export type {
   ArtisticStyle,
   ArtisticStyleParams,
   Account,
+  PlatformLinks,
+  SocialLink,
   KeyContext,
   ModelLabel,
   AccountChannelBase,

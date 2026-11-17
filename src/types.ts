@@ -83,6 +83,34 @@ export interface Account {
   /** The first tier that raises `promptMaxChars`, when there is one. */
   promptMaxCharsNext?: { tier: string; max: number };
   key: KeyContext;
+  /** Public 2DAI links, absolute https URLs: the website, the Terms of Use, the privacy policy and every community
+   *  network the site lists. Absent on older servers. */
+  links?: PlatformLinks;
+}
+
+/** Public 2DAI links, as `GET /v1/me` sends them in `links`. Every URL is absolute (https). */
+export interface PlatformLinks {
+  /** The website, `https://www.2dai.io`. */
+  website: string;
+  /** The Terms of Use every account accepts, `https://www.2dai.io/terms`: the link a moderation refusal carries
+   *  (`ApiError.termsUrl`). */
+  terms: string;
+  /** The privacy policy, `https://www.2dai.io/privacy`. */
+  privacy: string;
+  /** Every 2DAI community network, in the order the site lists them (Telegram first). */
+  socials: SocialLink[];
+}
+
+/** One 2DAI community network of `PlatformLinks.socials`. */
+export interface SocialLink {
+  /** `'telegram'`, `'x'`, `'instagram'`, `'youtube'`, `'reddit'`, `'tiktok'` today; more may come. */
+  id: string;
+  /** Display name: `'Telegram'`, `'X'`, `'Instagram'`, … */
+  name: string;
+  /** What is there, in a few words (`'Chat, free /gen bot, support'`). */
+  description: string;
+  /** Absolute https URL. */
+  url: string;
 }
 
 /** The engine behind a model channel, as `GET /v1/me` names it in `modelLabels`. */

@@ -277,6 +277,7 @@ console.log(me.creditUsd, me.tier, me.key.scopes);
 console.log(me.promptMaxChars, me.promptMaxCharsNext); // prompt cap for this tier (1,500 → 20,000), and the tier that raises it
 console.log(me.modelLabels, me.videoDurations, me.qualities); // engine per channel, lengths and presets open to this tier
 console.log(me.channels?.video.default?.refs.max, me.channels?.video.default?.audio); // what the engine behind a channel takes
+console.log(me.links?.terms, me.links?.socials);   // Terms of Use, privacy, website and every community network (see Links)
 
 const page = await client.creations.list({ limit: 20 });
 const one = await client.creations.get(page.creations[0].creationId);
@@ -323,7 +324,7 @@ try {
 } catch (err) {
   if (err instanceof InsufficientCreditError) console.log('Top up:', err.deficitUsd);
   else if (err instanceof SpendLimitError) console.log('Key cap hit at', err.spendLimitUsd);
-  else if (err instanceof NsfwRejectedError) console.log('Blocked by moderation');
+  else if (err instanceof NsfwRejectedError) console.log(err.message, err.termsUrl);
   else if (err instanceof ApiError) console.log(err.code, err.httpStatus);
   else throw err;
 }
@@ -341,6 +342,14 @@ a readable sentence you can show as is.
 A `TierError` names the tier that opens what was asked (`requiredTier`, `requiredTierName`)
 and ships a ready sentence in `message` (for example "… opens at Holder. Upgrade your tier…");
 `family` (`'video'` / `'image'`), `channel` and `engine` say where it was refused; nothing was charged.
+
+A **moderation refusal** (`NsfwRejectedError`: 403 `NSFW_REJECTED` on a prompt or an upload,
+`NSFW_REFS_BLOCKED` on a reference image) charges nothing and carries the reason and the Terms of Use:
+`message` is one sentence per category, never your prompt, ending with « See the Terms of Use. »;
+`category` names the prohibited category when the server knows it (`politics`, `graphic_harm`, …);
+`termsUrl` is the absolute link `https://www.2dai.io/terms`. Show `message` with the link; do not resubmit
+the same content. `category` and `termsUrl` live on `ApiError`, so any error class reads them (`undefined`
+when the error is not a refusal); `blockedCreationIds` lists the refused references.
 
 A **content-rated** result is not an error: a creation with `nsfwFlagged: true`
 (`nsfwRate` 0.8 or 0.99) completed and was charged, but it stays masked in the
@@ -440,11 +449,25 @@ de-duplicates an identical submit within ~5 s (`409 IDEMPOTENT_RETRY`), and a he
 
 MIT
 
-## Community & links
+## Links
 
 - **Website** — [www.2dai.io](https://www.2dai.io)
-- **X** — [@2DAICommunity](https://x.com/2DAICommunity)
-- **Telegram** — [t.me/Token2dAI](https://t.me/Token2dAI)
+- **Terms of Use** — [www.2dai.io/terms](https://www.2dai.io/terms) · **Privacy policy** — [www.2dai.io/privacy](https://www.2dai.io/privacy)
+- **Telegram** — [t.me/Token2dAI](https://t.me/Token2dAI) · chat, the free /gen bot, support
+- **X** — [@2DAICommunity](https://x.com/2DAICommunity) · news, launches, drops
+- **Instagram** — [@2dai.io](https://www.instagram.com/2dai.io/) · art and series
+- **YouTube** — [@2DAICommunity](https://www.youtube.com/@2DAICommunity) · videos and sagas
+- **Reddit** — [r/2DAI](https://www.reddit.com/r/2DAI/)
+- **TikTok** — [@2daicommunity](https://www.tiktok.com/@2daicommunity) · short clips
 - **$2DAI on Base** — [chart on Dexscreener](https://dexscreener.com/base/0x2b5963f06eb366ecd7c669efde258860cc9b90d4) · stake for tiers & daily credit airdrops
 - **MCP server** — [2dai-mcp-server](https://www.npmjs.com/package/2dai-mcp-server) turns Claude, Cursor, Cline & Windsurf into 2DAI clients
 - **GitHub** — [2DAICommunity](https://github.com/2DAICommunity)
+
+The same links come from the API, so an app shows them without hard-coding them:
+
+```ts
+const { links } = await client.me();
+links?.terms;    // 'https://www.2dai.io/terms'
+links?.privacy;  // 'https://www.2dai.io/privacy'
+for (const s of links?.socials ?? []) console.log(s.name, s.url);  // Telegram, X, Instagram, YouTube, Reddit, TikTok
+```
