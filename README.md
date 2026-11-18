@@ -1,6 +1,7 @@
 # 2dai-cloud-sdk
 
 [![npm](https://img.shields.io/npm/v/2dai-cloud-sdk)](https://www.npmjs.com/package/2dai-cloud-sdk)
+[![2DAI Cloud SDK on StartupScores](https://startupscores.com/badge/2dai-cloud-sdk.svg?style=shield&v=combo&theme=dark)](https://startupscores.com/open-source/2dai-cloud-sdk)
 
 Typed JavaScript/TypeScript client for the [2DAI](https://2dai.io) generation API.
 Generate images and video, upload references, browse and organise your cloud
